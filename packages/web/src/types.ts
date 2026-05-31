@@ -40,6 +40,7 @@ export interface UserSettings {
   timezone: string;
   language: string;
   firstDayOfWeek: number;
+  showEventTime: boolean;
 }
 
 export interface SyncPullResponse {
