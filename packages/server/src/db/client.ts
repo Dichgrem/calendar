@@ -34,6 +34,12 @@ export function getDb() {
       rawConnection.exec(`ALTER TABLE user_settings ADD COLUMN date_format TEXT NOT NULL DEFAULT 'zh'`);
     }
 
+    const eventColumns = rawConnection.pragma("table_info(events)") as { name: string }[];
+    const eventColNames = new Set(eventColumns.map((c) => c.name));
+    if (!eventColNames.has("raw_ics")) {
+      rawConnection.exec(`ALTER TABLE events ADD COLUMN raw_ics TEXT`);
+    }
+
     dbInstance = drizzle(rawConnection, { schema });
   }
   return dbInstance;

@@ -8,6 +8,7 @@ interface ParsedComponent {
   uid: string;
   props: Record<string, string>;
   params: Record<string, Record<string, string>>;
+  rawIcs: string;
 }
 
 export interface ParsedCalendar {
@@ -31,14 +32,32 @@ export function parseIcsContent(content: string): ParsedCalendar {
 
   const cal: ParsedCalendar = { name: "Imported Calendar", components: [] };
   let current: ParsedComponent | null = null;
+  let rawLines: string[] = [];
+  let inAlarm = false;
 
   for (const line of lines) {
     if (line === "BEGIN:VEVENT") {
-      current = { type: "VEVENT", uid: "", props: {}, params: {} };
+      current = { type: "VEVENT", uid: "", props: {}, params: {}, rawIcs: "" };
+      rawLines = [line];
+      inAlarm = false;
     } else if (line === "END:VEVENT" && current) {
+      rawLines.push(line);
+      current.rawIcs = rawLines.join("\r\n");
       cal.components.push(current);
       current = null;
+      rawLines = [];
+      inAlarm = false;
     } else if (current) {
+      rawLines.push(line);
+      if (line === "BEGIN:VALARM") {
+        inAlarm = true;
+        continue;
+      }
+      if (line === "END:VALARM") {
+        inAlarm = false;
+        continue;
+      }
+      if (inAlarm) continue;
       const m = line.match(/^([^;:]+)(?:;(.+?))?:(.*)$/s);
       if (m) {
         const key = m[1].toUpperCase();
@@ -74,6 +93,47 @@ function sanitizeIcsDateTime(iso: string): string {
   return iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
+function extractExtraProperties(rawIcs: string): string[] {
+  if (!rawIcs) return [];
+  
+  const supportedKeys = new Set([
+    "UID", "DTSTAMP", "SUMMARY", "DESCRIPTION", "DTSTART", "DTEND",
+    "DTSTART;VALUE=DATE", "DTEND;VALUE=DATE", "RRULE", "LOCATION"
+  ]);
+  
+  const lines = rawIcs.split("\r\n");
+  const extra: string[] = [];
+  let inValarm = false;
+  
+  for (const line of lines) {
+    if (line === "BEGIN:VALARM") {
+      inValarm = true;
+      extra.push(line);
+      continue;
+    }
+    if (line === "END:VALARM") {
+      inValarm = false;
+      extra.push(line);
+      continue;
+    }
+    if (inValarm) {
+      extra.push(line);
+      continue;
+    }
+    if (line.startsWith("BEGIN:") || line.startsWith("END:")) continue;
+    
+    const keyMatch = line.match(/^([A-Z-]+(?:;[A-Z-]+=[^;:]+)*)/i);
+    if (keyMatch) {
+      const key = keyMatch[1].toUpperCase();
+      if (!supportedKeys.has(key)) {
+        extra.push(line);
+      }
+    }
+  }
+  
+  return extra;
+}
+
 export function serializeIcsCalendar(
   calName: string,
   events: {
@@ -86,6 +146,7 @@ export function serializeIcsCalendar(
     rrule: string | null;
     location: string | null;
     createdAt: string;
+    rawIcs: string | null;
   }[],
 ): string {
   const lines: string[] = ["BEGIN:VCALENDAR\r\n"];
@@ -114,6 +175,12 @@ export function serializeIcsCalendar(
     }
     if (e.rrule) lines.push(formatIcsLine("RRULE", e.rrule));
     if (e.location) lines.push(formatIcsLine("LOCATION", e.location));
+    
+    const extra = extractExtraProperties(e.rawIcs ?? "");
+    for (const line of extra) {
+      lines.push(line + "\r\n");
+    }
+    
     lines.push("END:VEVENT\r\n");
   }
 
@@ -244,6 +311,7 @@ export async function importIcsToCalendar(
         allDay,
         rrule: getProp(c, "RRULE"),
         location: getProp(c, "LOCATION"),
+        rawIcs: c.rawIcs,
         createdAt: now,
         updatedAt: now,
         lastModified: lmod,
@@ -258,6 +326,7 @@ export async function importIcsToCalendar(
           allDay,
           rrule: getProp(c, "RRULE"),
           location: getProp(c, "LOCATION"),
+          rawIcs: c.rawIcs,
           updatedAt: now,
           lastModified: lmod,
         },

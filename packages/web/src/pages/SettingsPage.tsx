@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, Check, X, Download } from "lucide-react";
+import { Pencil, Trash2, Check, X, Download, Upload } from "lucide-react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
@@ -22,6 +22,8 @@ export function SettingsPage() {
   const [editingCal, setEditingCal] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     api.settings
@@ -75,6 +77,37 @@ export function SettingsPage() {
     await api.calendars.remove(id);
     queryClient.invalidateQueries({ queryKey: ["calendars"] });
     queryClient.invalidateQueries({ queryKey: ["events"] });
+  };
+
+  const handleExport = (calendarId: string, calName: string) => {
+    const url = api.ics.exportUrl(calendarId);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${calName}.ics`;
+    a.click();
+  };
+
+  const handleExportSelected = () => {
+    calendars?.filter((cal) => exportSelected.has(cal.id)).forEach((cal) => {
+      handleExport(cal.id, cal.name);
+    });
+    setExportOpen(false);
+  };
+
+  const toggleExportCal = (id: string) => {
+    setExportSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleExportAll = () => {
+    if (!calendars) return;
+    setExportSelected((prev) =>
+      prev.size === calendars.length ? new Set() : new Set(calendars.map((c) => c.id))
+    );
   };
 
   return (
@@ -150,10 +183,52 @@ export function SettingsPage() {
 
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-sm">{t("settings.calendars")}</h2>
-            <Button variant="outline" size="sm" onClick={() => navigate("/import")} className="h-7 text-xs gap-1">
-              <Download className="size-3" />{t("settings.importIcs")}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" onClick={() => navigate("/import")} className="h-7 text-xs gap-1">
+                <Download className="size-3" />{t("settings.importIcs")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                setExportSelected(new Set(calendars?.map((c) => c.id) ?? []));
+                setExportOpen(true);
+              }} className="h-7 text-xs gap-1">
+                <Upload className="size-3" />{t("settings.exportIcs")}
+              </Button>
+            </div>
           </div>
+
+          {exportOpen && (
+            <div className="mb-3 p-3 border rounded-lg border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-neutral-500">{t("settings.selectCalendars")}</span>
+                <button onClick={toggleExportAll} className="text-xs text-blue-500 hover:underline">
+                  {exportSelected.size === calendars?.length ? t("settings.deselectAll") : t("settings.selectAll")}
+                </button>
+              </div>
+              <div className="space-y-1 mb-2">
+                {calendars?.map((cal) => (
+                  <label key={cal.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={exportSelected.has(cal.id)}
+                      onChange={() => toggleExportCal(cal.id)}
+                      className="accent-neutral-900 dark:accent-white"
+                    />
+                    <span className="size-3 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                    <span className="text-sm">{cal.name}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex gap-1">
+                <Button size="sm" onClick={handleExportSelected} disabled={exportSelected.size === 0} className="h-7 text-xs">
+                  {t("settings.exportSelected")} ({exportSelected.size})
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setExportOpen(false)} className="h-7 text-xs">
+                  {t("settings.cancel")}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             {calendars?.map((cal) => (
               <div key={cal.id} className="flex items-center gap-2 p-1.5 border rounded-lg border-neutral-200 dark:border-neutral-700">
