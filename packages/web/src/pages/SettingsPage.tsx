@@ -248,6 +248,15 @@ export function SettingsPage() {
               />
               <span className="text-sm">{t("settings.showEventTime")}</span>
             </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={s.showLunarCalendar}
+                onChange={(e) => setSettings({ ...s, showLunarCalendar: e.target.checked })}
+                className="accent-neutral-900 dark:accent-white"
+              />
+              <span className="text-sm">{t("settings.showLunarCalendar")}</span>
+            </label>
           </div>
 
           <hr className="my-4 border-neutral-200 dark:border-neutral-800" />

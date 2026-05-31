@@ -40,6 +40,12 @@ export function getDb() {
       rawConnection.exec(`ALTER TABLE events ADD COLUMN raw_ics TEXT`);
     }
 
+    const settingsColumns = rawConnection.pragma("table_info(user_settings)") as { name: string }[];
+    const settingsColNames = new Set(settingsColumns.map((c) => c.name));
+    if (!settingsColNames.has("show_lunar_calendar")) {
+      rawConnection.exec(`ALTER TABLE user_settings ADD COLUMN show_lunar_calendar INTEGER NOT NULL DEFAULT 0`);
+    }
+
     dbInstance = drizzle(rawConnection, { schema });
   }
   return dbInstance;
