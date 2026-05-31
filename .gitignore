@@ -22,4 +22,5 @@ result
 Thumbs.db
 problem.md
 packages/server/wrangler.toml
+packages/server/config.json
 *.tsbuildinfo

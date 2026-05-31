@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, Check, X, Download, FileDown, Globe } from "lucide-react";
+import { Pencil, Trash2, Check, X, Download, FileDown, Globe, Database, Archive } from "lucide-react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
@@ -68,6 +68,8 @@ export function SettingsPage() {
   const [importing, setImporting] = useState<Set<string>>(new Set());
   const [imported, setImported] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState<string | null>(null);
+  const [backingUp, setBackingUp] = useState(false);
+  const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
 
   useEffect(() => {
     api.settings
@@ -178,6 +180,35 @@ export function SettingsPage() {
         next.delete(cal.id);
         return next;
       });
+    }
+  };
+
+  const handleBackup = async () => {
+    setBackingUp(true);
+    setBackupResult(null);
+    try {
+      const res = await api.backup.create();
+      const data = (res as { ok: boolean; data: { filename: string } }).data;
+      setBackupResult(data);
+    } catch {
+      setSaveError("备份失败");
+    } finally {
+      setBackingUp(false);
+    }
+  };
+
+  const handleExportConfig = async () => {
+    try {
+      const cfg = await api.settings.exportConfig();
+      const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "config.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setSaveError("导出配置失败");
     }
   };
 
@@ -378,9 +409,32 @@ export function SettingsPage() {
             )}
           </div>
 
+          {saveError && <p className="text-sm text-red-500 mb-2">{saveError}</p>}
           <hr className="my-4 border-neutral-200 dark:border-neutral-800" />
-          {saveError && <p className="mb-2 text-sm text-red-500">{saveError}</p>}
-          <Button className="w-full" onClick={handleSave}>{saved ? t("settings.saved") : t("settings.save")}</Button>
+          {backupResult && (
+            <p className="text-xs text-neutral-500 mb-1">
+              {t("settings.backupDone")} —{" "}
+              <button
+                onClick={() => api.backup.download(backupResult.filename)}
+                className="text-blue-500 hover:underline"
+              >
+                {backupResult.filename}
+              </button>
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleBackup} disabled={backingUp} className="flex-1 h-8 text-xs gap-1.5">
+              <Database className="size-3.5" />
+              {backingUp ? t("settings.backingUp") : t("settings.backupDb")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportConfig} className="flex-1 h-8 text-xs gap-1.5">
+              <Archive className="size-3.5" />
+              {t("settings.exportConfig")}
+            </Button>
+            <Button className="flex-1 h-8 text-xs" onClick={handleSave}>
+              {saved ? t("settings.saved") : t("settings.save")}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

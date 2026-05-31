@@ -4,8 +4,9 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { users, sessions, calendarMembers, calendars } from "../db/schema.js";
 import type { ID } from "../types.js";
+import { config } from "../config.js";
 
-const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const SESSION_DURATION_MS = config.sessionDurationMs;
 
 function hashPassword(password: string, salt: string): string {
   const passwordBytes = new TextEncoder().encode(password);

@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import "./db/node-init.js";
+import { config } from "./config.js";
 import { authRouter } from "./auth/auth.routes.js";
 import { syncRouter } from "./sync/routes.js";
 import { calendarsRouter } from "./routes/calendars.js";
@@ -16,7 +17,7 @@ const app = new Hono();
 app.use(
   "*",
   cors({
-    origin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+    origin: config.corsOrigin,
     credentials: true,
   }),
 );
@@ -37,7 +38,7 @@ if (existsSync("./public")) {
   app.get("*", serveStatic({ path: "./public/index.html" }));
 }
 
-const port = Number(process.env.PORT) || 3000;
+const port = config.port;
 console.log(`Server starting on port ${port}`);
 serve({ fetch: app.fetch, port });
 
