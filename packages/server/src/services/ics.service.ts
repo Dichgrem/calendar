@@ -7,6 +7,7 @@ interface ParsedComponent {
   type: "VEVENT" | "VTODO";
   uid: string;
   props: Record<string, string>;
+  params: Record<string, Record<string, string>>;
 }
 
 interface ParsedCalendar {
@@ -21,7 +22,7 @@ function unfoldLines(text: string): string {
 function parseProperty(
   line: string,
 ): { name: string; params: Record<string, string>; value: string } | null {
-  const m = line.match(/^([^;:]+)(?:;(.+?))?:(.*)$/);
+  const m = line.match(/^([^;:]+)(?:;(.+?))?:(.*)$/s);
   if (!m) return null;
 
   const name = m[1].toUpperCase();
@@ -31,8 +32,8 @@ function parseProperty(
   const params: Record<string, string> = {};
   if (paramsStr) {
     for (const part of paramsStr.split(";")) {
-      const eq = part.indexOf("=");
-      if (eq > 0) params[part.slice(0, eq).toUpperCase()] = part.slice(eq + 1);
+      const eqIdx = part.indexOf("=");
+      if (eqIdx > 0) params[part.slice(0, eqIdx).toUpperCase()] = part.slice(eqIdx + 1);
     }
   }
 
@@ -60,7 +61,7 @@ export function parseIcs(raw: string): ParsedCalendar {
         inVcal = true;
       } else if (prop.value === "VEVENT" || prop.value === "VTODO") {
         inComponent = prop.value;
-        current = { type: prop.value, uid: "", props: {} };
+        current = { type: prop.value, uid: "", props: {}, params: {} };
       }
     } else if (prop.name === "END") {
       if (prop.value === "VCALENDAR") {
@@ -75,6 +76,9 @@ export function parseIcs(raw: string): ParsedCalendar {
         current.uid = prop.value;
       }
       current.props[prop.name] = prop.value;
+      if (Object.keys(prop.params).length > 0) {
+        current.params[prop.name] = prop.params;
+      }
     } else if (inVcal && !inComponent) {
       if (prop.name === "X-WR-CALNAME") {
         cal.name = prop.value;
@@ -193,29 +197,29 @@ export function buildPreview(parsed: ParsedCalendar): IcsPreview {
   for (const c of parsed.components) {
     if (c.type === "VEVENT") {
       eventCount++;
-      const startAt = c.props["DTSTART"] || c.props["DTSTART;VALUE=DATE"] || null;
-      const endAt = c.props["DTEND"] || c.props["DTEND;VALUE=DATE"] || null;
+      const startAt = getProp(c, "DTSTART");
+      const endAt = getProp(c, "DTEND");
       if (startAt && (!earliest || startAt < earliest)) earliest = startAt;
       if (endAt && (!latest || endAt > latest)) latest = endAt;
 
       items.push({
         type: "event",
         uid: c.uid,
-        title: c.props["SUMMARY"] || "(Untitled)",
+        title: getProp(c, "SUMMARY") || "(Untitled)",
         startAt: normalizeDt(startAt),
         endAt: normalizeDt(endAt),
         dueDate: null,
-        rrule: c.props["RRULE"] || null,
+        rrule: getProp(c, "RRULE"),
         selected: true,
       });
     } else if (c.type === "VTODO") {
       todoCount++;
-      const due = c.props["DUE"] || null;
+      const due = getProp(c, "DUE");
 
       items.push({
         type: "todo",
         uid: c.uid,
-        title: c.props["SUMMARY"] || "(Untitled)",
+        title: getProp(c, "SUMMARY") || "(Untitled)",
         startAt: null,
         endAt: null,
         dueDate: normalizeDt(due),
@@ -240,11 +244,24 @@ function normalizeDt(dt: string | null): string | null {
   if (cleaned.length === 8 && /^\d{8}$/.test(cleaned)) {
     return `${cleaned.slice(0, 4)}-${cleaned.slice(4, 6)}-${cleaned.slice(6, 8)}`;
   }
-  if (cleaned.length >= 15 && cleaned.includes("T")) {
-    const m = cleaned.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
-    if (m) return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`;
+  if (cleaned.length >= 13 && /^\d{8}T\d{4}/.test(cleaned)) {
+    const date = cleaned.slice(0, 8);
+    const time = cleaned.slice(9, 15);
+    const suffix = cleaned.slice(15);
+    return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T${time.slice(0, 2)}:${time.slice(2, 4)}:${time.length >= 4 ? `:${time.slice(4, 6)}` : ""}${suffix}`;
   }
   return cleaned;
+}
+
+function isAllDay(comp: ParsedComponent): boolean {
+  const dtParams = comp.params["DTSTART"];
+  if (dtParams?.["VALUE"]?.toUpperCase() === "DATE") return true;
+  const startVal = comp.props["DTSTART"] ?? "";
+  return /^\d{8}$/.test(startVal);
+}
+
+function getProp(comp: ParsedComponent, key: string): string | null {
+  return comp.props[key] ?? null;
 }
 
 function ensureMemberJoin(calendarId: ID, userId: ID) {
@@ -279,24 +296,23 @@ export async function importIcsToCalendar(
   for (const c of parsed.components) {
     if (!selectedUids.has(c.uid)) continue;
 
-    const props = c.props;
     if (c.type === "VEVENT") {
-      const startAt = normalizeDt(props["DTSTART"] || props["DTSTART;VALUE=DATE"]) ?? now;
-      const endAt = normalizeDt(props["DTEND"] || props["DTEND;VALUE=DATE"]) ?? now;
-      const allDay = !!props["DTSTART;VALUE=DATE"];
+      const startAt = normalizeDt(getProp(c, "DTSTART")) ?? now;
+      const endAt = normalizeDt(getProp(c, "DTEND")) ?? now;
+      const allDay = isAllDay(c);
 
       await db
         .insert(events)
         .values({
           id: c.uid || crypto.randomUUID(),
           calendarId,
-          title: props["SUMMARY"] || "(Untitled)",
-          description: props["DESCRIPTION"] || null,
+          title: getProp(c, "SUMMARY") || "(Untitled)",
+          description: getProp(c, "DESCRIPTION"),
           startAt,
           endAt,
           allDay,
-          rrule: props["RRULE"] || null,
-          location: props["LOCATION"] || null,
+          rrule: getProp(c, "RRULE"),
+          location: getProp(c, "LOCATION"),
           createdAt: now,
           updatedAt: now,
           lastModified: lmod,
@@ -304,32 +320,32 @@ export async function importIcsToCalendar(
         .onConflictDoUpdate({
           target: [events.id],
           set: {
-            title: props["SUMMARY"] || "(Untitled)",
-            description: props["DESCRIPTION"] || null,
+            title: getProp(c, "SUMMARY") || "(Untitled)",
+            description: getProp(c, "DESCRIPTION"),
             startAt,
             endAt,
             allDay,
-            rrule: props["RRULE"] || null,
-            location: props["LOCATION"] || null,
+            rrule: getProp(c, "RRULE"),
+            location: getProp(c, "LOCATION"),
             updatedAt: now,
             lastModified: lmod,
           },
         });
       eventCount++;
     } else if (c.type === "VTODO") {
-      const dueDate = normalizeDt(props["DUE"]);
+      const dueDate = normalizeDt(getProp(c, "DUE"));
       const status =
-        props["STATUS"] === "COMPLETED"
+        getProp(c, "STATUS") === "COMPLETED"
           ? ("completed" as const)
-          : props["STATUS"] === "IN-PROCESS"
+          : getProp(c, "STATUS") === "IN-PROCESS"
             ? ("in_progress" as const)
             : ("todo" as const);
       const priority =
-        props["PRIORITY"] === "1"
+        getProp(c, "PRIORITY") === "1"
           ? ("high" as const)
-          : props["PRIORITY"] === "5"
+          : getProp(c, "PRIORITY") === "5"
             ? ("medium" as const)
-            : props["PRIORITY"] === "9"
+            : getProp(c, "PRIORITY") === "9"
               ? ("low" as const)
               : ("none" as const);
 
@@ -338,8 +354,8 @@ export async function importIcsToCalendar(
         .values({
           id: c.uid || crypto.randomUUID(),
           calendarId,
-          title: props["SUMMARY"] || "(Untitled)",
-          description: props["DESCRIPTION"] || null,
+          title: getProp(c, "SUMMARY") || "(Untitled)",
+          description: getProp(c, "DESCRIPTION"),
           priority,
           status,
           dueDate,
@@ -351,8 +367,8 @@ export async function importIcsToCalendar(
         .onConflictDoUpdate({
           target: [todos.id],
           set: {
-            title: props["SUMMARY"] || "(Untitled)",
-            description: props["DESCRIPTION"] || null,
+            title: getProp(c, "SUMMARY") || "(Untitled)",
+            description: getProp(c, "DESCRIPTION"),
             priority,
             status,
             dueDate,
