@@ -52,7 +52,7 @@ const COMMON_CALENDARS: CommonCalendar[] = [
 export function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { data: calendars } = useCalendars();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -167,8 +167,8 @@ export function SettingsPage() {
         selectedUids: preview.items.map((i) => i.uid),
         overwrite: false,
       });
-      queryClient.removeQueries({ queryKey: ["calendars"] });
-      queryClient.removeQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       setImported((prev) => new Set(prev).add(cal.id));
     } catch (err) {
       setImportError(err instanceof Error ? err.message : t("import.importFailed"));
@@ -318,8 +318,8 @@ export function SettingsPage() {
                 <div key={cal.id} className="flex items-center gap-2 p-2 border rounded-lg border-neutral-200 dark:border-neutral-700">
                   <span className="size-4 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{cal.name}</p>
-                    <p className="text-xs text-neutral-500 truncate">{cal.description}</p>
+                    <p className="text-sm font-medium">{lang === "en" ? cal.nameEn : cal.name}</p>
+                    <p className="text-xs text-neutral-500 truncate">{lang === "en" ? cal.descriptionEn : cal.description}</p>
                   </div>
                   <Button
                     variant="outline"
@@ -336,6 +336,9 @@ export function SettingsPage() {
                   </Button>
                 </div>
               ))}
+              {importError && (
+                <p className="text-xs text-red-500">{importError}</p>
+              )}
             </div>
           )}
 
