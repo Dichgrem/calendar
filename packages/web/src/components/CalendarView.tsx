@@ -4,6 +4,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import type { EventClickArg, DatesSetArg } from "@fullcalendar/core";
+import { Plus } from "lucide-react";
 import { useEvents } from "../hooks/use-events";
 import { useCalendars } from "../hooks/use-calendars";
 import { useSettings } from "../hooks/use-settings";
@@ -35,6 +36,7 @@ export function CalendarView() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(currentDate.getFullYear());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
   const { data: settings } = useSettings();
@@ -182,11 +184,33 @@ export function CalendarView() {
         />
       </div>
 
-      <EventEditor
-        event={selectedEvent}
-        open={!!selectedEvent}
-        onClose={() => setSelectedEvent(null)}
-      />
+      {/* FAB: create event */}
+      <button
+        onClick={() => setCreating(true)}
+        className="fixed bottom-6 right-6 z-40 size-12 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        title={t("event.create")}
+      >
+        <Plus className="size-6" />
+      </button>
+
+      {selectedEvent && (
+        <EventEditor
+          mode="edit"
+          event={selectedEvent}
+          open
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
+
+      {creating && (
+        <EventEditor
+          mode="create"
+          calendars={calendars ?? []}
+          defaultCalendarId={[...visibleCalendars][0]}
+          open
+          onClose={() => setCreating(false)}
+        />
+      )}
     </div>
   );
 }
