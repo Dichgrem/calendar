@@ -12,6 +12,7 @@ import { useI18n } from "../hooks/use-i18n";
 import { useTopBar, useSearch } from "./Layout";
 import { EventEditor } from "./EventEditor";
 import { formatCalendarDate } from "../lib/date-format";
+import { getLunarText } from "../lib/lunar";
 import type { Event } from "../types";
 
 const MONTHS_ZH = [
@@ -269,6 +270,15 @@ export function CalendarView() {
             const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
             return dateStr === highlightDate ? ["fc-highlight-search"] : [];
           }}
+          dayCellContent={settings?.showLunarCalendar ? (arg) => {
+            const lunarText = getLunarText(arg.date);
+            return (
+              <div className="flex items-baseline gap-1">
+                <span className="text-xs text-neutral-400 dark:text-neutral-500 min-w-[2em] text-right">{lunarText}</span>
+                <span>{arg.dayNumberText}</span>
+              </div>
+            );
+          } : undefined}
           height="100%"
           locale={isEn ? "en" : "zh-cn"}
           firstDay={settings?.firstDayOfWeek ?? 0}

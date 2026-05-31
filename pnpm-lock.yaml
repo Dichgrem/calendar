@@ -96,6 +96,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.60.0
         version: 5.100.14(react@19.2.6)
+      chinese-days:
+        specifier: ^1.5.7
+        version: 1.5.7
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -1773,6 +1776,9 @@ packages:
 
   caniuse-lite@1.0.30001793:
     resolution: {integrity: sha512-iwSsYWaCOoh26cV8NwNRViHlrfUvYsHDfRVcbtmw0Kg6PJIZZXwMkj1442FYLBGkeUf1juAsU3DTfxW579mrPA==}
+
+  chinese-days@1.5.7:
+    resolution: {integrity: sha512-8Z/afgDTct5jsoTLQTOZfpDl7w4pJH4jpr3DLxy6HING9U/e0EV7yiNxF/HVXp/c+eQFfFqv+HQZ/QDaIVJ1Vw==}
 
   chokidar@3.6.0:
     resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
@@ -3910,6 +3916,8 @@ snapshots:
   camelcase-css@2.0.1: {}
 
   caniuse-lite@1.0.30001793: {}
+
+  chinese-days@1.5.7: {}
 
   chokidar@3.6.0:
     dependencies:

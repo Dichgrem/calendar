@@ -70,6 +70,7 @@ const updateSettingsSchema = z.object({
   firstDayOfWeek: z.number().int().min(0).max(6).optional(),
   showEventTime: z.boolean().optional(),
   dateFormat: z.string().max(50).optional(),
+  showLunarCalendar: z.boolean().optional(),
 });
 
 settingsRouter.patch("/settings", zValidator("json", updateSettingsSchema), async (c) => {
