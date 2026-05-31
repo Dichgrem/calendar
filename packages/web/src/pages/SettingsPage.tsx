@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
 import { Button } from "../components/ui/button";
+import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
 import type { UserSettings, Calendar } from "../types";
 import { useNavigate } from "react-router";
 
@@ -117,10 +118,11 @@ export function SettingsPage() {
               <div key={cal.id} className="flex items-center gap-2 p-2 border rounded border-neutral-200 dark:border-neutral-700">
                 {editingCal === cal.id ? (
                   <>
-                    <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)}
-                      className="size-6 border rounded cursor-pointer" />
-                    <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
-                      className="flex-1 text-sm border rounded px-2 py-1 bg-white dark:bg-neutral-800 dark:border-neutral-600" />
+                    <div className="flex-1 space-y-2">
+                      <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
+                        className="w-full text-sm border rounded px-2 py-1 bg-white dark:bg-neutral-800 dark:border-neutral-600" />
+                      <ColorSwatchPicker value={editColor} onChange={setEditColor} />
+                    </div>
                     <button onClick={saveCalEdit} className="size-6 flex items-center justify-center rounded hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600">
                       <Check className="size-4" />
                     </button>

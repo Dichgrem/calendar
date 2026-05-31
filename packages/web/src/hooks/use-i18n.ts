@@ -49,11 +49,18 @@ const strings = {
   "settings.showEventTime": { "zh-CN": "显示事件时间", en: "Show event time" },
 
   // ImportPage
+  "import.tabFile": { "zh-CN": "文件导入", en: "File" },
+  "import.tabUrl": { "zh-CN": "URL 导入", en: "URL" },
   "import.selectFile": { "zh-CN": "点击选择 .ics 文件", en: "Click to select .ics file" },
+  "import.urlPlaceholder": { "zh-CN": "输入 ICS 日历链接", en: "Enter ICS calendar URL" },
+  "import.fetchBtn": { "zh-CN": "获取预览", en: "Fetch Preview" },
+  "import.fetching": { "zh-CN": "获取中...", en: "Fetching..." },
+  "import.fetchError": { "zh-CN": "获取失败，请检查链接", en: "Fetch failed, check the URL" },
   "import.parseError": { "zh-CN": "解析失败，请检查文件格式", en: "Parse failed, check file format" },
   "import.parsing": { "zh-CN": "解析中...", en: "Parsing..." },
   "import.events": { "zh-CN": "个事件", en: "events" },
   "import.calName": { "zh-CN": "日历名称", en: "Calendar name" },
+  "import.color": { "zh-CN": "日历颜色", en: "Calendar color" },
   "import.overwrite": { "zh-CN": "覆盖", en: "Overwrite" },
   "import.overwriteWarn": { "zh-CN": "将清空此日历中现有内容再导入", en: "Will clear existing content before importing" },
   "import.event": { "zh-CN": "事件", en: "Event" },

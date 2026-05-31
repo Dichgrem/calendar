@@ -70,7 +70,9 @@ export const api = {
   ics: {
     preview: (content: string) =>
       request<ApiResponse<unknown>>("/ics/preview", { method: "POST", body: JSON.stringify({ content }) }),
-    import: (data: { content: string; calendarId?: string; calendarName?: string; selectedUids: string[]; overwrite?: boolean }) =>
+    fetchUrl: (url: string) =>
+      request<ApiResponse<{ preview: unknown; content: string }>>("/ics/fetch-url", { method: "POST", body: JSON.stringify({ url }) }),
+    import: (data: { content: string; calendarId?: string; calendarName?: string; color?: string; selectedUids: string[]; overwrite?: boolean }) =>
       request<ApiResponse<unknown>>("/ics/import", { method: "POST", body: JSON.stringify(data) }),
     exportUrl: (calendarId: string, start?: string, end?: string) =>
       `/api/calendars/${calendarId}/ics/export${start ? `?start=${start}&end=${end}` : ""}`,
