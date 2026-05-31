@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 export const calendars = sqliteTable(
   "calendars",
@@ -81,62 +81,6 @@ export const eventOverrides = sqliteTable(
   (t) => [uniqueIndex("idx_overrides_parent_date").on(t.parentId, t.originalDate)],
 );
 
-export const todoLists = sqliteTable(
-  "todo_lists",
-  {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    color: text("color"),
-    userId: text("user_id").notNull(),
-    sortOrder: real("sort_order").notNull().default(0),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
-    lastModified: integer("last_modified").notNull(),
-  },
-  (t) => [index("idx_todo_lists_user").on(t.userId)],
-);
-
-export const todos = sqliteTable(
-  "todos",
-  {
-    id: text("id").primaryKey(),
-    calendarId: text("calendar_id")
-      .notNull()
-      .references(() => calendars.id, { onDelete: "cascade" }),
-    listId: text("list_id").references(() => todoLists.id, {
-      onDelete: "set null",
-    }),
-    title: text("title").notNull(),
-    description: text("description"),
-    priority: text("priority", {
-      enum: ["high", "medium", "low", "none"],
-    })
-      .notNull()
-      .default("none"),
-    status: text("status", {
-      enum: ["todo", "in_progress", "completed"],
-    })
-      .notNull()
-      .default("todo"),
-    completedAt: text("completed_at"),
-    dueDate: text("due_date"),
-    dueTime: text("due_time"),
-    rrule: text("rrule"),
-    sortOrder: real("sort_order").notNull().default(0),
-    parentId: text("parent_id"),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
-    lastModified: integer("last_modified").notNull(),
-  },
-  (t) => [
-    index("idx_todos_calendar_list").on(t.calendarId, t.listId),
-    index("idx_todos_calendar_modified").on(t.calendarId, t.lastModified),
-    index("idx_todos_parent").on(t.parentId),
-    index("idx_todos_due_date").on(t.dueDate),
-    index("idx_todos_status").on(t.status),
-  ],
-);
-
 export const deletedLog = sqliteTable(
   "deleted_log",
   {
@@ -160,40 +104,22 @@ export const syncSequence = sqliteTable("sync_sequence", {
   syncedAt: text("synced_at").notNull(),
 });
 
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  expiresAt: text("expires_at").notNull(),
+});
+
 export const userSettings = sqliteTable("user_settings", {
   userId: text("user_id").primaryKey(),
   timezone: text("timezone").notNull().default("Asia/Shanghai"),
   language: text("language").notNull().default("zh-CN"),
-  defaultReminderBefore: integer("default_reminder_before").notNull().default(15),
   firstDayOfWeek: integer("first_day_of_week").notNull().default(0),
-  showCompletedTodos: integer("show_completed_todos", {
-    mode: "boolean",
-  })
-    .notNull()
-    .default(false),
-});
-
-export const pushSubscriptions = sqliteTable(
-  "push_subscriptions",
-  {
-    id: text("id").primaryKey(),
-    userId: text("user_id").notNull(),
-    endpoint: text("endpoint").notNull(),
-    p256dh: text("p256dh").notNull(),
-    auth: text("auth").notNull(),
-    createdAt: text("created_at").notNull(),
-  },
-  (t) => [
-    uniqueIndex("idx_push_subscriptions_ep").on(t.endpoint),
-    index("idx_push_subscriptions_user").on(t.userId),
-  ],
-);
-
-export const syncQueue = sqliteTable("sync_queue", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  tableName: text("table_name").notNull(),
-  recordId: text("record_id").notNull(),
-  op: text("op", { enum: ["created", "updated", "deleted"] }).notNull(),
-  data: text("data").notNull(),
-  seq: integer("seq").notNull(),
 });

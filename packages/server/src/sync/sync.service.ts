@@ -1,8 +1,14 @@
-import type { ID, SyncPullResponse, SyncPushResult } from "@calendar/shared";
+import type { ID, SyncPullResponse, SyncPushResult } from "../types.js";
 import { db } from "../db/client.js";
-import { syncSequence, deletedLog } from "../db/schema.js";
-import { sql, eq, gt, and, isNotNull } from "drizzle-orm";
-import type { PermissionContext } from "@calendar/shared";
+import { syncSequence, deletedLog, calendars, events, eventOverrides } from "../db/schema.js";
+import { sql, eq, gt, and } from "drizzle-orm";
+import type { PermissionContext } from "../types.js";
+
+const TABLE_MAP: Record<string, unknown> = {
+  calendars,
+  events,
+  event_overrides: eventOverrides,
+};
 
 interface PullParams {
   lastPulledSeq: number;
@@ -15,7 +21,7 @@ export async function pullChanges({
 }: PullParams): Promise<SyncPullResponse> {
   const changes: SyncPullResponse["changes"] = {};
 
-  const tablesToSync = ["calendars", "events", "todos", "todo_lists", "event_overrides"] as const;
+  const tablesToSync = ["calendars", "events", "event_overrides"] as const;
 
   for (const table of tablesToSync) {
     const created: Record<string, unknown>[] = [];
@@ -31,11 +37,13 @@ export async function pullChanges({
       if (seq.op === "deleted") {
         deleted.push(seq.recordId);
       } else {
-        const row = await db
+        const tableRef = TABLE_MAP[table];
+        if (!tableRef) continue;
+
+        const [row] = await db
           .select()
-          .from(sql.raw(table))
-          .where(eq(sql.raw(`${table}.id`), seq.recordId))
-          .get();
+          .from(tableRef as any)
+          .where(eq((tableRef as any).id, seq.recordId));
 
         if (row) {
           const record = row as Record<string, unknown>;
@@ -77,15 +85,18 @@ export async function pushChanges({
   const conflictIds: ID[] = [];
 
   for (const [table, tableChanges] of Object.entries(changes)) {
+    const tableRef = TABLE_MAP[table];
+    if (!tableRef) continue;
+
     for (const record of [...tableChanges.created, ...tableChanges.updated]) {
       const id = record.id as ID;
-      const lastModified = record.last_modified as number;
+      const lastModified = record.lastModified as number;
       if (lastModified == null) continue;
 
       const [existing] = await db
-        .select({ lastModified: sql.raw(`${table}.last_modified`).mapWith(Number) })
-        .from(sql.raw(table))
-        .where(eq(sql.raw(`${table}.id`), id));
+        .select({ lastModified: (tableRef as any).lastModified })
+        .from(tableRef as any)
+        .where(eq((tableRef as any).id, id));
 
       if (existing && existing.lastModified > lastModified) {
         conflictIds.push(id);
@@ -104,29 +115,34 @@ export async function pushChanges({
     };
   }
 
-  for (const [table, tableChanges] of Object.entries(changes)) {
-    for (const record of tableChanges.created) {
-      await db.insert(sql.raw(table)).values(record).onConflictDoNothing();
+  await db.transaction(async (tx) => {
+    for (const [table, tableChanges] of Object.entries(changes)) {
+      const tableRef = TABLE_MAP[table];
+      if (!tableRef) continue;
+
+      for (const record of tableChanges.created) {
+        await tx.insert(tableRef as any).values(record).onConflictDoNothing();
+      }
+      for (const record of tableChanges.updated) {
+        const { id, ...data } = record;
+        if (id == null) continue;
+        await tx
+          .update(tableRef as any)
+          .set(data)
+          .where(eq((tableRef as any).id, id as string));
+      }
+      for (const recordId of tableChanges.deleted) {
+        await tx.delete(tableRef as any).where(eq((tableRef as any).id, recordId));
+        await tx.insert(deletedLog).values({
+          id: crypto.randomUUID(),
+          tableName: table,
+          recordId,
+          deletedAt: new Date().toISOString(),
+          lastModified: Date.now(),
+        });
+      }
     }
-    for (const record of tableChanges.updated) {
-      const { id, ...data } = record;
-      if (id == null) continue;
-      await db
-        .update(sql.raw(table))
-        .set(data)
-        .where(eq(sql.raw(`${table}.id`), id as string));
-    }
-    for (const recordId of tableChanges.deleted) {
-      await db.delete(sql.raw(table)).where(eq(sql.raw(`${table}.id`), recordId));
-      await db.insert(deletedLog).values({
-        id: crypto.randomUUID(),
-        tableName: table,
-        recordId,
-        deletedAt: new Date().toISOString(),
-        lastModified: Date.now(),
-      });
-    }
-  }
+  });
 
   const [latestSeq] = await db
     .select({ maxSeq: sql<number>`COALESCE(MAX(${syncSequence.id}), 0)` })

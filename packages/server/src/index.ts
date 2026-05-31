@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
+import { authRouter } from "./auth/auth.routes.js";
 import { syncRouter } from "./sync/routes.js";
 import { calendarsRouter } from "./routes/calendars.js";
 import { eventsRouter } from "./routes/events.js";
-import { todosRouter } from "./routes/todos.js";
 import { icsRouter } from "./routes/ics.js";
 import { settingsRouter } from "./routes/settings.js";
 
@@ -22,10 +22,10 @@ app.get("/api/health", (c) => {
   return c.json({ ok: true, data: { status: "ok" } });
 });
 
+app.route("/api", authRouter);
 app.route("/api/sync", syncRouter);
 app.route("/api/calendars", calendarsRouter);
 app.route("/api", eventsRouter);
-app.route("/api", todosRouter);
 app.route("/api", icsRouter);
 app.route("/api", settingsRouter);
 

@@ -16,7 +16,7 @@ import * as path from "node:path";
 const settingsRouter = new Hono().use(authMiddleware);
 
 settingsRouter.post("/backup", async (c) => {
-  const result = backupDatabase();
+  const result = await backupDatabase();
   if (!result) {
     return c.json({ ok: false, error: { code: "INTERNAL", message: "Backup failed" } }, 500);
   }
@@ -68,9 +68,7 @@ settingsRouter.get("/settings", async (c) => {
 const updateSettingsSchema = z.object({
   timezone: z.string().optional(),
   language: z.enum(["zh-CN", "en"]).optional(),
-  defaultReminderBefore: z.number().int().min(0).optional(),
   firstDayOfWeek: z.number().int().min(0).max(6).optional(),
-  showCompletedTodos: z.boolean().optional(),
 });
 
 settingsRouter.patch("/settings", zValidator("json", updateSettingsSchema), async (c) => {

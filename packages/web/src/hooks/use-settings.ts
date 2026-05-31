@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import type { UserSettings } from "@calendar/shared";
+import type { UserSettings } from "../types";
 
 export function useSettings() {
   return useQuery({

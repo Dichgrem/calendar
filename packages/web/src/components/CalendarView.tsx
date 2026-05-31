@@ -10,7 +10,7 @@ import { useSettings } from "../hooks/use-settings";
 import { useI18n } from "../hooks/use-i18n";
 import { useTopBar } from "./Layout";
 import { EventEditor } from "./EventEditor";
-import type { Event } from "@calendar/shared";
+import type { Event } from "../types";
 
 const MONTHS_ZH = [
   "1月", "2月", "3月", "4月", "5月", "6月",
@@ -121,7 +121,7 @@ export function CalendarView() {
           key={cal.id}
           onClick={() => toggleCalendar(cal.id)}
           title={cal.name}
-          className="relative size-6 rounded-full border-2 transition-all shrink-0"
+          className="relative size-5 rounded-full border-2 transition-all shrink-0"
           style={{
             backgroundColor: visibleCalendars.has(cal.id) ? cal.color : "transparent",
             borderColor: cal.color,

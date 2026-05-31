@@ -1,4 +1,4 @@
-import type { Calendar, Event, Todo, TodoList, UserSettings, SyncPullResponse } from "@calendar/shared";
+import type { Calendar, Event, UserSettings, SyncPullResponse } from "../types";
 
 interface ApiResponse<T> {
   ok: true;
@@ -32,6 +32,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  auth: {
+    status: () => request<ApiResponse<{ registered: boolean }>>("/auth/status"),
+    register: (data: { username: string; password: string }) =>
+      request<ApiResponse<{ userId: string }>>("/auth/register", { method: "POST", body: JSON.stringify(data) }),
+    login: (data: { username: string; password: string }) =>
+      request<ApiResponse<{ userId: string }>>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+    logout: () => request<ApiResponse<null>>("/auth/logout", { method: "POST" }),
+    me: () => request<ApiResponse<{ userId: string }>>("/auth/me"),
+    changePassword: (data: { oldPassword: string; newPassword: string }) =>
+      request<ApiResponse<null>>("/auth/change-password", { method: "POST", body: JSON.stringify(data) }),
+  },
+
   calendars: {
     list: () => request<ApiResponse<Calendar[]>>("/calendars"),
     get: (id: string) => request<ApiResponse<Calendar>>(`/calendars/${id}`),
@@ -53,30 +65,6 @@ export const api = {
       request<ApiResponse<Event>>(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     remove: (id: string) =>
       request<ApiResponse<null>>(`/events/${id}`, { method: "DELETE" }),
-  },
-
-  todos: {
-    list: (calendarId: string, params?: Record<string, string>) => {
-      const qs = params ? "?" + new URLSearchParams(params).toString() : "";
-      return request<ApiResponse<Todo[]>>(`/calendars/${calendarId}/todos${qs}`);
-    },
-    get: (id: string) => request<ApiResponse<Todo>>(`/todos/${id}`),
-    create: (calendarId: string, data: Partial<Todo>) =>
-      request<ApiResponse<Todo>>(`/calendars/${calendarId}/todos`, { method: "POST", body: JSON.stringify(data) }),
-    update: (id: string, data: Partial<Todo>) =>
-      request<ApiResponse<Todo>>(`/todos/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-    remove: (id: string) =>
-      request<ApiResponse<null>>(`/todos/${id}`, { method: "DELETE" }),
-  },
-
-  todoLists: {
-    list: () => request<ApiResponse<TodoList[]>>("/todo-lists"),
-    create: (data: { name: string }) =>
-      request<ApiResponse<TodoList>>("/todo-lists", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: string, data: { name?: string }) =>
-      request<ApiResponse<TodoList>>(`/todo-lists/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-    remove: (id: string) =>
-      request<ApiResponse<null>>(`/todo-lists/${id}`, { method: "DELETE" }),
   },
 
   ics: {
