@@ -5,8 +5,7 @@
 ### 准备工作
 
 1. 注册 [Cloudflare](https://cloudflare.com) 账号
-2. 安装 wrangler：`npm install -g wrangler`
-3. 登录：`wrangler login`
+2. 登录：`npx wrangler login`
 
 ### 部署步骤
 
@@ -18,20 +17,19 @@ cd calendar
 # 2. 安装依赖
 pnpm install
 
-# 3. 创建 D1 数据库
+# 3. 复制示例配置
 cd packages/server
-pnpm cf:d1:create
-# 记录返回的 database_id
+cp wrangler.toml.example wrangler.toml
 
-# 4. 更新配置
-# 编辑 packages/server/wrangler.toml
-# 替换 database_id
+# 4. 创建 D1 数据库
+pnpm cf:d1:create
+# 将返回的 database_id 填入 wrangler.toml
 
 # 5. 运行迁移
 pnpm cf:d1:migrate
 
 # 6. 设置密钥
-wrangler secret put SESSION_SECRET
+npx wrangler secret put SESSION_SECRET
 
 # 7. 部署
 pnpm cf:deploy
@@ -44,6 +42,7 @@ cd calendar
 git pull
 pnpm install
 cd packages/server
+pnpm cf:d1:migrate
 pnpm cf:deploy
 ```
 
@@ -74,4 +73,4 @@ docker compose up -d
 |------|------|------|
 | `SESSION_SECRET` | 会话签名密钥 | 是 |
 | `CORS_ORIGIN` | 允许的跨域来源 | 否 |
-| `DATABASE_URL` | SQLite 数据库路径 | 否 |
+| `DATABASE_URL` | SQLite 数据库路径（仅 Node.js） | 否 |

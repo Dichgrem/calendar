@@ -35,19 +35,18 @@ cd calendar
 # 2. 安装依赖
 pnpm install
 
-# 3. 创建 D1 数据库
+# 3. 复制并编辑配置
 cd packages/server
+cp wrangler.toml.example wrangler.toml
+
+# 4. 创建 D1 数据库，将 database_id 填入 wrangler.toml
 pnpm cf:d1:create
 
-# 4. 更新 wrangler.toml 中的 database_id
-
-# 5. 运行迁移
+# 5. 运行迁移并设置会话密钥
 pnpm cf:d1:migrate
+npx wrangler secret put SESSION_SECRET
 
-# 6. 设置密钥
-wrangler secret put SESSION_SECRET
-
-# 7. 部署
+# 6. 部署
 pnpm cf:deploy
 ```
 
@@ -97,4 +96,4 @@ docker run -d -p 3000:3000 -v calendar-data:/data --name calendar calendar
 
 ## 许可证
 
-MIT
+[GNU AGPL v3.0](LICENSE)

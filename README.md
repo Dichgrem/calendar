@@ -35,19 +35,18 @@ cd calendar
 # 2. Install dependencies
 pnpm install
 
-# 3. Create D1 database
+# 3. Copy and edit config
 cd packages/server
+cp wrangler.toml.example wrangler.toml
+
+# 4. Create D1 database, fill database_id into wrangler.toml
 pnpm cf:d1:create
 
-# 4. Update wrangler.toml with your database_id
-
-# 5. Run migrations
+# 5. Run migrations and set session secret
 pnpm cf:d1:migrate
+npx wrangler secret put SESSION_SECRET
 
-# 6. Set secrets
-wrangler secret put SESSION_SECRET
-
-# 7. Deploy
+# 6. Deploy
 pnpm cf:deploy
 ```
 
@@ -97,4 +96,4 @@ docker run -d -p 3000:3000 -v calendar-data:/data --name calendar calendar
 
 ## License
 
-MIT
+[GNU AGPL v3.0](LICENSE)
