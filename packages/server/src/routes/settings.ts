@@ -10,6 +10,7 @@ import {
   getUserSettings,
   upsertUserSettings,
 } from "../services/settings.service.js";
+import { getRawConnection } from "../db/client.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { config } from "../config.js";
@@ -17,6 +18,12 @@ import { config } from "../config.js";
 const settingsRouter = new Hono().use(authMiddleware);
 
 settingsRouter.post("/backup", async (c) => {
+  if (!getRawConnection()) {
+    return c.json(
+      { ok: false, error: { code: "NOT_AVAILABLE", message: "Backup is only available in Docker/Node.js runtime, not Cloudflare Workers" } },
+      501,
+    );
+  }
   const result = await backupDatabase();
   if (!result) {
     return c.json({ ok: false, error: { code: "INTERNAL", message: "Backup failed" } }, 500);

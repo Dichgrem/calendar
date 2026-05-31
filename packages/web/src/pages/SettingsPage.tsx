@@ -190,8 +190,8 @@ export function SettingsPage() {
       const res = await api.backup.create();
       const data = (res as { ok: boolean; data: { filename: string } }).data;
       setBackupResult(data);
-    } catch {
-      setSaveError("备份失败");
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "备份失败");
     } finally {
       setBackingUp(false);
     }
