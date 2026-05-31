@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, Check, X, Download, FileDown } from "lucide-react";
+import { Pencil, Trash2, Check, X, Download, FileDown, Globe } from "lucide-react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
@@ -8,6 +8,46 @@ import { Button } from "../components/ui/button";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
 import type { UserSettings, Calendar } from "../types";
 import { useNavigate } from "react-router";
+
+interface CommonCalendar {
+  id: string;
+  name: string;
+  nameEn: string;
+  description: string;
+  descriptionEn: string;
+  url: string;
+  color: string;
+}
+
+const COMMON_CALENDARS: CommonCalendar[] = [
+  {
+    id: "cn-holidays",
+    name: "中国节假日",
+    nameEn: "Chinese Holidays",
+    description: "法定节假日及调休补班",
+    descriptionEn: "Public holidays and schedule adjustments",
+    url: "https://cdn.jsdelivr.net/npm/chinese-days/dist/holidays.ics",
+    color: "#ef4444",
+  },
+  {
+    id: "cn-festival",
+    name: "节日纪念日",
+    nameEn: "Festivals & Memorial Days",
+    description: "中国传统节日、纪念日",
+    descriptionEn: "Chinese traditional festivals and memorial days",
+    url: "https://yangh9.github.io/ChinaCalendar/cal_festival.ics",
+    color: "#f59e0b",
+  },
+  {
+    id: "cn-solar-term",
+    name: "二十四节气",
+    nameEn: "24 Solar Terms",
+    description: "立春、雨水、惊蛰等二十四节气",
+    descriptionEn: "Start of Spring, Rain Water, Awakening of Insects, etc.",
+    url: "https://yangh9.github.io/ChinaCalendar/cal_solarTerm.ics",
+    color: "#10b981",
+  },
+];
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -24,6 +64,10 @@ export function SettingsPage() {
   const [editColor, setEditColor] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
+  const [commonCalOpen, setCommonCalOpen] = useState(false);
+  const [importing, setImporting] = useState<Set<string>>(new Set());
+  const [imported, setImported] = useState<Set<string>>(new Set());
+  const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     api.settings
@@ -110,6 +154,33 @@ export function SettingsPage() {
     );
   };
 
+  const handleImportCommon = async (cal: CommonCalendar) => {
+    setImporting((prev) => new Set(prev).add(cal.id));
+    setImportError(null);
+    try {
+      const res = await api.ics.fetchUrl(cal.url);
+      const { preview, content } = (res as { ok: boolean; data: { preview: { name: string; items: Array<{ uid: string }> }; content: string } }).data;
+      await api.ics.import({
+        content,
+        calendarName: cal.name,
+        color: cal.color,
+        selectedUids: preview.items.map((i) => i.uid),
+        overwrite: false,
+      });
+      queryClient.removeQueries({ queryKey: ["calendars"] });
+      queryClient.removeQueries({ queryKey: ["events"] });
+      setImported((prev) => new Set(prev).add(cal.id));
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : t("import.importFailed"));
+    } finally {
+      setImporting((prev) => {
+        const next = new Set(prev);
+        next.delete(cal.id);
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto">
@@ -184,6 +255,9 @@ export function SettingsPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-sm">{t("settings.calendars")}</h2>
             <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" onClick={() => setCommonCalOpen(!commonCalOpen)} className="h-7 text-xs gap-1">
+                <Globe className="size-3" />{t("settings.commonCalendars")}
+              </Button>
               <Button variant="outline" size="sm" onClick={() => navigate("/import")} className="h-7 text-xs gap-1">
                 <Download className="size-3" />{t("settings.importIcs")}
               </Button>
@@ -226,6 +300,33 @@ export function SettingsPage() {
                   {t("settings.cancel")}
                 </Button>
               </div>
+            </div>
+          )}
+
+          {commonCalOpen && (
+            <div className="mb-3 space-y-2">
+              {COMMON_CALENDARS.map((cal) => (
+                <div key={cal.id} className="flex items-center gap-2 p-2 border rounded-lg border-neutral-200 dark:border-neutral-700">
+                  <span className="size-4 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{cal.name}</p>
+                    <p className="text-xs text-neutral-500 truncate">{cal.description}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleImportCommon(cal)}
+                    disabled={importing.has(cal.id) || imported.has(cal.id)}
+                    className="h-7 text-xs shrink-0"
+                  >
+                    {importing.has(cal.id)
+                      ? t("settings.importing")
+                      : imported.has(cal.id)
+                        ? t("settings.imported")
+                        : t("settings.importBtn")}
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
 
