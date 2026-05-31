@@ -268,6 +268,35 @@ export async function importIcsToCalendar(
   return { eventCount };
 }
 
+export async function fetchIcsFromUrl(url: string): Promise<string> {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Only HTTP and HTTPS URLs are supported");
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "CalendarApp/1.0",
+        Accept: "text/calendar, text/plain, */*",
+      },
+      redirect: "follow",
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    }
+
+    return await res.text();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function exportIcs(
   calendarId: ID,
   start: string | undefined,

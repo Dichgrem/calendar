@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware } from "../auth/middleware.js";
-import { parseIcsContent, buildPreview, importIcsToCalendar, exportIcs } from "../services/ics.service.js";
+import { parseIcsContent, buildPreview, importIcsToCalendar, exportIcs, fetchIcsFromUrl } from "../services/ics.service.js";
 import { createCalendar } from "../services/calendar.service.js";
 
 const icsRouter = new Hono().use(authMiddleware);
@@ -18,17 +18,35 @@ icsRouter.post("/ics/preview", zValidator("json", previewSchema), async (c) => {
   return c.json({ ok: true, data: preview });
 });
 
+const fetchUrlSchema = z.object({
+  url: z.string().url(),
+});
+
+icsRouter.post("/ics/fetch-url", zValidator("json", fetchUrlSchema), async (c) => {
+  const { url } = c.req.valid("json");
+  try {
+    const content = await fetchIcsFromUrl(url);
+    const parsed = parseIcsContent(content);
+    const preview = buildPreview(parsed);
+    return c.json({ ok: true, data: { preview, content } });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to fetch URL";
+    return c.json({ ok: false, error: { code: "FETCH_FAILED", message } }, 400);
+  }
+});
+
 const importSchema = z.object({
   content: z.string().min(1),
   calendarId: z.string().optional(),
   calendarName: z.string().optional(),
+  color: z.string().optional(),
   selectedUids: z.array(z.string()),
   overwrite: z.boolean().optional().default(false),
 });
 
 icsRouter.post("/ics/import", zValidator("json", importSchema), async (c) => {
   const perm = c.get("permission");
-  const { content, calendarId, calendarName, selectedUids, overwrite } = c.req.valid("json");
+  const { content, calendarId, calendarName, color, selectedUids, overwrite } = c.req.valid("json");
 
   const parsed = parseIcsContent(content);
 
@@ -37,6 +55,7 @@ icsRouter.post("/ics/import", zValidator("json", importSchema), async (c) => {
     const cal = await createCalendar(
       {
         name: calendarName ?? parsed.name,
+        color,
         sourceType: "ics_import",
       },
       perm.userId,

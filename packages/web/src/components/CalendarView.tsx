@@ -94,13 +94,15 @@ export function CalendarView() {
     ? `${currentDate.toLocaleString("en", { month: "short" })} ${currentDate.getFullYear()}`
     : `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`;
 
+  const calendarColorMap = new Map(calendars?.map((c) => [c.id, c.color]) ?? []);
+
   const fcEvents = events.map((e) => ({
     id: e.id,
     title: e.title,
     start: e.startAt,
     end: e.endAt,
     allDay: e.allDay,
-    color: e.color ?? undefined,
+    color: e.color ?? calendarColorMap.get(e.calendarId),
   }));
 
   const leftControls = (
