@@ -13,6 +13,9 @@ const strings = {
   "cal.loadingEvents": { "zh-CN": "加载事件...", en: "Loading events..." },
   "cal.failedEvents": { "zh-CN": "加载事件失败", en: "Failed to load events" },
   "cal.today": { "zh-CN": "今天", en: "Today" },
+  "cal.search": { "zh-CN": "搜索事件...", en: "Search events..." },
+  "cal.all": { "zh-CN": "全部", en: "All" },
+  "cal.noResults": { "zh-CN": "无匹配结果", en: "No results" },
 
   // EventEditor
   "event.create": { "zh-CN": "新建事件", en: "New Event" },
