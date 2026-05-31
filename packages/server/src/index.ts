@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
+import "./db/node-init.js";
 import { authRouter } from "./auth/auth.routes.js";
 import { syncRouter } from "./sync/routes.js";
 import { calendarsRouter } from "./routes/calendars.js";
