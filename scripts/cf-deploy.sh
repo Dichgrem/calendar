@@ -8,6 +8,8 @@ if [ ! -f packages/server/wrangler.toml ]; then
     NEED_UPDATE=true
 elif grep -q "\[build\]" packages/server/wrangler.toml 2>/dev/null; then
     NEED_UPDATE=true
+elif ! grep -q '\[assets\]' packages/server/wrangler.toml 2>/dev/null; then
+    NEED_UPDATE=true
 elif ! grep -q 'compatibility_date = "2024-09-23"' packages/server/wrangler.toml 2>/dev/null; then
     NEED_UPDATE=true
 elif ! grep -qE '^database_id = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"' packages/server/wrangler.toml 2>/dev/null; then
@@ -54,6 +56,9 @@ else
     echo "SESSION_SECRET already set, skip"
 fi
 
-echo "=== 4/4 Deploy ==="
-(cd packages/server && pnpm cf:deploy)
+echo "=== 4/4 Build Frontend + Deploy ==="
+cd ../..
+pnpm --filter @calendar/web build
+cd packages/server
+pnpm cf:deploy
 echo "Done."

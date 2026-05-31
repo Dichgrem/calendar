@@ -12,6 +12,11 @@ database_name = "calendar-db"
 database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
 migrations_dir = "drizzle/migrations"
 
+# ── Static Assets (Web Frontend) ────────────────────────────────────────────
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+
 # ── Environment Variables ───────────────────────────────────────────────────
 # Secrets should be set via: wrangler secret put SESSION_SECRET
 # Not hard-coded here for security.
