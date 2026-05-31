@@ -1,0 +1,215 @@
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  uniqueIndex,
+  index,
+} from "drizzle-orm/sqlite-core";
+
+export const calendars = sqliteTable(
+  "calendars",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    color: text("color").notNull().default("#3b82f6"),
+    sourceUrl: text("source_url"),
+    sourceType: text("source_type", {
+      enum: ["ics_import", "ics_subscription", "manual", "auto_log"],
+    })
+      .notNull()
+      .default("manual"),
+    ownerId: text("owner_id").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    lastModified: integer("last_modified").notNull(),
+  },
+  (t) => [
+    index("idx_calendars_owner").on(t.ownerId),
+  ],
+);
+
+export const calendarMembers = sqliteTable(
+  "calendar_members",
+  {
+    calendarId: text("calendar_id")
+      .notNull()
+      .references(() => calendars.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
+    role: text("role", { enum: ["viewer", "editor", "admin"] }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("idx_calendar_members_uk").on(t.calendarId, t.userId),
+    index("idx_calendar_members_user").on(t.userId),
+  ],
+);
+
+export const events = sqliteTable(
+  "events",
+  {
+    id: text("id").primaryKey(),
+    calendarId: text("calendar_id")
+      .notNull()
+      .references(() => calendars.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    startAt: text("start_at").notNull(),
+    endAt: text("end_at").notNull(),
+    allDay: integer("all_day", { mode: "boolean" }).notNull().default(false),
+    rrule: text("rrule"),
+    color: text("color"),
+    location: text("location"),
+    parentId: text("parent_id"),
+    originalDate: text("original_date"),
+    deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    lastModified: integer("last_modified").notNull(),
+  },
+  (t) => [
+    index("idx_events_calendar_time").on(t.calendarId, t.startAt, t.endAt),
+    index("idx_events_calendar_modified").on(t.calendarId, t.lastModified),
+    index("idx_events_parent").on(t.parentId),
+  ],
+);
+
+export const eventOverrides = sqliteTable(
+  "event_overrides",
+  {
+    id: text("id").primaryKey(),
+    parentId: text("parent_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    originalDate: text("original_date").notNull(),
+    overrideStart: text("override_start"),
+    overrideEnd: text("override_end"),
+    overrideTitle: text("override_title"),
+    deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
+    lastModified: integer("last_modified").notNull(),
+  },
+  (t) => [
+    uniqueIndex("idx_overrides_parent_date").on(t.parentId, t.originalDate),
+  ],
+);
+
+export const todoLists = sqliteTable(
+  "todo_lists",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    color: text("color"),
+    userId: text("user_id").notNull(),
+    sortOrder: real("sort_order").notNull().default(0),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    lastModified: integer("last_modified").notNull(),
+  },
+  (t) => [
+    index("idx_todo_lists_user").on(t.userId),
+  ],
+);
+
+export const todos = sqliteTable(
+  "todos",
+  {
+    id: text("id").primaryKey(),
+    calendarId: text("calendar_id")
+      .notNull()
+      .references(() => calendars.id, { onDelete: "cascade" }),
+    listId: text("list_id").references(() => todoLists.id, {
+      onDelete: "set null",
+    }),
+    title: text("title").notNull(),
+    description: text("description"),
+    priority: text("priority", {
+      enum: ["high", "medium", "low", "none"],
+    })
+      .notNull()
+      .default("none"),
+    status: text("status", {
+      enum: ["todo", "in_progress", "completed"],
+    })
+      .notNull()
+      .default("todo"),
+    completedAt: text("completed_at"),
+    dueDate: text("due_date"),
+    dueTime: text("due_time"),
+    rrule: text("rrule"),
+    sortOrder: real("sort_order").notNull().default(0),
+    parentId: text("parent_id"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    lastModified: integer("last_modified").notNull(),
+  },
+  (t) => [
+    index("idx_todos_calendar_list").on(t.calendarId, t.listId),
+    index("idx_todos_calendar_modified").on(t.calendarId, t.lastModified),
+    index("idx_todos_parent").on(t.parentId),
+    index("idx_todos_due_date").on(t.dueDate),
+    index("idx_todos_status").on(t.status),
+  ],
+);
+
+export const deletedLog = sqliteTable(
+  "deleted_log",
+  {
+    id: text("id").primaryKey(),
+    tableName: text("table_name").notNull(),
+    recordId: text("record_id").notNull(),
+    deletedAt: text("deleted_at").notNull(),
+    lastModified: integer("last_modified").notNull(),
+  },
+  (t) => [
+    index("idx_deleted_log_modified").on(t.lastModified),
+    index("idx_deleted_log_table").on(t.tableName, t.recordId),
+  ],
+);
+
+export const syncSequence = sqliteTable("sync_sequence", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tableName: text("table_name").notNull(),
+  recordId: text("record_id").notNull(),
+  op: text("op", { enum: ["created", "updated", "deleted"] }).notNull(),
+  syncedAt: text("synced_at").notNull(),
+});
+
+export const userSettings = sqliteTable("user_settings", {
+  userId: text("user_id").primaryKey(),
+  timezone: text("timezone").notNull().default("Asia/Shanghai"),
+  language: text("language").notNull().default("zh-CN"),
+  defaultReminderBefore: integer("default_reminder_before").notNull().default(15),
+  firstDayOfWeek: integer("first_day_of_week").notNull().default(0),
+  showCompletedTodos: integer("show_completed_todos", {
+    mode: "boolean",
+  })
+    .notNull()
+    .default(false),
+});
+
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("idx_push_subscriptions_ep").on(t.endpoint),
+    index("idx_push_subscriptions_user").on(t.userId),
+  ],
+);
+
+export const syncQueue = sqliteTable(
+  "sync_queue",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    tableName: text("table_name").notNull(),
+    recordId: text("record_id").notNull(),
+    op: text("op", { enum: ["created", "updated", "deleted"] }).notNull(),
+    data: text("data").notNull(),
+    seq: integer("seq").notNull(),
+  },
+);
