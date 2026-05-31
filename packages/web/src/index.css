@@ -11,3 +11,12 @@
   --background: #0a0a0a;
   --foreground: #fafafa;
 }
+
+.fc-highlight-search {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  transition: background-color 0.3s ease;
+}
+
+.dark .fc-highlight-search {
+  background-color: rgba(59, 130, 246, 0.25) !important;
+}
