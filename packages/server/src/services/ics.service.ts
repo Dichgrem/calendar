@@ -1,88 +1,55 @@
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { calendars, events, todos, calendarMembers } from "../db/schema.js";
-import type { ID } from "@calendar/shared";
+import { calendars, events, calendarMembers } from "../db/schema.js";
+import type { ID } from "../types.js";
 
 interface ParsedComponent {
-  type: "VEVENT" | "VTODO";
+  type: "VEVENT";
   uid: string;
   props: Record<string, string>;
   params: Record<string, Record<string, string>>;
 }
 
-interface ParsedCalendar {
+export interface ParsedCalendar {
   name: string;
   components: ParsedComponent[];
 }
 
-function unfoldLines(text: string): string {
-  return text.replace(/\r?\n\s/g, "");
-}
-
-function parseProperty(
-  line: string,
-): { name: string; params: Record<string, string>; value: string } | null {
-  const m = line.match(/^([^;:]+)(?:;(.+?))?:(.*)$/s);
-  if (!m) return null;
-
-  const name = m[1].toUpperCase();
-  const paramsStr = m[2];
-  const value = m[3];
-
-  const params: Record<string, string> = {};
-  if (paramsStr) {
-    for (const part of paramsStr.split(";")) {
-      const eqIdx = part.indexOf("=");
-      if (eqIdx > 0) params[part.slice(0, eqIdx).toUpperCase()] = part.slice(eqIdx + 1);
+function parseIcsParams(paramStr: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const part of paramStr.split(";")) {
+    const eqIdx = part.indexOf("=");
+    if (eqIdx > 0) {
+      result[part.slice(0, eqIdx).toUpperCase()] = part.slice(eqIdx + 1).replace(/^"|"$/g, "");
     }
   }
-
-  return { name, params, value };
+  return result;
 }
 
-export function parseIcs(raw: string): ParsedCalendar {
-  const text = unfoldLines(raw);
-  const lines = text.split(/\r?\n/);
+export function parseIcsContent(content: string): ParsedCalendar {
+  const lines = content.replace(/\r\n /g, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 
   const cal: ParsedCalendar = { name: "Imported Calendar", components: [] };
-  let inVcal = false;
-  let inComponent: "VEVENT" | "VTODO" | null = null;
   let current: ParsedComponent | null = null;
 
   for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-
-    const prop = parseProperty(trimmed);
-    if (!prop) continue;
-
-    if (prop.name === "BEGIN") {
-      if (prop.value === "VCALENDAR") {
-        inVcal = true;
-      } else if (prop.value === "VEVENT" || prop.value === "VTODO") {
-        inComponent = prop.value;
-        current = { type: prop.value, uid: "", props: {}, params: {} };
+    if (line === "BEGIN:VEVENT") {
+      current = { type: "VEVENT", uid: "", props: {}, params: {} };
+    } else if (line === "END:VEVENT" && current) {
+      cal.components.push(current);
+      current = null;
+    } else if (current) {
+      const m = line.match(/^([^;:]+)(?:;(.+?))?:(.*)$/s);
+      if (m) {
+        const key = m[1].toUpperCase();
+        const value = m[3];
+        current.props[key] = value;
+        if (m[2]) current.params[key] = parseIcsParams(m[2]);
+        if (key === "UID") current.uid = value;
       }
-    } else if (prop.name === "END") {
-      if (prop.value === "VCALENDAR") {
-        inVcal = false;
-      } else if (prop.value === "VEVENT" || prop.value === "VTODO") {
-        if (current) cal.components.push(current);
-        inComponent = null;
-        current = null;
-      }
-    } else if (inComponent && current) {
-      if (prop.name === "UID") {
-        current.uid = prop.value;
-      }
-      current.props[prop.name] = prop.value;
-      if (Object.keys(prop.params).length > 0) {
-        current.params[prop.name] = prop.params;
-      }
-    } else if (inVcal && !inComponent) {
-      if (prop.name === "X-WR-CALNAME") {
-        cal.name = prop.value;
-      }
+    } else {
+      const m = line.match(/^X-WR-CALNAME:(.*)$/i);
+      if (m) cal.name = m[1].trim();
     }
   }
 
@@ -92,8 +59,19 @@ export function parseIcs(raw: string): ParsedCalendar {
 function formatIcsLine(name: string, value: string | null | undefined): string {
   if (!value) return "";
   const safe = value.replace(/\r?\n/g, "\\n");
-  if (safe.length <= 70) return `${name}:${safe}\r\n`;
-  return `${name}:${safe.slice(0, 70)}\r\n ${safe.slice(70)}`;
+  if (safe.length <= 75) return `${name}:${safe}\r\n`;
+  let result = `${name}:`;
+  let remaining = safe;
+  while (remaining.length > 75) {
+    result += remaining.slice(0, 75) + "\r\n ";
+    remaining = remaining.slice(75);
+  }
+  result += remaining + "\r\n";
+  return result;
+}
+
+function sanitizeIcsDateTime(iso: string): string {
+  return iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
 export function serializeIcsCalendar(
@@ -109,26 +87,17 @@ export function serializeIcsCalendar(
     location: string | null;
     createdAt: string;
   }[],
-  todos: {
-    id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    completedAt: string | null;
-    dueDate: string | null;
-    priority: string;
-    createdAt: string;
-  }[],
 ): string {
   const lines: string[] = ["BEGIN:VCALENDAR\r\n"];
   lines.push("VERSION:2.0\r\n");
   lines.push(`PRODID:-//Calendar App//EN\r\n`);
+  lines.push(`CALSCALE:GREGORIAN\r\n`);
   lines.push(`X-WR-CALNAME:${calName}\r\n`);
 
   for (const e of events) {
     lines.push("BEGIN:VEVENT\r\n");
     lines.push(formatIcsLine("UID", e.id));
-    lines.push(formatIcsLine("DTSTAMP", e.createdAt));
+    lines.push(formatIcsLine("DTSTAMP", sanitizeIcsDateTime(e.createdAt)));
     lines.push(formatIcsLine("SUMMARY", e.title));
     if (e.description) lines.push(formatIcsLine("DESCRIPTION", e.description));
     if (e.allDay) {
@@ -140,28 +109,12 @@ export function serializeIcsCalendar(
       lines.push(formatIcsLine("DTSTART;VALUE=DATE", dtStart.replace(/-/g, "")));
       lines.push(formatIcsLine("DTEND;VALUE=DATE", dtEndNext.replace(/-/g, "")));
     } else {
-      lines.push(formatIcsLine("DTSTART", e.startAt.replace(/[-:]/g, "")));
-      lines.push(formatIcsLine("DTEND", e.endAt.replace(/[-:]/g, "")));
+      lines.push(formatIcsLine("DTSTART", sanitizeIcsDateTime(e.startAt)));
+      lines.push(formatIcsLine("DTEND", sanitizeIcsDateTime(e.endAt)));
     }
     if (e.rrule) lines.push(formatIcsLine("RRULE", e.rrule));
     if (e.location) lines.push(formatIcsLine("LOCATION", e.location));
     lines.push("END:VEVENT\r\n");
-  }
-
-  for (const t of todos) {
-    lines.push("BEGIN:VTODO\r\n");
-    lines.push(formatIcsLine("UID", t.id));
-    lines.push(formatIcsLine("DTSTAMP", t.createdAt));
-    lines.push(formatIcsLine("SUMMARY", t.title));
-    if (t.description) lines.push(formatIcsLine("DESCRIPTION", t.description));
-    const status = t.status === "completed" ? "COMPLETED" : "NEEDS-ACTION";
-    lines.push(formatIcsLine("STATUS", status));
-    if (t.completedAt) lines.push(formatIcsLine("COMPLETED", t.completedAt.replace(/[-:]/g, "")));
-    if (t.dueDate) lines.push(formatIcsLine("DUE", t.dueDate.replace(/-/g, "")));
-    lines.push(
-      formatIcsLine("PRIORITY", t.priority === "high" ? "1" : t.priority === "medium" ? "5" : "9"),
-    );
-    lines.push("END:VTODO\r\n");
   }
 
   lines.push("END:VCALENDAR\r\n");
@@ -171,18 +124,16 @@ export function serializeIcsCalendar(
 export interface IcsPreview {
   name: string;
   eventCount: number;
-  todoCount: number;
   timeSpan: { from: string | null; to: string | null };
   items: IcsPreviewItem[];
 }
 
 export interface IcsPreviewItem {
-  type: "event" | "todo";
+  type: "event";
   uid: string;
   title: string;
   startAt: string | null;
   endAt: string | null;
-  dueDate: string | null;
   rrule: string | null;
   selected: boolean;
 }
@@ -190,7 +141,6 @@ export interface IcsPreviewItem {
 export function buildPreview(parsed: ParsedCalendar): IcsPreview {
   const items: IcsPreviewItem[] = [];
   let eventCount = 0;
-  let todoCount = 0;
   let earliest: string | null = null;
   let latest: string | null = null;
 
@@ -208,22 +158,7 @@ export function buildPreview(parsed: ParsedCalendar): IcsPreview {
         title: getProp(c, "SUMMARY") || "(Untitled)",
         startAt: normalizeDt(startAt),
         endAt: normalizeDt(endAt),
-        dueDate: null,
         rrule: getProp(c, "RRULE"),
-        selected: true,
-      });
-    } else if (c.type === "VTODO") {
-      todoCount++;
-      const due = getProp(c, "DUE");
-
-      items.push({
-        type: "todo",
-        uid: c.uid,
-        title: getProp(c, "SUMMARY") || "(Untitled)",
-        startAt: null,
-        endAt: null,
-        dueDate: normalizeDt(due),
-        rrule: null,
         selected: true,
       });
     }
@@ -232,7 +167,6 @@ export function buildPreview(parsed: ParsedCalendar): IcsPreview {
   return {
     name: parsed.name,
     eventCount,
-    todoCount,
     timeSpan: { from: earliest, to: latest },
     items,
   };
@@ -278,34 +212,45 @@ export async function importIcsToCalendar(
   selectedUids: Set<string>,
   userId: ID,
   overwrite: boolean,
-): Promise<{ eventCount: number; todoCount: number } | null> {
+): Promise<{ eventCount: number } | null> {
   const memberCheck = await ensureMemberJoin(calendarId, userId);
   if (!memberCheck.length) return null;
 
   let eventCount = 0;
-  let todoCount = 0;
 
   if (overwrite) {
     await db.delete(events).where(eq(events.calendarId, calendarId));
-    await db.delete(todos).where(eq(todos.calendarId, calendarId));
   }
 
   const now = new Date().toISOString();
   const lmod = Date.now();
 
   for (const c of parsed.components) {
-    if (!selectedUids.has(c.uid)) continue;
+    if (c.type !== "VEVENT" || !selectedUids.has(c.uid)) continue;
 
-    if (c.type === "VEVENT") {
-      const startAt = normalizeDt(getProp(c, "DTSTART")) ?? now;
-      const endAt = normalizeDt(getProp(c, "DTEND")) ?? now;
-      const allDay = isAllDay(c);
+    const startAt = normalizeDt(getProp(c, "DTSTART")) ?? now;
+    const endAt = normalizeDt(getProp(c, "DTEND")) ?? now;
+    const allDay = isAllDay(c);
 
-      await db
-        .insert(events)
-        .values({
-          id: c.uid || crypto.randomUUID(),
-          calendarId,
+    await db
+      .insert(events)
+      .values({
+        id: c.uid || crypto.randomUUID(),
+        calendarId,
+        title: getProp(c, "SUMMARY") || "(Untitled)",
+        description: getProp(c, "DESCRIPTION"),
+        startAt,
+        endAt,
+        allDay,
+        rrule: getProp(c, "RRULE"),
+        location: getProp(c, "LOCATION"),
+        createdAt: now,
+        updatedAt: now,
+        lastModified: lmod,
+      })
+      .onConflictDoUpdate({
+        target: [events.id],
+        set: {
           title: getProp(c, "SUMMARY") || "(Untitled)",
           description: getProp(c, "DESCRIPTION"),
           startAt,
@@ -313,74 +258,14 @@ export async function importIcsToCalendar(
           allDay,
           rrule: getProp(c, "RRULE"),
           location: getProp(c, "LOCATION"),
-          createdAt: now,
           updatedAt: now,
           lastModified: lmod,
-        })
-        .onConflictDoUpdate({
-          target: [events.id],
-          set: {
-            title: getProp(c, "SUMMARY") || "(Untitled)",
-            description: getProp(c, "DESCRIPTION"),
-            startAt,
-            endAt,
-            allDay,
-            rrule: getProp(c, "RRULE"),
-            location: getProp(c, "LOCATION"),
-            updatedAt: now,
-            lastModified: lmod,
-          },
-        });
-      eventCount++;
-    } else if (c.type === "VTODO") {
-      const dueDate = normalizeDt(getProp(c, "DUE"));
-      const status =
-        getProp(c, "STATUS") === "COMPLETED"
-          ? ("completed" as const)
-          : getProp(c, "STATUS") === "IN-PROCESS"
-            ? ("in_progress" as const)
-            : ("todo" as const);
-      const priority =
-        getProp(c, "PRIORITY") === "1"
-          ? ("high" as const)
-          : getProp(c, "PRIORITY") === "5"
-            ? ("medium" as const)
-            : getProp(c, "PRIORITY") === "9"
-              ? ("low" as const)
-              : ("none" as const);
-
-      await db
-        .insert(todos)
-        .values({
-          id: c.uid || crypto.randomUUID(),
-          calendarId,
-          title: getProp(c, "SUMMARY") || "(Untitled)",
-          description: getProp(c, "DESCRIPTION"),
-          priority,
-          status,
-          dueDate,
-          dueTime: null,
-          createdAt: now,
-          updatedAt: now,
-          lastModified: lmod,
-        })
-        .onConflictDoUpdate({
-          target: [todos.id],
-          set: {
-            title: getProp(c, "SUMMARY") || "(Untitled)",
-            description: getProp(c, "DESCRIPTION"),
-            priority,
-            status,
-            dueDate,
-            updatedAt: now,
-            lastModified: lmod,
-          },
-        });
-      todoCount++;
-    }
+        },
+      });
+    eventCount++;
   }
 
-  return { eventCount, todoCount };
+  return { eventCount };
 }
 
 export async function exportIcs(
@@ -406,16 +291,7 @@ export async function exportIcs(
     .from(events)
     .where(and(...eventConditions));
 
-  const todoConditions = [eq(todos.calendarId, calendarId)];
-  if (start) todoConditions.push(gte(todos.dueDate, start));
-  if (end) todoConditions.push(lte(todos.dueDate, end));
-
-  const tds = await db
-    .select()
-    .from(todos)
-    .where(and(...todoConditions));
-
-  const content = serializeIcsCalendar(cal.name, evs, tds);
+  const content = serializeIcsCalendar(cal.name, evs);
   const filename = `${cal.name.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, "_")}.ics`;
 
   return { filename, content };

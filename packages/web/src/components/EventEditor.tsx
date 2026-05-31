@@ -4,7 +4,7 @@ import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
 import { Modal } from "./ui/modal";
 import { Button } from "./ui/button";
-import type { Event } from "@calendar/shared";
+import type { Event } from "../types";
 
 interface EventEditorProps {
   event: Event | null;

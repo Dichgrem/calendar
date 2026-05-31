@@ -8,14 +8,13 @@ import type {
   PermissionContext,
   CalendarScoped,
   Permissioned,
-} from "@calendar/shared";
-import { roleGte } from "@calendar/shared";
+} from "../types.js";
+import { roleGte } from "../types.js";
 
-const tablesWithCalendarId = new Set(["events", "todos", "event_overrides"]);
+const tablesWithCalendarId = new Set(["events", "event_overrides"]);
 
 const calendarIdColumnMap: Record<string, SQLiteColumn> = {
   events: calendarMembers.calendarId,
-  todos: calendarMembers.calendarId,
 };
 
 function applyCalendarScope<T extends SQLiteSelectQueryBuilder>(

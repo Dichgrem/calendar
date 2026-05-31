@@ -1,7 +1,7 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { calendars, calendarMembers, syncSequence } from "../db/schema.js";
-import type { Calendar, ID, PermissionContext } from "@calendar/shared";
+import type { Calendar, ID, PermissionContext } from "../types.js";
 import { createPermissionGuard } from "../auth/permissions.query.js";
 
 async function logSync(tableName: string, recordId: ID, op: string) {
@@ -49,8 +49,7 @@ export async function getCalendar(calendarId: ID, userId: ID): Promise<Calendar 
     })
     .from(calendars)
     .innerJoin(calendarMembers, eq(calendars.id, calendarMembers.calendarId))
-    .where(eq(calendarMembers.userId, userId))
-    .where(eq(calendars.id, calendarId));
+    .where(and(eq(calendarMembers.userId, userId), eq(calendars.id, calendarId)));
 
   return (rows[0] as Calendar) ?? null;
 }

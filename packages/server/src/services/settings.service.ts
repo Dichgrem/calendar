@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, getRawConnection } from "../db/client.js";
 import { userSettings } from "../db/schema.js";
-import type { ID, UserSettings } from "@calendar/shared";
+import type { ID, UserSettings } from "../types.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -13,7 +13,7 @@ export function getBackupDir(): string {
   return process.env.BACKUP_DIR ?? "./backups";
 }
 
-export function backupDatabase(): { filename: string; path: string } | null {
+export async function backupDatabase(): Promise<{ filename: string; path: string } | null> {
   const dbPath = getBackupPath();
   if (!fs.existsSync(dbPath)) return null;
 
@@ -26,7 +26,7 @@ export function backupDatabase(): { filename: string; path: string } | null {
 
   const conn = getRawConnection();
   if (conn) {
-    conn.backup(dest);
+    await conn.backup(dest);
   } else {
     fs.copyFileSync(dbPath, dest);
   }
@@ -96,9 +96,7 @@ export async function upsertUserSettings(
       userId,
       timezone: data.timezone ?? "Asia/Shanghai",
       language: data.language ?? "zh-CN",
-      defaultReminderBefore: data.defaultReminderBefore ?? 15,
       firstDayOfWeek: data.firstDayOfWeek ?? 0,
-      showCompletedTodos: data.showCompletedTodos ?? false,
     })
     .onConflictDoUpdate({
       target: [userSettings.userId],

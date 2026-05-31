@@ -1,12 +1,29 @@
-import { useState } from "react";
-import { Button } from "../components/ui/button";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { Button } from "../components/ui/button";
 
 export function LoginPage() {
-  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFirstUser, setIsFirstUser] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    api.auth
+      .status()
+      .then((res) => {
+        const data = (res as { ok: boolean; data: { registered: boolean } }).data;
+        setIsFirstUser(!data.registered);
+      })
+      .catch(() => {})
+      .finally(() => setChecking(false));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,20 +31,27 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("登录失败");
-      window.location.href = "/calendar";
+      if (isFirstUser) {
+        await api.auth.register({ username, password });
+      } else {
+        await api.auth.login({ username, password });
+      }
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      navigate("/calendar");
     } catch {
-      setError("邮箱或密码错误");
+      setError(isFirstUser ? "注册失败" : "用户名或密码错误");
     } finally {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-neutral-50 dark:bg-neutral-950">
+        <p className="text-sm text-neutral-400">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center h-screen bg-neutral-50 dark:bg-neutral-950">
@@ -35,7 +59,15 @@ export function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm p-6 bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-4"
       >
-        <h1 className="text-xl font-bold">登录</h1>
+        <h1 className="text-xl font-bold">
+          {isFirstUser ? "创建账户" : "登录"}
+        </h1>
+
+        {isFirstUser && (
+          <p className="text-sm text-neutral-500">
+            首次使用，请设置用户名和密码。
+          </p>
+        )}
 
         {error && (
           <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded px-3 py-2">
@@ -44,13 +76,14 @@ export function LoginPage() {
         )}
 
         <label className="block">
-          <span className="text-sm font-medium">邮箱</span>
+          <span className="text-sm font-medium">用户名</span>
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
             required
+            autoFocus
           />
         </label>
 
@@ -62,11 +95,14 @@ export function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
             required
+            minLength={4}
           />
         </label>
 
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "登录中..." : "登录"}
+          {loading
+            ? (isFirstUser ? "创建中..." : "登录中...")
+            : (isFirstUser ? "创建" : "登录")}
         </Button>
       </form>
     </div>

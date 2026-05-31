@@ -1,4 +1,6 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, Check, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
@@ -7,15 +9,13 @@ import { Button } from "../components/ui/button";
 interface IcsPreviewData {
   name: string;
   eventCount: number;
-  todoCount: number;
   timeSpan: { from: string | null; to: string | null };
   items: Array<{
-    type: "event" | "todo";
+    type: "event";
     uid: string;
     title: string;
     startAt: string | null;
     endAt: string | null;
-    dueDate: string | null;
     rrule: string | null;
     selected: boolean;
   }>;
@@ -23,12 +23,13 @@ interface IcsPreviewData {
 
 export function ImportPage() {
   const { t } = useI18n();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<IcsPreviewData | null>(null);
   const [selectedUids, setSelectedUids] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [imported, setImported] = useState(false);
   const [calendarName, setCalendarName] = useState("");
   const [overwrite, setOverwrite] = useState(false);
 
@@ -47,7 +48,6 @@ export function ImportPage() {
       setPreview(data);
       setCalendarName(data.name);
       setSelectedUids(new Set(data.items.map((i) => i.uid)));
-      setImported(false);
     } catch {
       setError(t("import.parseError"));
     } finally {
@@ -77,13 +77,15 @@ export function ImportPage() {
         selectedUids: [...selectedUids],
         overwrite,
       });
-      setImported(true);
+      queryClient.removeQueries({ queryKey: ["calendars"] });
+      queryClient.removeQueries({ queryKey: ["events"] });
+      navigate("/calendar");
     } catch {
       setError(t("import.importFailed"));
     } finally {
       setLoading(false);
     }
-  }, [file, preview, calendarName, selectedUids, overwrite]);
+  }, [file, preview, calendarName, selectedUids, overwrite, queryClient, navigate]);
 
   return (
     <div className="flex flex-col h-full">
@@ -118,7 +120,7 @@ export function ImportPage() {
                 <FileText className="size-4" />{preview.name}
               </h2>
               <p className="text-xs text-neutral-500 mt-1">
-                {preview.eventCount} {t("import.events")} · {preview.todoCount} {t("import.todos")}
+                {preview.eventCount} {t("import.events")}
                 {preview.timeSpan.from && ` · ${preview.timeSpan.from.slice(0, 10)} ~ ${preview.timeSpan.to?.slice(0, 10)}`}
               </p>
 
@@ -147,11 +149,11 @@ export function ImportPage() {
                       onChange={() => toggleItem(item.uid)}
                       className="accent-neutral-900 dark:accent-white shrink-0" />
                     <span className="text-xs px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 shrink-0">
-                      {item.type === "event" ? t("import.event") : t("import.todo")}
+                      {t("import.event")}
                     </span>
                     <span className="truncate">{item.title}</span>
                     <span className="text-xs text-neutral-400 ml-auto shrink-0">
-                      {item.startAt?.slice(0, 10) || item.dueDate?.slice(0, 10) || ""}
+                      {item.startAt?.slice(0, 10) || ""}
                       {item.rrule ? " ↻" : ""}
                     </span>
                   </label>
@@ -159,8 +161,8 @@ export function ImportPage() {
               </div>
 
               <Button className="mt-3 w-full text-sm" size="sm" onClick={handleImport}
-                disabled={imported || loading}>
-                {imported ? (<><Check className="size-4 mr-1" /> {t("import.imported")}</>) : (`${t("import.importBtn")} ${selectedUids.size} ${t("import.items")}`)}
+                disabled={loading}>
+                {loading ? t("import.parsing") : `${t("import.importBtn")} ${selectedUids.size} ${t("import.items")}`}
               </Button>
 
               {error && (

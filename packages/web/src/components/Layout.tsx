@@ -1,8 +1,10 @@
 import { createContext, useContext, useCallback, useState, type RefCallback } from "react";
-import { Outlet, NavLink } from "react-router";
-import { Calendar, ListTodo, Settings } from "lucide-react";
+import { Outlet, NavLink, useNavigate } from "react-router";
+import { Calendar, Settings, LogOut } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "../lib/utils";
 import { useI18n } from "../hooks/use-i18n";
+import { api } from "../lib/api";
 
 interface TopBarSlots {
   left: HTMLDivElement | null;
@@ -19,13 +21,20 @@ export function Layout() {
   const [leftEl, setLeftEl] = useState<HTMLDivElement | null>(null);
   const [centerEl, setCenterEl] = useState<HTMLDivElement | null>(null);
   const { t } = useI18n();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const leftRef: RefCallback<HTMLDivElement> = useCallback((el) => setLeftEl(el), []);
   const centerRef: RefCallback<HTMLDivElement> = useCallback((el) => setCenterEl(el), []);
 
+  const handleLogout = async () => {
+    await api.auth.logout();
+    queryClient.clear();
+    navigate("/auth/login");
+  };
+
   const navItems = [
     { to: "/calendar", icon: Calendar, label: t("nav.calendar") },
-    { to: "/calendar/todos", icon: ListTodo, label: t("nav.todos") },
     { to: "/settings", icon: Settings, label: t("nav.settings") },
   ];
 
@@ -55,6 +64,13 @@ export function Layout() {
                 <span>{item.label}</span>
               </NavLink>
             ))}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-neutral-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              title={t("nav.logout")}
+            >
+              <LogOut className="size-4" />
+            </button>
           </div>
         </nav>
         <main className="flex-1 overflow-hidden">

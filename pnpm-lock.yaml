@@ -17,9 +17,6 @@ importers:
 
   packages/server:
     dependencies:
-      '@calendar/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@hono/node-server':
         specifier: ^1.13.0
         version: 1.19.14(hono@4.12.23)
@@ -29,6 +26,9 @@ importers:
       better-auth:
         specifier: ^0.8.0
         version: 0.8.8
+      better-sqlite3:
+        specifier: ^11.0.0
+        version: 11.10.0
       drizzle-orm:
         specifier: ^0.36.0
         version: 0.36.4(@types/better-sqlite3@7.6.13)(@types/react@19.2.15)(better-sqlite3@11.10.0)(kysely@0.27.6)(react@19.2.6)
@@ -45,9 +45,6 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.19
-      better-sqlite3:
-        specifier: ^11.0.0
-        version: 11.10.0
       drizzle-kit:
         specifier: ^0.28.0
         version: 0.28.1
@@ -58,17 +55,8 @@ importers:
         specifier: ^5.5.0
         version: 5.9.3
 
-  packages/shared:
-    devDependencies:
-      typescript:
-        specifier: ^5.5.0
-        version: 5.9.3
-
   packages/web:
     dependencies:
-      '@calendar/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@fullcalendar/core':
         specifier: ^6.1.15
         version: 6.1.20

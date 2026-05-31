@@ -1,9 +1,10 @@
 import type { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
-import type { PermissionContext, CalendarRole, ID } from "@calendar/shared";
+import type { PermissionContext, CalendarRole, ID } from "../types.js";
 import { db } from "../db/client.js";
 import { calendarMembers } from "../db/schema.js";
 import { eq } from "drizzle-orm";
+import { validateSession } from "./auth.service.js";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -28,43 +29,24 @@ async function resolvePermissionContext(userId: ID): Promise<PermissionContext> 
   return { userId, roles };
 }
 
-const DEV_USER_ID = "dev-user-default";
-
-export async function authMiddleware(c: Context, next: Next) {
-  const sessionToken =
-    c.req.header("Authorization")?.replace("Bearer ", "") ?? getCookie(c, "session_token");
-
-  if (sessionToken) {
-    try {
-      c.set("permission", await resolvePermissionContext(sessionToken));
-    } catch {
-      return c.json({ ok: false, error: { code: "UNAUTHORIZED", message: "Invalid session" } }, 401);
-    }
-  } else if (process.env.NODE_ENV !== "production") {
-    try {
-      c.set("permission", await resolvePermissionContext(DEV_USER_ID));
-    } catch {
-      return c.json({ ok: false, error: { code: "UNAUTHORIZED", message: "Auth service unavailable" } }, 401);
-    }
-  } else {
-    return c.json({ ok: false, error: { code: "UNAUTHORIZED", message: "Missing session" } }, 401);
+function extractSessionId(c: Context): string | undefined {
+  const authHeader = c.req.header("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7);
   }
-
-  await next();
+  return getCookie(c, "session_token");
 }
 
-export async function optionalAuthMiddleware(c: Context, next: Next) {
-  const sessionToken =
-    c.req.header("Authorization")?.replace("Bearer ", "") ?? getCookie(c, "session_token");
+export async function authMiddleware(c: Context, next: Next) {
+  const sessionId = extractSessionId(c);
 
-  if (sessionToken) {
-    try {
-      const userId = sessionToken;
-      c.set("permission", await resolvePermissionContext(userId));
-    } catch {
-      //
+  if (sessionId) {
+    const session = await validateSession(sessionId);
+    if (session) {
+      c.set("permission", await resolvePermissionContext(session.userId));
+      return next();
     }
   }
 
-  await next();
+  return c.json({ ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } }, 401);
 }

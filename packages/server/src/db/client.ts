@@ -13,6 +13,20 @@ export function getDb() {
     rawConnection.pragma("journal_mode = WAL");
     rawConnection.pragma("foreign_keys = ON");
 
+    rawConnection.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+      );
+    `);
+
     dbInstance = drizzle(rawConnection, { schema });
   }
   return dbInstance;

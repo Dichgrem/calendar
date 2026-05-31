@@ -1,7 +1,7 @@
 import { eq, and, gte, lte, or, isNull, sql, isNotNull } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { events, eventOverrides, calendarMembers, syncSequence } from "../db/schema.js";
-import type { ID } from "@calendar/shared";
+import type { ID } from "../types.js";
 
 async function logSync(tableName: string, recordId: ID, op: string) {
   await db.insert(syncSequence).values({
@@ -169,7 +169,7 @@ export async function deleteEvent(eventId: ID, userId: ID): Promise<boolean> {
   const current = await getEvent(eventId, userId);
   if (!current) return false;
 
-  await db.delete(events).where(eq(events.id, eventId));
+  await db.update(events).set({ deleted: true, updatedAt: new Date().toISOString(), lastModified: Date.now() }).where(eq(events.id, eventId));
   await logSync("events", eventId, "deleted");
 
   return true;

@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { pullChanges, pushChanges } from "./sync.service.js";
 import { authMiddleware } from "../auth/middleware.js";
-import type { PermissionContext } from "@calendar/shared";
+import type { PermissionContext } from "../types.js";
 
 const syncRouter = new Hono().use(authMiddleware);
 
