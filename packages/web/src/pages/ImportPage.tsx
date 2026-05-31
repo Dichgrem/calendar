@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Upload, FileText, Check, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
+import { useI18n } from "../hooks/use-i18n";
 import { Button } from "../components/ui/button";
 
 interface IcsPreviewData {
@@ -21,6 +22,7 @@ interface IcsPreviewData {
 }
 
 export function ImportPage() {
+  const { t } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<IcsPreviewData | null>(null);
   const [selectedUids, setSelectedUids] = useState<Set<string>>(new Set());
@@ -47,7 +49,7 @@ export function ImportPage() {
       setSelectedUids(new Set(data.items.map((i) => i.uid)));
       setImported(false);
     } catch {
-      setError("解析失败，请检查文件格式");
+      setError(t("import.parseError"));
     } finally {
       setLoading(false);
     }
@@ -77,7 +79,7 @@ export function ImportPage() {
       });
       setImported(true);
     } catch {
-      setError("导入失败，请重试");
+      setError(t("import.importFailed"));
     } finally {
       setLoading(false);
     }
@@ -92,7 +94,7 @@ export function ImportPage() {
               <label className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl cursor-pointer hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors">
                 <Upload className="size-6 text-neutral-400" />
                 <span className="text-sm text-neutral-500">
-                  {file ? file.name : "点击选择 .ics 文件"}
+                  {file ? file.name : t("import.selectFile")}
                 </span>
                 <input type="file" accept=".ics,.ical,.ifb,.icalendar" onChange={handleFile}
                   className="hidden" />
@@ -105,7 +107,7 @@ export function ImportPage() {
               )}
 
               {loading && !error && (
-                <p className="mt-3 text-sm text-neutral-400 text-center">解析中...</p>
+                <p className="mt-3 text-sm text-neutral-400 text-center">{t("import.parsing")}</p>
               )}
             </>
           )}
@@ -116,24 +118,24 @@ export function ImportPage() {
                 <FileText className="size-4" />{preview.name}
               </h2>
               <p className="text-xs text-neutral-500 mt-1">
-                {preview.eventCount} 个事件 · {preview.todoCount} 个待办
+                {preview.eventCount} {t("import.events")} · {preview.todoCount} {t("import.todos")}
                 {preview.timeSpan.from && ` · ${preview.timeSpan.from.slice(0, 10)} ~ ${preview.timeSpan.to?.slice(0, 10)}`}
               </p>
 
               <div className="mt-3 flex items-center gap-2">
                 <input type="text" value={calendarName} onChange={(e) => setCalendarName(e.target.value)}
                   className="text-sm border rounded px-2 py-1 bg-white dark:bg-neutral-900 dark:border-neutral-700 flex-1 min-w-0"
-                  placeholder="日历名称" />
+                  placeholder={t("import.calName")} />
                 <label className="flex items-center gap-1 text-xs cursor-pointer shrink-0">
                   <input type="checkbox" checked={overwrite}
                     onChange={(e) => setOverwrite(e.target.checked)} className="accent-neutral-900" />
-                  覆盖
+                  {t("import.overwrite")}
                 </label>
               </div>
 
               {overwrite && (
                 <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
-                  <AlertTriangle className="size-3" />将清空此日历中现有内容再导入
+                  <AlertTriangle className="size-3" />{t("import.overwriteWarn")}
                 </p>
               )}
 
@@ -145,7 +147,7 @@ export function ImportPage() {
                       onChange={() => toggleItem(item.uid)}
                       className="accent-neutral-900 dark:accent-white shrink-0" />
                     <span className="text-xs px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 shrink-0">
-                      {item.type === "event" ? "事件" : "待办"}
+                      {item.type === "event" ? t("import.event") : t("import.todo")}
                     </span>
                     <span className="truncate">{item.title}</span>
                     <span className="text-xs text-neutral-400 ml-auto shrink-0">
@@ -158,7 +160,7 @@ export function ImportPage() {
 
               <Button className="mt-3 w-full text-sm" size="sm" onClick={handleImport}
                 disabled={imported || loading}>
-                {imported ? (<><Check className="size-4 mr-1" /> 已导入</>) : (`导入 ${selectedUids.size} 项`)}
+                {imported ? (<><Check className="size-4 mr-1" /> {t("import.imported")}</>) : (`${t("import.importBtn")} ${selectedUids.size} ${t("import.items")}`)}
               </Button>
 
               {error && (
