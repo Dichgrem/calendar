@@ -97,6 +97,7 @@ export async function upsertUserSettings(
       language: data.language ?? "zh-CN",
       firstDayOfWeek: data.firstDayOfWeek ?? 0,
       showEventTime: data.showEventTime ?? true,
+      dateFormat: data.dateFormat ?? "zh",
     })
     .onConflictDoUpdate({
       target: [userSettings.userId],
@@ -104,6 +105,7 @@ export async function upsertUserSettings(
         language: data.language,
         firstDayOfWeek: data.firstDayOfWeek,
         showEventTime: data.showEventTime,
+        dateFormat: data.dateFormat,
       },
     });
 

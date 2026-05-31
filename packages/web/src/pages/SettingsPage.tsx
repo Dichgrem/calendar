@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, Check, X } from "lucide-react";
+import { Pencil, Trash2, Check, X, Download } from "lucide-react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
@@ -42,6 +42,7 @@ export function SettingsPage() {
     language: "zh-CN",
     firstDayOfWeek: 0,
     showEventTime: true,
+    dateFormat: "zh",
   } as UserSettings;
 
   const handleSave = async () => {
@@ -80,25 +81,59 @@ export function SettingsPage() {
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto">
         <div className="max-w-lg mx-auto p-6">
-          <h1 className="text-2xl font-bold mb-6">{t("settings.title")}</h1>
+          <h1 className="text-2xl font-bold mb-4">{t("settings.title")}</h1>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <label className="block">
-              <span className="text-sm font-medium">{t("settings.language")}</span>
-              <select value={s.language} onChange={(e) => setSettings({ ...s, language: e.target.value })}
-                className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700">
+              <span className="text-xs font-medium text-neutral-500">{t("settings.language")}</span>
+              <select value={s.language}
+                onChange={(e) => {
+                  const lang = e.target.value;
+                  const next = { ...s, language: lang };
+                  if (s.dateFormat === "zh" || s.dateFormat === "en") {
+                    next.dateFormat = lang === "en" ? "en" : "zh";
+                  }
+                  setSettings(next);
+                }}
+                className="mt-1 block w-full border rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700">
                 <option value="zh-CN">简体中文</option>
                 <option value="en">English</option>
               </select>
             </label>
             <label className="block">
-              <span className="text-sm font-medium">{t("settings.firstDay")}</span>
+              <span className="text-xs font-medium text-neutral-500">{t("settings.firstDay")}</span>
               <select value={s.firstDayOfWeek}
                 onChange={(e) => setSettings({ ...s, firstDayOfWeek: Number(e.target.value) })}
-                className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700">
+                className="mt-1 block w-full border rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700">
                 <option value={0}>{t("settings.sunday")}</option>
                 <option value={1}>{t("settings.monday")}</option>
               </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-neutral-500">{t("settings.dateFormat")}</span>
+              <select
+                value={["zh", "en"].includes(s.dateFormat) ? s.dateFormat : "custom"}
+                onChange={(e) => {
+                  if (e.target.value !== "custom") setSettings({ ...s, dateFormat: e.target.value });
+                  else setSettings({ ...s, dateFormat: "yyyy-MM-dd" });
+                }}
+                className="mt-1 block w-full border rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
+              >
+                <option value="zh">2026年5月</option>
+                <option value="en">May 2026</option>
+                <option value="custom">{t("settings.customFormat")}（{t("settings.formatHint")}）</option>
+              </select>
+              {!["zh", "en"].includes(s.dateFormat) && (
+                <div className="mt-1.5">
+                  <input
+                    type="text"
+                    value={s.dateFormat}
+                    onChange={(e) => setSettings({ ...s, dateFormat: e.target.value })}
+                    placeholder="yyyy-MM-dd HH:mm:ss"
+                    className="block w-full border rounded-lg px-2.5 py-1.5 text-sm font-mono bg-white dark:bg-neutral-900 dark:border-neutral-700"
+                  />
+                </div>
+              )}
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -107,18 +142,24 @@ export function SettingsPage() {
                 onChange={(e) => setSettings({ ...s, showEventTime: e.target.checked })}
                 className="accent-neutral-900 dark:accent-white"
               />
-              <span className="text-sm font-medium">{t("settings.showEventTime")}</span>
+              <span className="text-sm">{t("settings.showEventTime")}</span>
             </label>
           </div>
 
-          <hr className="mt-8 border-neutral-200 dark:border-neutral-800" />
-          <h2 className="font-semibold mt-6 mb-3">{t("settings.calendars")}</h2>
-          <div className="space-y-2">
+          <hr className="my-4 border-neutral-200 dark:border-neutral-800" />
+
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-sm">{t("settings.calendars")}</h2>
+            <Button variant="outline" size="sm" onClick={() => navigate("/import")} className="h-7 text-xs gap-1">
+              <Download className="size-3" />{t("settings.importIcs")}
+            </Button>
+          </div>
+          <div className="space-y-1.5">
             {calendars?.map((cal) => (
-              <div key={cal.id} className="flex items-center gap-2 p-2 border rounded border-neutral-200 dark:border-neutral-700">
+              <div key={cal.id} className="flex items-center gap-2 p-1.5 border rounded-lg border-neutral-200 dark:border-neutral-700">
                 {editingCal === cal.id ? (
                   <>
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-1.5">
                       <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
                         className="w-full text-sm border rounded px-2 py-1 bg-white dark:bg-neutral-800 dark:border-neutral-600" />
                       <ColorSwatchPicker value={editColor} onChange={setEditColor} />
@@ -149,15 +190,9 @@ export function SettingsPage() {
             )}
           </div>
 
-          <hr className="mt-8 border-neutral-200 dark:border-neutral-800" />
-          <h2 className="font-semibold mt-6 mb-3">{t("settings.dataMgmt")}</h2>
-          <Button variant="outline" size="sm" onClick={() => navigate("/import")}>
-            {t("settings.importIcs")}
-          </Button>
-
-          <hr className="mt-8 border-neutral-200 dark:border-neutral-800" />
-          {saveError && <p className="mt-3 text-sm text-red-500">{saveError}</p>}
-          <Button className="mt-4" onClick={handleSave}>{saved ? t("settings.saved") : t("settings.save")}</Button>
+          <hr className="my-4 border-neutral-200 dark:border-neutral-800" />
+          {saveError && <p className="mb-2 text-sm text-red-500">{saveError}</p>}
+          <Button className="w-full" onClick={handleSave}>{saved ? t("settings.saved") : t("settings.save")}</Button>
         </div>
       </div>
     </div>
