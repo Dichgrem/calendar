@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/.."
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 
 echo "=== 1/4 Config ==="
 NEED_UPDATE=false
@@ -27,15 +28,14 @@ if [ "$NEED_UPDATE" = true ]; then
 fi
 
 echo "=== 2/4 D1 Create + Migrate ==="
-cd packages/server
-if grep -q "REPLACE_WITH" wrangler.toml 2>/dev/null; then
+if grep -q "REPLACE_WITH" packages/server/wrangler.toml 2>/dev/null; then
     echo "Creating D1 database..."
-    if pnpm cf:d1:create 2>/dev/null; then
+    if (cd packages/server && pnpm cf:d1:create) 2>/dev/null; then
         echo "D1 created"
     else
-        ID=$(npx wrangler d1 list --json 2>/dev/null | jq -r '.[] | select(.name=="calendar-db") | .uuid')
+        ID=$(cd packages/server && npx wrangler d1 list --json 2>/dev/null | jq -r '.[] | select(.name=="calendar-db") | .uuid')
         if [ -n "$ID" ] && [ "$ID" != "null" ]; then
-            sed -i "s/REPLACE_WITH_YOUR_D1_DATABASE_ID/$ID/" wrangler.toml
+            sed -i "s/REPLACE_WITH_YOUR_D1_DATABASE_ID/$ID/" packages/server/wrangler.toml
             echo "Found existing D1: $ID"
         else
             echo "ERROR: cannot create or find D1 database"
@@ -46,8 +46,7 @@ else
     echo "D1 already configured, skip create"
 fi
 echo "Running migrations..."
-pnpm cf:d1:migrate
-cd ../..
+(cd packages/server && pnpm cf:d1:migrate)
 
 echo "=== 3/4 SESSION_SECRET ==="
 if ! (cd packages/server && npx wrangler secret list 2>/dev/null | grep -q SESSION_SECRET); then
@@ -57,8 +56,6 @@ else
 fi
 
 echo "=== 4/4 Build Frontend + Deploy ==="
-cd ../..
 pnpm --filter @calendar/web build
-cd packages/server
-pnpm cf:deploy
+(cd packages/server && pnpm cf:deploy)
 echo "Done."
