@@ -70,16 +70,17 @@ export function restoreDatabase(filename: string): boolean {
     fs.copyFileSync(src, tmp);
     fs.renameSync(tmp, dbPath);
   } finally {
-    try { fs.unlinkSync(tmp); } catch { void 0; }
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      void 0;
+    }
   }
   return true;
 }
 
 export async function getUserSettings(userId: ID): Promise<UserSettings | null> {
-  const [row] = await db
-    .select()
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId));
+  const [row] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
 
   if (!row) return null;
   return row as UserSettings;

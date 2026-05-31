@@ -1,11 +1,6 @@
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import {
-  calendars,
-  events,
-  todos,
-  calendarMembers,
-} from "../db/schema.js";
+import { calendars, events, todos, calendarMembers } from "../db/schema.js";
 import type { ID } from "@calendar/shared";
 
 interface ParsedComponent {
@@ -23,7 +18,9 @@ function unfoldLines(text: string): string {
   return text.replace(/\r?\n\s/g, "");
 }
 
-function parseProperty(line: string): { name: string; params: Record<string, string>; value: string } | null {
+function parseProperty(
+  line: string,
+): { name: string; params: Record<string, string>; value: string } | null {
   const m = line.match(/^([^;:]+)(?:;(.+?))?:(.*)$/);
   if (!m) return null;
 
@@ -157,7 +154,9 @@ export function serializeIcsCalendar(
     lines.push(formatIcsLine("STATUS", status));
     if (t.completedAt) lines.push(formatIcsLine("COMPLETED", t.completedAt.replace(/[-:]/g, "")));
     if (t.dueDate) lines.push(formatIcsLine("DUE", t.dueDate.replace(/-/g, "")));
-    lines.push(formatIcsLine("PRIORITY", t.priority === "high" ? "1" : t.priority === "medium" ? "5" : "9"));
+    lines.push(
+      formatIcsLine("PRIORITY", t.priority === "high" ? "1" : t.priority === "medium" ? "5" : "9"),
+    );
     lines.push("END:VTODO\r\n");
   }
 
@@ -252,12 +251,7 @@ function ensureMemberJoin(calendarId: ID, userId: ID) {
   return db
     .select({ one: sql`1` })
     .from(calendarMembers)
-    .where(
-      and(
-        eq(calendarMembers.calendarId, calendarId),
-        eq(calendarMembers.userId, userId),
-      ),
-    )
+    .where(and(eq(calendarMembers.calendarId, calendarId), eq(calendarMembers.userId, userId)))
     .limit(1);
 }
 
@@ -289,24 +283,13 @@ export async function importIcsToCalendar(
     if (c.type === "VEVENT") {
       const startAt = normalizeDt(props["DTSTART"] || props["DTSTART;VALUE=DATE"]) ?? now;
       const endAt = normalizeDt(props["DTEND"] || props["DTEND;VALUE=DATE"]) ?? now;
-      const allDay = !!(props["DTSTART;VALUE=DATE"]);
+      const allDay = !!props["DTSTART;VALUE=DATE"];
 
-      await db.insert(events).values({
-        id: c.uid || crypto.randomUUID(),
-        calendarId,
-        title: props["SUMMARY"] || "(Untitled)",
-        description: props["DESCRIPTION"] || null,
-        startAt,
-        endAt,
-        allDay,
-        rrule: props["RRULE"] || null,
-        location: props["LOCATION"] || null,
-        createdAt: now,
-        updatedAt: now,
-        lastModified: lmod,
-      }).onConflictDoUpdate({
-        target: [events.id],
-        set: {
+      await db
+        .insert(events)
+        .values({
+          id: c.uid || crypto.randomUUID(),
+          calendarId,
           title: props["SUMMARY"] || "(Untitled)",
           description: props["DESCRIPTION"] || null,
           startAt,
@@ -314,43 +297,69 @@ export async function importIcsToCalendar(
           allDay,
           rrule: props["RRULE"] || null,
           location: props["LOCATION"] || null,
+          createdAt: now,
           updatedAt: now,
           lastModified: lmod,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: [events.id],
+          set: {
+            title: props["SUMMARY"] || "(Untitled)",
+            description: props["DESCRIPTION"] || null,
+            startAt,
+            endAt,
+            allDay,
+            rrule: props["RRULE"] || null,
+            location: props["LOCATION"] || null,
+            updatedAt: now,
+            lastModified: lmod,
+          },
+        });
       eventCount++;
     } else if (c.type === "VTODO") {
       const dueDate = normalizeDt(props["DUE"]);
-      const status = props["STATUS"] === "COMPLETED" ? "completed" as const :
-        props["STATUS"] === "IN-PROCESS" ? "in_progress" as const : "todo" as const;
-      const priority = props["PRIORITY"] === "1" ? "high" as const :
-        props["PRIORITY"] === "5" ? "medium" as const :
-        props["PRIORITY"] === "9" ? "low" as const : "none" as const;
+      const status =
+        props["STATUS"] === "COMPLETED"
+          ? ("completed" as const)
+          : props["STATUS"] === "IN-PROCESS"
+            ? ("in_progress" as const)
+            : ("todo" as const);
+      const priority =
+        props["PRIORITY"] === "1"
+          ? ("high" as const)
+          : props["PRIORITY"] === "5"
+            ? ("medium" as const)
+            : props["PRIORITY"] === "9"
+              ? ("low" as const)
+              : ("none" as const);
 
-      await db.insert(todos).values({
-        id: c.uid || crypto.randomUUID(),
-        calendarId,
-        title: props["SUMMARY"] || "(Untitled)",
-        description: props["DESCRIPTION"] || null,
-        priority,
-        status,
-        dueDate,
-        dueTime: null,
-        createdAt: now,
-        updatedAt: now,
-        lastModified: lmod,
-      }).onConflictDoUpdate({
-        target: [todos.id],
-        set: {
+      await db
+        .insert(todos)
+        .values({
+          id: c.uid || crypto.randomUUID(),
+          calendarId,
           title: props["SUMMARY"] || "(Untitled)",
           description: props["DESCRIPTION"] || null,
           priority,
           status,
           dueDate,
+          dueTime: null,
+          createdAt: now,
           updatedAt: now,
           lastModified: lmod,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: [todos.id],
+          set: {
+            title: props["SUMMARY"] || "(Untitled)",
+            description: props["DESCRIPTION"] || null,
+            priority,
+            status,
+            dueDate,
+            updatedAt: now,
+            lastModified: lmod,
+          },
+        });
       todoCount++;
     }
   }
@@ -368,12 +377,7 @@ export async function exportIcs(
     .select({ name: calendars.name })
     .from(calendars)
     .innerJoin(calendarMembers, eq(calendars.id, calendarMembers.calendarId))
-    .where(
-      and(
-        eq(calendars.id, calendarId),
-        eq(calendarMembers.userId, userId),
-      ),
-    );
+    .where(and(eq(calendars.id, calendarId), eq(calendarMembers.userId, userId)));
 
   if (!cal) return null;
 

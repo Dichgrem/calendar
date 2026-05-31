@@ -1,11 +1,6 @@
 import { eq, and, gte, lte, or, isNull, sql, isNotNull } from "drizzle-orm";
 import { db } from "../db/client.js";
-import {
-  events,
-  eventOverrides,
-  calendarMembers,
-  syncSequence,
-} from "../db/schema.js";
+import { events, eventOverrides, calendarMembers, syncSequence } from "../db/schema.js";
 import type { ID } from "@calendar/shared";
 
 async function logSync(tableName: string, recordId: ID, op: string) {
@@ -21,12 +16,7 @@ function ensureMemberJoin(calendarId: ID, userId: ID) {
   return db
     .select({ one: sql`1` })
     .from(calendarMembers)
-    .where(
-      and(
-        eq(calendarMembers.calendarId, calendarId),
-        eq(calendarMembers.userId, userId),
-      ),
-    )
+    .where(and(eq(calendarMembers.calendarId, calendarId), eq(calendarMembers.userId, userId)))
     .limit(1);
 }
 
@@ -75,10 +65,7 @@ export async function listEvents(
         eq(events.deleted, false),
         or(
           isNotNull(events.rrule),
-          and(
-            gte(events.startAt, rangeStart),
-            lte(events.endAt, rangeEnd),
-          ),
+          and(gte(events.startAt, rangeStart), lte(events.endAt, rangeEnd)),
         ),
       ),
     );
@@ -86,10 +73,7 @@ export async function listEvents(
   return rows as EventRow[];
 }
 
-export async function getEvent(
-  eventId: ID,
-  userId: ID,
-): Promise<EventRow | null> {
+export async function getEvent(eventId: ID, userId: ID): Promise<EventRow | null> {
   const rows = await db
     .select()
     .from(events)
@@ -181,10 +165,7 @@ export async function updateEvent(
   return await getEvent(eventId, userId);
 }
 
-export async function deleteEvent(
-  eventId: ID,
-  userId: ID,
-): Promise<boolean> {
+export async function deleteEvent(eventId: ID, userId: ID): Promise<boolean> {
   const current = await getEvent(eventId, userId);
   if (!current) return false;
 

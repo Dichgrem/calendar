@@ -1,12 +1,6 @@
 import { eq, and, sql, asc, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
-import {
-  todos,
-  todoLists,
-  calendarMembers,
-  events,
-  syncSequence,
-} from "../db/schema.js";
+import { todos, todoLists, calendarMembers, events, syncSequence } from "../db/schema.js";
 import type { ID, Todo, TodoList, TodoStatus, Priority } from "@calendar/shared";
 
 async function logSync(tableName: string, recordId: ID, op: string) {
@@ -22,12 +16,7 @@ function ensureMemberJoin(calendarId: ID, userId: ID) {
   return db
     .select({ one: sql`1` })
     .from(calendarMembers)
-    .where(
-      and(
-        eq(calendarMembers.calendarId, calendarId),
-        eq(calendarMembers.userId, userId),
-      ),
-    )
+    .where(and(eq(calendarMembers.calendarId, calendarId), eq(calendarMembers.userId, userId)))
     .limit(1);
 }
 
@@ -60,10 +49,7 @@ export async function listTodos(
   return rows as Todo[];
 }
 
-export async function getTodo(
-  todoId: ID,
-  userId: ID,
-): Promise<Todo | null> {
+export async function getTodo(todoId: ID, userId: ID): Promise<Todo | null> {
   const rows = await db
     .select()
     .from(todos)
@@ -171,11 +157,7 @@ export async function updateTodo(
   return await getTodo(todoId, userId);
 }
 
-async function maybeLogCompletedTodo(
-  current: Todo,
-  userId: ID,
-  lmod: number,
-) {
+async function maybeLogCompletedTodo(current: Todo, userId: ID, lmod: number) {
   const today = new Date().toISOString().slice(0, 10);
   const now = new Date().toISOString();
 
@@ -194,10 +176,7 @@ async function maybeLogCompletedTodo(
   });
 }
 
-export async function deleteTodo(
-  todoId: ID,
-  userId: ID,
-): Promise<boolean> {
+export async function deleteTodo(todoId: ID, userId: ID): Promise<boolean> {
   const current = await getTodo(todoId, userId);
   if (!current) return false;
 
@@ -239,10 +218,7 @@ export async function reorderTodos(
   return true;
 }
 
-export async function listSubtasks(
-  parentId: ID,
-  userId: ID,
-): Promise<Todo[]> {
+export async function listSubtasks(parentId: ID, userId: ID): Promise<Todo[]> {
   const parent = await getTodo(parentId, userId);
   if (!parent) return [];
 
@@ -267,11 +243,7 @@ export async function createSubtask(
   const parent = await getTodo(parentId, userId);
   if (!parent) return null;
 
-  return await createTodo(
-    parent.calendarId,
-    { ...data, parentId, listId: parent.listId },
-    userId,
-  );
+  return await createTodo(parent.calendarId, { ...data, parentId, listId: parent.listId }, userId);
 }
 
 export async function listTodoLists(userId: ID): Promise<TodoList[]> {
@@ -348,10 +320,7 @@ export async function updateTodoList(
   } as TodoList;
 }
 
-export async function deleteTodoList(
-  listId: ID,
-  userId: ID,
-): Promise<boolean> {
+export async function deleteTodoList(listId: ID, userId: ID): Promise<boolean> {
   const [existing] = await db
     .select()
     .from(todoLists)
@@ -359,10 +328,7 @@ export async function deleteTodoList(
 
   if (!existing) return false;
 
-  await db
-    .update(todos)
-    .set({ listId: null })
-    .where(eq(todos.listId, listId));
+  await db.update(todos).set({ listId: null }).where(eq(todos.listId, listId));
 
   await db.delete(todoLists).where(eq(todoLists.id, listId));
 

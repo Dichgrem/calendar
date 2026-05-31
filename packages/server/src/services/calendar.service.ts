@@ -34,10 +34,7 @@ export async function listCalendars(userId: ID): Promise<Calendar[]> {
   return rows as Calendar[];
 }
 
-export async function getCalendar(
-  calendarId: ID,
-  userId: ID,
-): Promise<Calendar | null> {
+export async function getCalendar(calendarId: ID, userId: ID): Promise<Calendar | null> {
   const rows = await db
     .select({
       id: calendars.id,
@@ -107,10 +104,7 @@ export async function updateCalendar(
   if (data.color !== undefined) updateData.color = data.color;
   if (data.sourceUrl !== undefined) updateData.sourceUrl = data.sourceUrl;
 
-  await db
-    .update(calendars)
-    .set(updateData)
-    .where(eq(calendars.id, calendarId));
+  await db.update(calendars).set(updateData).where(eq(calendars.id, calendarId));
 
   await logSync("calendars", calendarId, "updated");
 

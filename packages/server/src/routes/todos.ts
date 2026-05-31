@@ -26,25 +26,18 @@ const listQuerySchema = z.object({
   due_date: z.string().optional(),
 });
 
-todosRouter.get(
-  "/calendars/:calendarId/todos",
-  zValidator("query", listQuerySchema),
-  async (c) => {
-    const perm = c.get("permission");
-    const { calendarId } = c.req.param();
-    const list = await listTodos(calendarId, c.req.valid("query"), perm.userId);
-    return c.json({ ok: true, data: list });
-  },
-);
+todosRouter.get("/calendars/:calendarId/todos", zValidator("query", listQuerySchema), async (c) => {
+  const perm = c.get("permission");
+  const { calendarId } = c.req.param();
+  const list = await listTodos(calendarId, c.req.valid("query"), perm.userId);
+  return c.json({ ok: true, data: list });
+});
 
 todosRouter.get("/todos/:id", async (c) => {
   const perm = c.get("permission");
   const todo = await getTodo(c.req.param("id"), perm.userId);
   if (!todo) {
-    return c.json(
-      { ok: false, error: { code: "NOT_FOUND", message: "Todo not found" } },
-      404,
-    );
+    return c.json({ ok: false, error: { code: "NOT_FOUND", message: "Todo not found" } }, 404);
   }
   return c.json({ ok: true, data: todo });
 });
@@ -60,22 +53,15 @@ const createSchema = z.object({
   parentId: z.string().optional(),
 });
 
-todosRouter.post(
-  "/calendars/:calendarId/todos",
-  zValidator("json", createSchema),
-  async (c) => {
-    const perm = c.get("permission");
-    const { calendarId } = c.req.param();
-    const todo = await createTodo(calendarId, c.req.valid("json"), perm.userId);
-    if (!todo) {
-      return c.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
-        403,
-      );
-    }
-    return c.json({ ok: true, data: todo }, 201);
-  },
-);
+todosRouter.post("/calendars/:calendarId/todos", zValidator("json", createSchema), async (c) => {
+  const perm = c.get("permission");
+  const { calendarId } = c.req.param();
+  const todo = await createTodo(calendarId, c.req.valid("json"), perm.userId);
+  if (!todo) {
+    return c.json({ ok: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
+  }
+  return c.json({ ok: true, data: todo }, 201);
+});
 
 const updateSchema = z.object({
   title: z.string().min(1).max(500).optional(),
@@ -93,10 +79,7 @@ todosRouter.patch("/todos/:id", zValidator("json", updateSchema), async (c) => {
   const perm = c.get("permission");
   const todo = await updateTodo(c.req.param("id"), c.req.valid("json"), perm.userId);
   if (!todo) {
-    return c.json(
-      { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
-      403,
-    );
+    return c.json({ ok: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
   }
   return c.json({ ok: true, data: todo });
 });
@@ -105,10 +88,7 @@ todosRouter.delete("/todos/:id", async (c) => {
   const perm = c.get("permission");
   const ok = await deleteTodo(c.req.param("id"), perm.userId);
   if (!ok) {
-    return c.json(
-      { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
-      403,
-    );
+    return c.json({ ok: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
   }
   return c.json({ ok: true, data: null });
 });
@@ -126,10 +106,7 @@ todosRouter.patch("/todos/reorder", zValidator("json", reorderSchema), async (c)
   const perm = c.get("permission");
   const ok = await reorderTodos(c.req.valid("json").items, perm.userId);
   if (!ok) {
-    return c.json(
-      { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
-      403,
-    );
+    return c.json({ ok: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
   }
   return c.json({ ok: true, data: null });
 });
@@ -146,21 +123,14 @@ const subtaskSchema = z.object({
   dueDate: z.string().optional(),
 });
 
-todosRouter.post(
-  "/todos/:id/subtasks",
-  zValidator("json", subtaskSchema),
-  async (c) => {
-    const perm = c.get("permission");
-    const sub = await createSubtask(c.req.param("id"), c.req.valid("json"), perm.userId);
-    if (!sub) {
-      return c.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
-        403,
-      );
-    }
-    return c.json({ ok: true, data: sub }, 201);
-  },
-);
+todosRouter.post("/todos/:id/subtasks", zValidator("json", subtaskSchema), async (c) => {
+  const perm = c.get("permission");
+  const sub = await createSubtask(c.req.param("id"), c.req.valid("json"), perm.userId);
+  if (!sub) {
+    return c.json({ ok: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
+  }
+  return c.json({ ok: true, data: sub }, 201);
+});
 
 todosRouter.get("/todo-lists", async (c) => {
   const perm = c.get("permission");
@@ -170,7 +140,10 @@ todosRouter.get("/todo-lists", async (c) => {
 
 const createListSchema = z.object({
   name: z.string().min(1).max(200),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
 });
 
 todosRouter.post("/todo-lists", zValidator("json", createListSchema), async (c) => {
@@ -181,17 +154,17 @@ todosRouter.post("/todo-lists", zValidator("json", createListSchema), async (c) 
 
 const updateListSchema = z.object({
   name: z.string().min(1).max(200).optional(),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
 });
 
 todosRouter.patch("/todo-lists/:id", zValidator("json", updateListSchema), async (c) => {
   const perm = c.get("permission");
   const list = await updateTodoList(c.req.param("id"), c.req.valid("json"), perm.userId);
   if (!list) {
-    return c.json(
-      { ok: false, error: { code: "NOT_FOUND", message: "List not found" } },
-      404,
-    );
+    return c.json({ ok: false, error: { code: "NOT_FOUND", message: "List not found" } }, 404);
   }
   return c.json({ ok: true, data: list });
 });
@@ -200,10 +173,7 @@ todosRouter.delete("/todo-lists/:id", async (c) => {
   const perm = c.get("permission");
   const ok = await deleteTodoList(c.req.param("id"), perm.userId);
   if (!ok) {
-    return c.json(
-      { ok: false, error: { code: "NOT_FOUND", message: "List not found" } },
-      404,
-    );
+    return c.json({ ok: false, error: { code: "NOT_FOUND", message: "List not found" } }, 404);
   }
   return c.json({ ok: true, data: null });
 });

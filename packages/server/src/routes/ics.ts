@@ -2,12 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware } from "../auth/middleware.js";
-import {
-  parseIcs,
-  buildPreview,
-  importIcsToCalendar,
-  exportIcs,
-} from "../services/ics.service.js";
+import { parseIcs, buildPreview, importIcsToCalendar, exportIcs } from "../services/ics.service.js";
 import { createCalendar } from "../services/calendar.service.js";
 
 const icsRouter = new Hono().use(authMiddleware);
@@ -33,8 +28,7 @@ const importSchema = z.object({
 
 icsRouter.post("/ics/import", zValidator("json", importSchema), async (c) => {
   const perm = c.get("permission");
-  const { content, calendarId, calendarName, selectedUids, overwrite } =
-    c.req.valid("json");
+  const { content, calendarId, calendarName, selectedUids, overwrite } = c.req.valid("json");
 
   const parsed = parseIcs(content);
 
@@ -59,10 +53,7 @@ icsRouter.post("/ics/import", zValidator("json", importSchema), async (c) => {
   );
 
   if (!result) {
-    return c.json(
-      { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
-      403,
-    );
+    return c.json({ ok: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
   }
 
   return c.json({
