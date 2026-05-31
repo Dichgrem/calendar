@@ -1,11 +1,4 @@
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  uniqueIndex,
-  index,
-} from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 export const calendars = sqliteTable(
   "calendars",
@@ -24,9 +17,7 @@ export const calendars = sqliteTable(
     updatedAt: text("updated_at").notNull(),
     lastModified: integer("last_modified").notNull(),
   },
-  (t) => [
-    index("idx_calendars_owner").on(t.ownerId),
-  ],
+  (t) => [index("idx_calendars_owner").on(t.ownerId)],
 );
 
 export const calendarMembers = sqliteTable(
@@ -87,9 +78,7 @@ export const eventOverrides = sqliteTable(
     deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
     lastModified: integer("last_modified").notNull(),
   },
-  (t) => [
-    uniqueIndex("idx_overrides_parent_date").on(t.parentId, t.originalDate),
-  ],
+  (t) => [uniqueIndex("idx_overrides_parent_date").on(t.parentId, t.originalDate)],
 );
 
 export const todoLists = sqliteTable(
@@ -104,9 +93,7 @@ export const todoLists = sqliteTable(
     updatedAt: text("updated_at").notNull(),
     lastModified: integer("last_modified").notNull(),
   },
-  (t) => [
-    index("idx_todo_lists_user").on(t.userId),
-  ],
+  (t) => [index("idx_todo_lists_user").on(t.userId)],
 );
 
 export const todos = sqliteTable(
@@ -202,14 +189,11 @@ export const pushSubscriptions = sqliteTable(
   ],
 );
 
-export const syncQueue = sqliteTable(
-  "sync_queue",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    tableName: text("table_name").notNull(),
-    recordId: text("record_id").notNull(),
-    op: text("op", { enum: ["created", "updated", "deleted"] }).notNull(),
-    data: text("data").notNull(),
-    seq: integer("seq").notNull(),
-  },
-);
+export const syncQueue = sqliteTable("sync_queue", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tableName: text("table_name").notNull(),
+  recordId: text("record_id").notNull(),
+  op: text("op", { enum: ["created", "updated", "deleted"] }).notNull(),
+  data: text("data").notNull(),
+  seq: integer("seq").notNull(),
+});

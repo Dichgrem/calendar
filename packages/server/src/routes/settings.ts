@@ -18,10 +18,7 @@ const settingsRouter = new Hono().use(authMiddleware);
 settingsRouter.post("/backup", async (c) => {
   const result = backupDatabase();
   if (!result) {
-    return c.json(
-      { ok: false, error: { code: "INTERNAL", message: "Backup failed" } },
-      500,
-    );
+    return c.json({ ok: false, error: { code: "INTERNAL", message: "Backup failed" } }, 500);
   }
   return c.json({ ok: true, data: result });
 });
@@ -29,19 +26,13 @@ settingsRouter.post("/backup", async (c) => {
 settingsRouter.get("/backup/download/:filename", async (c) => {
   const { filename } = c.req.param();
   if (!validateBackupFilename(filename)) {
-    return c.json(
-      { ok: false, error: { code: "BAD_REQUEST", message: "Invalid filename" } },
-      400,
-    );
+    return c.json({ ok: false, error: { code: "BAD_REQUEST", message: "Invalid filename" } }, 400);
   }
 
   const backupDir = path.resolve(process.env.BACKUP_DIR ?? "./backups");
   const filePath = path.resolve(path.join(backupDir, filename));
   if (!filePath.startsWith(backupDir) || !fs.existsSync(filePath)) {
-    return c.json(
-      { ok: false, error: { code: "NOT_FOUND", message: "Backup not found" } },
-      404,
-    );
+    return c.json({ ok: false, error: { code: "NOT_FOUND", message: "Backup not found" } }, 404);
   }
 
   const content = fs.readFileSync(filePath);
@@ -63,10 +54,7 @@ settingsRouter.post("/backup/restore", zValidator("json", restoreSchema), async 
   const { filename } = c.req.valid("json");
   const ok = restoreDatabase(filename);
   if (!ok) {
-    return c.json(
-      { ok: false, error: { code: "NOT_FOUND", message: "Backup not found" } },
-      404,
-    );
+    return c.json({ ok: false, error: { code: "NOT_FOUND", message: "Backup not found" } }, 404);
   }
   return c.json({ ok: true, data: { restored: filename } });
 });
@@ -85,14 +73,10 @@ const updateSettingsSchema = z.object({
   showCompletedTodos: z.boolean().optional(),
 });
 
-settingsRouter.patch(
-  "/settings",
-  zValidator("json", updateSettingsSchema),
-  async (c) => {
-    const perm = c.get("permission");
-    const settings = await upsertUserSettings(perm.userId, c.req.valid("json"));
-    return c.json({ ok: true, data: settings });
-  },
-);
+settingsRouter.patch("/settings", zValidator("json", updateSettingsSchema), async (c) => {
+  const perm = c.get("permission");
+  const settings = await upsertUserSettings(perm.userId, c.req.valid("json"));
+  return c.json({ ok: true, data: settings });
+});
 
 export { settingsRouter };

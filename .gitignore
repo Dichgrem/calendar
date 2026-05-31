@@ -15,5 +15,7 @@ backups/
 todo.md
 AGENTS.md
 
+.direnv/
+result
 .DS_Store
 Thumbs.db

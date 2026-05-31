@@ -5,8 +5,7 @@ import { pullChanges, pushChanges } from "./sync.service.js";
 import { authMiddleware } from "../auth/middleware.js";
 import type { PermissionContext } from "@calendar/shared";
 
-const syncRouter = new Hono()
-  .use(authMiddleware);
+const syncRouter = new Hono().use(authMiddleware);
 
 const pullSchema = z.object({
   last_pulled_seq: z.coerce.number().int().min(0),

@@ -30,8 +30,7 @@ async function resolvePermissionContext(userId: ID): Promise<PermissionContext> 
 
 export async function authMiddleware(c: Context, next: Next) {
   const sessionToken =
-    c.req.header("Authorization")?.replace("Bearer ", "") ??
-    getCookie(c, "session_token");
+    c.req.header("Authorization")?.replace("Bearer ", "") ?? getCookie(c, "session_token");
 
   if (!sessionToken) {
     return c.json({ ok: false, error: { code: "UNAUTHORIZED", message: "Missing session" } }, 401);
@@ -49,8 +48,7 @@ export async function authMiddleware(c: Context, next: Next) {
 
 export async function optionalAuthMiddleware(c: Context, next: Next) {
   const sessionToken =
-    c.req.header("Authorization")?.replace("Bearer ", "") ??
-    getCookie(c, "session_token");
+    c.req.header("Authorization")?.replace("Bearer ", "") ?? getCookie(c, "session_token");
 
   if (sessionToken) {
     try {

@@ -25,12 +25,7 @@ export async function pullChanges({
     const seqs = await db
       .select()
       .from(syncSequence)
-      .where(
-        and(
-          eq(syncSequence.tableName, table),
-          gt(syncSequence.id, lastPulledSeq),
-        ),
-      );
+      .where(and(eq(syncSequence.tableName, table), gt(syncSequence.id, lastPulledSeq)));
 
     for (const seq of seqs) {
       if (seq.op === "deleted") {
@@ -38,9 +33,7 @@ export async function pullChanges({
       } else {
         const row = await db
           .select()
-          .from(
-            sql.raw(table),
-          )
+          .from(sql.raw(table))
           .where(eq(sql.raw(`${table}.id`), seq.recordId))
           .get();
 
@@ -113,10 +106,7 @@ export async function pushChanges({
 
   for (const [table, tableChanges] of Object.entries(changes)) {
     for (const record of tableChanges.created) {
-      await db
-        .insert(sql.raw(table))
-        .values(record)
-        .onConflictDoNothing();
+      await db.insert(sql.raw(table)).values(record).onConflictDoNothing();
     }
     for (const record of tableChanges.updated) {
       const { id, ...data } = record;

@@ -11,11 +11,7 @@ import type {
 } from "@calendar/shared";
 import { roleGte } from "@calendar/shared";
 
-const tablesWithCalendarId = new Set([
-  "events",
-  "todos",
-  "event_overrides",
-]);
+const tablesWithCalendarId = new Set(["events", "todos", "event_overrides"]);
 
 const calendarIdColumnMap: Record<string, SQLiteColumn> = {
   events: calendarMembers.calendarId,
@@ -28,13 +24,7 @@ function applyCalendarScope<T extends SQLiteSelectQueryBuilder>(
   calendarIdField: string = "calendar_id",
 ): CalendarScoped<T> {
   return qb
-    .leftJoin(
-      calendarMembers,
-      eq(
-        calendarMembers.calendarId,
-        sql.raw(`${calendarIdField}`),
-      ),
-    )
+    .leftJoin(calendarMembers, eq(calendarMembers.calendarId, sql.raw(`${calendarIdField}`)))
     .where(eq(calendarMembers.userId, permission.userId)) as CalendarScoped<T>;
 }
 
