@@ -8,6 +8,11 @@ const MONTH_NAMES_SHORT_EN = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
+const MONTH_NAMES_ZH = [
+  "一月", "二月", "三月", "四月", "五月", "六月",
+  "七月", "八月", "九月", "十月", "十一月", "十二月",
+];
+
 const PAD2 = (n: number) => String(n).padStart(2, "0");
 
 export function formatCalendarDate(d: Date, format: string, lang: string): string {
@@ -15,10 +20,13 @@ export function formatCalendarDate(d: Date, format: string, lang: string): strin
   if (format === "iso") return `${d.getFullYear()}-${PAD2(d.getMonth() + 1)}`;
   if (format === "en") return `${MONTH_NAMES_EN[d.getMonth()]} ${d.getFullYear()}`;
 
+  const fullNames = lang === "en" ? MONTH_NAMES_EN : MONTH_NAMES_ZH;
+  const shortNames = lang === "en" ? MONTH_NAMES_SHORT_EN : MONTH_NAMES_ZH;
+
   return format
     .replace(/yyyy/g, String(d.getFullYear()))
-    .replace(/MMMM/g, MONTH_NAMES_EN[d.getMonth()])
-    .replace(/MMM/g, MONTH_NAMES_SHORT_EN[d.getMonth()])
+    .replace(/MMMM/g, fullNames[d.getMonth()])
+    .replace(/MMM/g, shortNames[d.getMonth()])
     .replace(/MM/g, PAD2(d.getMonth() + 1))
     .replace(/M/g, String(d.getMonth() + 1))
     .replace(/dd/g, PAD2(d.getDate()))
@@ -26,8 +34,4 @@ export function formatCalendarDate(d: Date, format: string, lang: string): strin
     .replace(/HH/g, PAD2(d.getHours()))
     .replace(/mm/g, PAD2(d.getMinutes()))
     .replace(/ss/g, PAD2(d.getSeconds()));
-}
-
-export function formatClock(d: Date): string {
-  return `${PAD2(d.getHours())}:${PAD2(d.getMinutes())}:${PAD2(d.getSeconds())}`;
 }
