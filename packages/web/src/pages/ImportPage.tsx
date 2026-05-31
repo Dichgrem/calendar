@@ -116,7 +116,7 @@ export function ImportPage() {
     } finally {
       setLoading(false);
     }
-  }, [icsContent, preview, calendarName, selectedUids, overwrite, queryClient, navigate]);
+  }, [icsContent, preview, calendarName, calendarColor, selectedUids, overwrite, queryClient, navigate]);
 
   return (
     <div className="flex flex-col h-full">
