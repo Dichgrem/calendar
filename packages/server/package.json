@@ -10,15 +10,21 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy",
+    "cf:d1:create": "wrangler d1 create calendar-db",
+    "cf:d1:migrate": "wrangler d1 migrations apply calendar-db"
   },
   "dependencies": {
+    "@cloudflare/workers-types": "^4.20260531.1",
     "@hono/node-server": "^1.13.0",
     "@hono/zod-validator": "^0.4.0",
     "better-auth": "^0.8.0",
     "better-sqlite3": "^11.0.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.0.0",
+    "wrangler": "^4.95.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
