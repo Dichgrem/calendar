@@ -16,6 +16,7 @@ todo.md
 AGENTS.md
 
 .direnv/
+reference/
 result
 .DS_Store
 Thumbs.db
