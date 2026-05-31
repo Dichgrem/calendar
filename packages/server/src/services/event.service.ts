@@ -3,13 +3,13 @@ import { db } from "../db/client.js";
 import { events, eventOverrides, calendarMembers, syncSequence } from "../db/schema.js";
 import type { ID } from "../types.js";
 
-async function logSync(tableName: string, recordId: ID, op: string) {
+async function logSync(tableName: string, recordId: ID, op: "created" | "updated" | "deleted") {
   await db.insert(syncSequence).values({
     tableName,
     recordId,
     op,
     syncedAt: new Date().toISOString(),
-  });
+  } as any);
 }
 
 function ensureMemberJoin(calendarId: ID, userId: ID) {
@@ -130,13 +130,13 @@ export async function updateEvent(
   eventId: ID,
   data: {
     title?: string;
-    description?: string;
+    description?: string | null;
     startAt?: string;
     endAt?: string;
     allDay?: boolean;
-    rrule?: string;
-    color?: string;
-    location?: string;
+    rrule?: string | null;
+    color?: string | null;
+    location?: string | null;
     deleted?: boolean;
   },
   userId: ID,

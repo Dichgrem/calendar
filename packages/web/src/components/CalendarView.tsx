@@ -309,7 +309,7 @@ export function CalendarView() {
         <EventEditor
           mode="create"
           calendars={calendars ?? []}
-          defaultCalendarId={[...visibleCalendars][0]}
+          defaultCalendarId={[...visibleCalendars][0] ?? calendars?.[0]?.id}
           open
           onClose={() => setCreating(false)}
         />

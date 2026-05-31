@@ -13,39 +13,6 @@ export function getDb() {
     rawConnection.pragma("journal_mode = WAL");
     rawConnection.pragma("foreign_keys = ON");
 
-    rawConnection.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        username TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        expires_at TEXT NOT NULL
-      );
-    `);
-
-    // Add missing columns to existing tables
-    const columns = rawConnection.pragma("table_info(user_settings)") as { name: string }[];
-    const colNames = new Set(columns.map((c) => c.name));
-    if (!colNames.has("date_format")) {
-      rawConnection.exec(`ALTER TABLE user_settings ADD COLUMN date_format TEXT NOT NULL DEFAULT 'zh'`);
-    }
-
-    const eventColumns = rawConnection.pragma("table_info(events)") as { name: string }[];
-    const eventColNames = new Set(eventColumns.map((c) => c.name));
-    if (!eventColNames.has("raw_ics")) {
-      rawConnection.exec(`ALTER TABLE events ADD COLUMN raw_ics TEXT`);
-    }
-
-    const settingsColumns = rawConnection.pragma("table_info(user_settings)") as { name: string }[];
-    const settingsColNames = new Set(settingsColumns.map((c) => c.name));
-    if (!settingsColNames.has("show_lunar_calendar")) {
-      rawConnection.exec(`ALTER TABLE user_settings ADD COLUMN show_lunar_calendar INTEGER NOT NULL DEFAULT 0`);
-    }
-
     dbInstance = drizzle(rawConnection, { schema });
   }
   return dbInstance;
@@ -55,8 +22,4 @@ export const db = getDb();
 
 export function getRawConnection(): Database.Database | null {
   return rawConnection;
-}
-
-export function createD1Db(d1Binding: D1Database) {
-  return drizzle(d1Binding, { schema });
 }

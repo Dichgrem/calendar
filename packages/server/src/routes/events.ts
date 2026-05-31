@@ -41,16 +41,17 @@ eventsRouter.get("/events/:id", async (c) => {
 
 const createSchema = z.object({
   title: z.string().min(1).max(500),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
   startAt: z.string().min(1),
   endAt: z.string().min(1),
   allDay: z.boolean().optional(),
-  rrule: z.string().optional(),
+  rrule: z.string().nullable().optional(),
   color: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullable()
     .optional(),
-  location: z.string().optional(),
+  location: z.string().nullable().optional(),
 });
 
 eventsRouter.post("/calendars/:calendarId/events", zValidator("json", createSchema), async (c) => {
