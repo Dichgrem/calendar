@@ -41,8 +41,4 @@ app.route("/api", eventsRouter);
 app.route("/api", icsRouter);
 app.route("/api", settingsRouter);
 
-export default {
-  async fetch(request: Request, env: Bindings, ctx: ExecutionContext): Promise<Response> {
-    return app.fetch(request, env, ctx);
-  },
-};
+export default app;

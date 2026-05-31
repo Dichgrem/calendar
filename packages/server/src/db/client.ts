@@ -1,34 +1,26 @@
-import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
-import { drizzle as drizzleD1 } from "drizzle-orm/d1";
-import Database from "better-sqlite3";
-import * as schema from "./schema.js";
+import type { DrizzleD1Database } from "drizzle-orm/d1";
+import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 
-type DrizzleDb = ReturnType<typeof drizzleSqlite<typeof schema>>;
+type DrizzleDb = DrizzleD1Database<Record<string, never>> | BetterSQLite3Database<Record<string, never>>;
 
-let dbInstance: DrizzleDb | null = null;
-let rawConnection: Database.Database | null = null;
+let _db: DrizzleDb | null = null;
+let _rawConnection: unknown = null;
 
-export function getDb(): DrizzleDb {
-  if (!dbInstance) {
-    rawConnection = new Database(
-      process.env.DATABASE_URL?.replace("file:", "") ?? "./data/calendar.db",
-    );
-    rawConnection.pragma("journal_mode = WAL");
-    rawConnection.pragma("foreign_keys = ON");
-
-    dbInstance = drizzleSqlite(rawConnection, { schema });
-  }
-  return dbInstance;
+export function setDb(d: DrizzleDb): void {
+  _db = d;
 }
 
-export function initD1Db(d1: unknown) {
-  if (!dbInstance) {
-    dbInstance = drizzleD1(d1 as D1Database, { schema }) as unknown as DrizzleDb;
-  }
+export function setRawConnection(c: unknown): void {
+  _rawConnection = c;
 }
 
-export const db = getDb();
+export const db = new Proxy({} as DrizzleDb, {
+  get(_, prop) {
+    if (!_db) throw new Error("DB not initialized");
+    return (_db as Record<string | symbol, unknown>)[prop];
+  },
+});
 
-export function getRawConnection(): Database.Database | null {
-  return rawConnection;
+export function getRawConnection() {
+  return _rawConnection;
 }
