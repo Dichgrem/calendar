@@ -10,6 +10,7 @@ import { initD1Db } from "./db/d1.js";
 
 type Bindings = {
   DB: unknown;
+  ASSETS: { fetch: (req: Request) => Promise<Response> };
   SESSION_SECRET: string;
   CORS_ORIGIN?: string;
 };
@@ -40,5 +41,14 @@ app.route("/api/calendars", calendarsRouter);
 app.route("/api", eventsRouter);
 app.route("/api", icsRouter);
 app.route("/api", settingsRouter);
+
+// SPA fallback — serve index.html for non-API routes
+app.get("*", async (c) => {
+  try {
+    const asset = await c.env.ASSETS.fetch(c.req.raw);
+    if (asset.status !== 404) return asset;
+  } catch { /* fall through */ }
+  return c.env.ASSETS.fetch(new Request(new URL("/index.html", c.req.url)));
+});
 
 export default app;
