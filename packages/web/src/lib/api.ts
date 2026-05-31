@@ -89,5 +89,16 @@ export const api = {
     get: () => request<ApiResponse<UserSettings>>("/settings"),
     update: (data: Partial<UserSettings>) =>
       request<ApiResponse<UserSettings>>("/settings", { method: "PATCH", body: JSON.stringify(data) }),
+    exportConfig: () => request<{ userDefaults: Record<string, unknown> }>("/settings/config"),
+  },
+
+  backup: {
+    create: () => request<ApiResponse<{ filename: string; path: string }>>("/backup", { method: "POST" }),
+    download: (filename: string) => {
+      const a = document.createElement("a");
+      a.href = `${BASE}/backup/download/${filename}`;
+      a.download = filename;
+      a.click();
+    },
   },
 };

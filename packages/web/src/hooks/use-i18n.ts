@@ -64,6 +64,10 @@ const strings = {
   "settings.dateFormat": { "zh-CN": "日期格式", en: "Date format" },
   "settings.customFormat": { "zh-CN": "自定义格式...", en: "Custom format..." },
   "settings.formatHint": { "zh-CN": "yyyy=年 MM=月 dd=日 HH=时 mm=分 ss=秒", en: "yyyy=year MM=month dd=day HH=hour mm=minute ss=second" },
+  "settings.backupDb": { "zh-CN": "备份数据库", en: "Backup DB" },
+  "settings.backingUp": { "zh-CN": "备份中...", en: "Backing up..." },
+  "settings.exportConfig": { "zh-CN": "导出配置", en: "Export Config" },
+  "settings.backupDone": { "zh-CN": "备份完成", en: "Backup complete" },
 
   // ImportPage
   "import.tabFile": { "zh-CN": "文件导入", en: "File" },

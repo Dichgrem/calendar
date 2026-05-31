@@ -12,6 +12,7 @@ import {
 } from "../services/settings.service.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { config } from "../config.js";
 
 const settingsRouter = new Hono().use(authMiddleware);
 
@@ -29,7 +30,7 @@ settingsRouter.get("/backup/download/:filename", async (c) => {
     return c.json({ ok: false, error: { code: "BAD_REQUEST", message: "Invalid filename" } }, 400);
   }
 
-  const backupDir = path.resolve(process.env.BACKUP_DIR ?? "./backups");
+  const backupDir = path.resolve(config.backupDir);
   const filePath = path.resolve(path.join(backupDir, filename));
   if (!filePath.startsWith(backupDir) || !fs.existsSync(filePath)) {
     return c.json({ ok: false, error: { code: "NOT_FOUND", message: "Backup not found" } }, 404);
@@ -77,6 +78,10 @@ settingsRouter.patch("/settings", zValidator("json", updateSettingsSchema), asyn
   const perm = c.get("permission");
   const settings = await upsertUserSettings(perm.userId, c.req.valid("json"));
   return c.json({ ok: true, data: settings });
+});
+
+settingsRouter.get("/settings/config", (c) => {
+  return c.json({ userDefaults: config.userDefaults });
 });
 
 export { settingsRouter };

@@ -5,10 +5,11 @@ services:
       - "3000:3000"
     environment:
       - DATABASE_URL=/app/data/calendar.db
-      - CORS_ORIGIN=http://localhost:3000
       - SESSION_SECRET=change-me-in-production
     volumes:
       - calendar-data:/app/data
+      # Optional: mount custom config to override defaults
+      # - ./config.json:/app/packages/server/config.json:ro
     restart: unless-stopped
 
 volumes:

@@ -4,13 +4,14 @@ import { userSettings } from "../db/schema.js";
 import type { ID, UserSettings } from "../types.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { config } from "../config.js";
 
 export function getBackupPath(): string {
-  return process.env.DATABASE_URL?.replace("file:", "") ?? "./data/calendar.db";
+  return config.databaseUrl;
 }
 
 export function getBackupDir(): string {
-  return process.env.BACKUP_DIR ?? "./backups";
+  return config.backupDir;
 }
 
 export async function backupDatabase(): Promise<{ filename: string; path: string } | null> {
@@ -94,11 +95,11 @@ export async function upsertUserSettings(
     .insert(userSettings)
     .values({
       userId,
-      language: data.language ?? "zh-CN",
-      firstDayOfWeek: data.firstDayOfWeek ?? 0,
-      showEventTime: data.showEventTime ?? true,
-      dateFormat: data.dateFormat ?? "zh",
-      showLunarCalendar: data.showLunarCalendar ?? false,
+      language: data.language ?? config.userDefaults.language,
+      firstDayOfWeek: data.firstDayOfWeek ?? config.userDefaults.firstDayOfWeek,
+      showEventTime: data.showEventTime ?? config.userDefaults.showEventTime,
+      dateFormat: data.dateFormat ?? config.userDefaults.dateFormat,
+      showLunarCalendar: data.showLunarCalendar ?? config.userDefaults.showLunarCalendar,
     })
     .onConflictDoUpdate({
       target: [userSettings.userId],
