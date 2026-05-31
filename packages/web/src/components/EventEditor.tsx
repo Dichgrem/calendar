@@ -152,9 +152,9 @@ export function EventEditor(props: EventEditorProps) {
         </>
       }
     >
-      <div className="space-y-3">
+      <div className="space-y-4">
         {noCalendars && (
-          <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950 rounded px-3 py-2">
+          <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/50 rounded-lg px-3 py-2">
             {t("cal.noCalendars")}
           </p>
         )}
@@ -165,7 +165,7 @@ export function EventEditor(props: EventEditorProps) {
             <select
               value={calendarId}
               onChange={(e) => setCalendarId(e.target.value)}
-              className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-600"
+              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             >
               {props.calendars.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -182,33 +182,33 @@ export function EventEditor(props: EventEditorProps) {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-600"
+            className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             autoFocus
           />
         </label>
 
-        <div className="flex gap-2">
-          <label className="flex-1 block">
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
             <span className="text-xs font-medium text-neutral-500">{t("event.start")}</span>
             <input
-              type="datetime-local"
+              type={allDay ? "date" : "datetime-local"}
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
-              className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-600"
+              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />
           </label>
-          <label className="flex-1 block">
+          <label className="block">
             <span className="text-xs font-medium text-neutral-500">{t("event.end")}</span>
             <input
-              type="datetime-local"
+              type={allDay ? "date" : "datetime-local"}
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
-              className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-600"
+              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />
           </label>
         </div>
 
-        <label className="flex items-center gap-2">
+        <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
             checked={allDay}
@@ -224,7 +224,7 @@ export function EventEditor(props: EventEditorProps) {
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-600"
+            className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
           />
         </label>
 
@@ -234,7 +234,7 @@ export function EventEditor(props: EventEditorProps) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-600 resize-none"
+            className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400 resize-none"
           />
         </label>
 
