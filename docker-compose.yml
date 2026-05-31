@@ -4,7 +4,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=./data/calendar.db
+      - DATABASE_URL=/app/data/calendar.db
       - CORS_ORIGIN=http://localhost:3000
       - SESSION_SECRET=change-me-in-production
     volumes:
