@@ -53,6 +53,7 @@ export const events = sqliteTable(
     parentId: text("parent_id"),
     originalDate: text("original_date"),
     deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
+    rawIcs: text("raw_ics"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
     lastModified: integer("last_modified").notNull(),

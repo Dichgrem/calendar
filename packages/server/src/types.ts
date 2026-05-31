@@ -30,6 +30,7 @@ export interface Event {
   parentId: ID | null;
   originalDate: string | null;
   deleted: boolean;
+  rawIcs: string | null;
   createdAt: string;
   updatedAt: string;
   lastModified: number;
