@@ -144,6 +144,10 @@ export async function updateTodo(
       await maybeLogCompletedTodo(current, userId, lmod);
     } else {
       updateData.completedAt = null;
+      if (current.status === "completed") {
+        await db.delete(events).where(eq(events.parentId, todoId));
+        await logSync("events", todoId, "deleted");
+      }
     }
   }
   if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;

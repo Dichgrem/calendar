@@ -248,7 +248,7 @@ function normalizeDt(dt: string | null): string | null {
     const date = cleaned.slice(0, 8);
     const time = cleaned.slice(9, 15);
     const suffix = cleaned.slice(15);
-    return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T${time.slice(0, 2)}:${time.slice(2, 4)}:${time.length >= 4 ? `:${time.slice(4, 6)}` : ""}${suffix}`;
+    return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T${time.slice(0, 2)}:${time.slice(2, 4)}${time.length >= 6 ? `:${time.slice(4, 6)}` : ""}${suffix}`;
   }
   return cleaned;
 }

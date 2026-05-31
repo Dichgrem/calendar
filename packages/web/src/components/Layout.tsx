@@ -1,11 +1,12 @@
-import { createContext, useContext, useRef, type RefObject } from "react";
+import { createContext, useContext, useCallback, useState, type RefCallback } from "react";
 import { Outlet, NavLink } from "react-router";
 import { Calendar, ListTodo, Settings } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useI18n } from "../hooks/use-i18n";
 
 interface TopBarSlots {
-  left: RefObject<HTMLDivElement | null>;
-  center: RefObject<HTMLDivElement | null>;
+  left: HTMLDivElement | null;
+  center: HTMLDivElement | null;
 }
 
 const TopBarCtx = createContext<TopBarSlots | null>(null);
@@ -14,18 +15,22 @@ export function useTopBar() {
   return useContext(TopBarCtx);
 }
 
-const navItems = [
-  { to: "/calendar", icon: Calendar, label: "日历" },
-  { to: "/calendar/todos", icon: ListTodo, label: "待办" },
-  { to: "/settings", icon: Settings, label: "设置" },
-];
-
 export function Layout() {
-  const leftRef = useRef<HTMLDivElement>(null);
-  const centerRef = useRef<HTMLDivElement>(null);
+  const [leftEl, setLeftEl] = useState<HTMLDivElement | null>(null);
+  const [centerEl, setCenterEl] = useState<HTMLDivElement | null>(null);
+  const { t } = useI18n();
+
+  const leftRef: RefCallback<HTMLDivElement> = useCallback((el) => setLeftEl(el), []);
+  const centerRef: RefCallback<HTMLDivElement> = useCallback((el) => setCenterEl(el), []);
+
+  const navItems = [
+    { to: "/calendar", icon: Calendar, label: t("nav.calendar") },
+    { to: "/calendar/todos", icon: ListTodo, label: t("nav.todos") },
+    { to: "/settings", icon: Settings, label: t("nav.settings") },
+  ];
 
   return (
-    <TopBarCtx.Provider value={{ left: leftRef, center: centerRef }}>
+    <TopBarCtx.Provider value={{ left: leftEl, center: centerEl }}>
       <div className="flex flex-col h-screen bg-neutral-50 dark:bg-neutral-950">
         <nav className="flex items-center gap-1 px-4 py-1.5 border-b border-neutral-200 dark:border-neutral-800">
           <div ref={leftRef} className="shrink-0 flex items-center gap-1" />
