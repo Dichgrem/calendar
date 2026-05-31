@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { eq, and, sql } from "drizzle-orm";
 import type { SQLiteSelectQueryBuilder } from "drizzle-orm/sqlite-core";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";

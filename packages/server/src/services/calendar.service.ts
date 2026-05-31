@@ -4,7 +4,7 @@ import { calendars, calendarMembers, syncSequence } from "../db/schema.js";
 import type { Calendar, ID, PermissionContext } from "../types.js";
 import { createPermissionGuard } from "../auth/permissions.query.js";
 
-async function logSync(tableName: string, recordId: ID, op: string) {
+async function logSync(tableName: string, recordId: ID, op: "created" | "updated" | "deleted") {
   await db.insert(syncSequence).values({
     tableName,
     recordId,
@@ -87,7 +87,7 @@ export async function createCalendar(
 
 export async function updateCalendar(
   calendarId: ID,
-  data: { name?: string; color?: string; sourceUrl?: string },
+  data: { name?: string; color?: string; sourceUrl?: string | null },
   permission: PermissionContext,
 ): Promise<Calendar | null> {
   const guard = createPermissionGuard(permission);

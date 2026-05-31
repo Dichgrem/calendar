@@ -17,7 +17,9 @@ export const calendars = sqliteTable(
     updatedAt: text("updated_at").notNull(),
     lastModified: integer("last_modified").notNull(),
   },
-  (t) => [index("idx_calendars_owner").on(t.ownerId)],
+  (t) => ({
+    idxOwner: index("idx_calendars_owner").on(t.ownerId),
+  }),
 );
 
 export const calendarMembers = sqliteTable(
@@ -29,10 +31,10 @@ export const calendarMembers = sqliteTable(
     userId: text("user_id").notNull(),
     role: text("role", { enum: ["viewer", "editor", "admin"] }).notNull(),
   },
-  (t) => [
-    uniqueIndex("idx_calendar_members_uk").on(t.calendarId, t.userId),
-    index("idx_calendar_members_user").on(t.userId),
-  ],
+  (t) => ({
+    idxUk: uniqueIndex("idx_calendar_members_uk").on(t.calendarId, t.userId),
+    idxUser: index("idx_calendar_members_user").on(t.userId),
+  }),
 );
 
 export const events = sqliteTable(
@@ -58,11 +60,11 @@ export const events = sqliteTable(
     updatedAt: text("updated_at").notNull(),
     lastModified: integer("last_modified").notNull(),
   },
-  (t) => [
-    index("idx_events_calendar_time").on(t.calendarId, t.startAt, t.endAt),
-    index("idx_events_calendar_modified").on(t.calendarId, t.lastModified),
-    index("idx_events_parent").on(t.parentId),
-  ],
+  (t) => ({
+    idxCalendarTime: index("idx_events_calendar_time").on(t.calendarId, t.startAt, t.endAt),
+    idxCalendarModified: index("idx_events_calendar_modified").on(t.calendarId, t.lastModified),
+    idxParent: index("idx_events_parent").on(t.parentId),
+  }),
 );
 
 export const eventOverrides = sqliteTable(
@@ -79,7 +81,9 @@ export const eventOverrides = sqliteTable(
     deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
     lastModified: integer("last_modified").notNull(),
   },
-  (t) => [uniqueIndex("idx_overrides_parent_date").on(t.parentId, t.originalDate)],
+  (t) => ({
+    idxParentDate: uniqueIndex("idx_overrides_parent_date").on(t.parentId, t.originalDate),
+  }),
 );
 
 export const deletedLog = sqliteTable(
@@ -91,10 +95,10 @@ export const deletedLog = sqliteTable(
     deletedAt: text("deleted_at").notNull(),
     lastModified: integer("last_modified").notNull(),
   },
-  (t) => [
-    index("idx_deleted_log_modified").on(t.lastModified),
-    index("idx_deleted_log_table").on(t.tableName, t.recordId),
-  ],
+  (t) => ({
+    idxModified: index("idx_deleted_log_modified").on(t.lastModified),
+    idxTableRecord: index("idx_deleted_log_table").on(t.tableName, t.recordId),
+  }),
 );
 
 export const syncSequence = sqliteTable("sync_sequence", {

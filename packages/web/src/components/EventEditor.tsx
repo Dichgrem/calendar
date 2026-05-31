@@ -100,6 +100,7 @@ export function EventEditor(props: EventEditorProps) {
   });
 
   const handleSave = () => {
+    if (!calendarId) return;
     const data: Partial<Event> = {
       title,
       startAt: new Date(startAt).toISOString(),
@@ -144,7 +145,7 @@ export function EventEditor(props: EventEditorProps) {
           <Button variant="outline" size="sm" onClick={onClose} disabled={busy}>
             {t("event.cancel")}
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={busy || noCalendars || !title.trim()}>
+          <Button size="sm" onClick={handleSave} disabled={busy || noCalendars || !title.trim() || !calendarId}>
             {createMutation.isPending || updateMutation.isPending
               ? isCreate ? t("event.creating") : t("event.saving")
               : t("event.save")}
