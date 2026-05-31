@@ -35,6 +35,9 @@ importers:
       hono:
         specifier: ^4.0.0
         version: 4.12.23
+      scrypt-js:
+        specifier: ^3.0.1
+        version: 3.0.1
       tsx:
         specifier: ^4.0.0
         version: 4.22.3
@@ -51,6 +54,9 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.19
+      '@types/scrypt-js':
+        specifier: ^3.0.1
+        version: 3.0.1
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -1699,6 +1705,10 @@ packages:
   '@types/react@19.2.15':
     resolution: {integrity: sha512-eRwcGNHve+E8qtEQSSRl6urh+rFop4v8gm6O8rGv25CodbvFdLjA1vVQ1KkiFE0w0UPOnb8tDiFKL5lp0rtY5Q==}
 
+  '@types/scrypt-js@3.0.1':
+    resolution: {integrity: sha512-nIZInEvKE4R6yxpWUe+nbC4loIHPBxUIUWG9SUKdgB/TiCWSzQ+2Mg2JcWt1cqFf0L+c9PH6nu1Z/IQgc0hN9Q==}
+    deprecated: This is a stub types definition. scrypt-js provides its own type definitions, so you do not need this installed.
+
   '@vitejs/plugin-react@4.7.0':
     resolution: {integrity: sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA==}
     engines: {node: ^14.18.0 || >=16.0.0}
@@ -2380,6 +2390,9 @@ packages:
 
   scheduler@0.27.0:
     resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
+
+  scrypt-js@3.0.1:
+    resolution: {integrity: sha512-cdwTTnqPu0Hyvf5in5asVdZocVDTNRmR7XEcJuIzMjJeSHybHl7vpB66AzwTaIg6CLSbtjcxc8fqcySfnTkccA==}
 
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
@@ -3764,6 +3777,10 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
+  '@types/scrypt-js@3.0.1':
+    dependencies:
+      scrypt-js: 3.0.1
+
   '@vitejs/plugin-react@4.7.0(vite@6.4.2(@types/node@22.19.19)(jiti@1.21.7)(tsx@4.22.3))':
     dependencies:
       '@babel/core': 7.29.7
@@ -4400,6 +4417,8 @@ snapshots:
   safe-buffer@5.2.1: {}
 
   scheduler@0.27.0: {}
+
+  scrypt-js@3.0.1: {}
 
   semver@6.3.1: {}
 
