@@ -97,6 +97,7 @@ export async function upsertUserSettings(
       timezone: data.timezone ?? "Asia/Shanghai",
       language: data.language ?? "zh-CN",
       firstDayOfWeek: data.firstDayOfWeek ?? 0,
+      showEventTime: data.showEventTime ?? true,
     })
     .onConflictDoUpdate({
       target: [userSettings.userId],

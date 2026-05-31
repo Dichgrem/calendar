@@ -46,8 +46,9 @@ export function CalendarView() {
     if (calendarApi && settings) {
       calendarApi.setOption("locale", settings.language === "en" ? "en" : "zh-cn");
       calendarApi.setOption("firstDay", settings.firstDayOfWeek ?? 0);
+      calendarApi.setOption("displayEventTime", settings.showEventTime ?? true);
     }
-  }, [settings?.language, settings?.firstDayOfWeek]);
+  }, [settings?.language, settings?.firstDayOfWeek, settings?.showEventTime]);
 
   useEffect(() => {
     if (calendars) setVisibleCalendars(new Set(calendars.map((c) => c.id)));
@@ -180,6 +181,7 @@ export function CalendarView() {
           height="100%"
           locale={isEn ? "en" : "zh-cn"}
           firstDay={settings?.firstDayOfWeek ?? 0}
+          displayEventTime={settings?.showEventTime ?? true}
           headerToolbar={false}
         />
       </div>

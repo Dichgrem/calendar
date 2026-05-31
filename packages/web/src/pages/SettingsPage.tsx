@@ -41,6 +41,7 @@ export function SettingsPage() {
     timezone: "Asia/Shanghai",
     language: "zh-CN",
     firstDayOfWeek: 0,
+    showEventTime: true,
   } as UserSettings;
 
   const handleSave = async () => {
@@ -114,6 +115,15 @@ export function SettingsPage() {
                 <option value={0}>{t("settings.sunday")}</option>
                 <option value={1}>{t("settings.monday")}</option>
               </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={s.showEventTime}
+                onChange={(e) => setSettings({ ...s, showEventTime: e.target.checked })}
+                className="accent-neutral-900 dark:accent-white"
+              />
+              <span className="text-sm font-medium">{t("settings.showEventTime")}</span>
             </label>
           </div>
 

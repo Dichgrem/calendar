@@ -47,6 +47,7 @@ const strings = {
   "settings.importIcs": { "zh-CN": "导入 ICS 日历", en: "Import ICS Calendar" },
   "settings.calendars": { "zh-CN": "日历管理", en: "Calendar Management" },
   "settings.noCalendars": { "zh-CN": "暂无日历", en: "No calendars" },
+  "settings.showEventTime": { "zh-CN": "显示事件时间", en: "Show event time" },
 
   // ImportPage
   "import.selectFile": { "zh-CN": "点击选择 .ics 文件", en: "Click to select .ics file" },
