@@ -1,10 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import type { EventClickArg, DatesSetArg } from "@fullcalendar/core";
 import { useEvents } from "../hooks/use-events";
 import { useCalendars } from "../hooks/use-calendars";
+import { useTopBar } from "./Layout";
 
 const MONTHS = [
   "1月", "2月", "3月", "4月", "5月", "6月",
@@ -13,6 +15,7 @@ const MONTHS = [
 
 export function CalendarView() {
   const calRef = useRef<FullCalendar>(null);
+  const topBar = useTopBar();
   const [visibleCalendars, setVisibleCalendars] = useState<Set<string>>(new Set());
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
@@ -72,42 +75,45 @@ export function CalendarView() {
     color: e.color ?? undefined,
   }));
 
+  const leftControls = (
+    <div className="flex items-center gap-1">
+      <button onClick={goPrev} className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm">‹</button>
+      <button onClick={() => setPickerOpen((v) => !v)}
+        className="px-2 py-1 text-sm rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 font-medium">
+        {dateLabel}
+      </button>
+      <button onClick={goNext} className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm">›</button>
+      <button onClick={goToday} className="px-2 py-1 text-xs rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500">今天</button>
+    </div>
+  );
+
+  const centerControls = (
+    <>
+      {calLoading && <span className="text-xs text-neutral-400">加载...</span>}
+      {calError && <span className="text-xs text-red-500">失败</span>}
+      {calendars?.map((cal) => (
+        <button
+          key={cal.id}
+          onClick={() => toggleCalendar(cal.id)}
+          title={cal.name}
+          className="relative size-6 rounded-full border-2 transition-all shrink-0"
+          style={{
+            backgroundColor: visibleCalendars.has(cal.id) ? cal.color : "transparent",
+            borderColor: cal.color,
+            opacity: visibleCalendars.has(cal.id) ? 1 : 0.4,
+          }}
+        />
+      ))}
+      {calendars?.length === 0 && !calLoading && (
+        <span className="text-xs text-neutral-400">暂无日历</span>
+      )}
+    </>
+  );
+
   return (
     <div className="flex flex-col h-full">
-      <nav className="flex items-center gap-1 px-4 py-1.5 border-b border-neutral-200 dark:border-neutral-800">
-        <div className="flex items-center gap-1 shrink-0">
-          <button onClick={goPrev} className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm">‹</button>
-          <button onClick={() => setPickerOpen((v) => !v)}
-            className="px-2 py-1 text-sm rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 font-medium">
-            {dateLabel}
-          </button>
-          <button onClick={goNext} className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm">›</button>
-          <button onClick={goToday} className="px-2 py-1 text-xs rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500">今天</button>
-        </div>
-
-        <div className="flex-1 flex items-center justify-center gap-1">
-          {calLoading && <span className="text-xs text-neutral-400">加载...</span>}
-          {calError && <span className="text-xs text-red-500">失败</span>}
-
-          {calendars?.map((cal) => (
-            <button
-              key={cal.id}
-              onClick={() => toggleCalendar(cal.id)}
-              title={cal.name}
-              className="relative size-6 rounded-full border-2 transition-all shrink-0"
-              style={{
-                backgroundColor: visibleCalendars.has(cal.id) ? cal.color : "transparent",
-                borderColor: cal.color,
-                opacity: visibleCalendars.has(cal.id) ? 1 : 0.4,
-              }}
-            />
-          ))}
-
-          {calendars?.length === 0 && !calLoading && (
-            <span className="text-xs text-neutral-400">暂无日历</span>
-          )}
-        </div>
-      </nav>
+      {topBar && createPortal(leftControls, topBar.left.current!)}
+      {topBar && createPortal(centerControls, topBar.center.current!)}
 
       <div className="flex-1 p-2 relative">
         {evLoading && <p className="text-xs text-neutral-400 mb-1">加载事件...</p>}
