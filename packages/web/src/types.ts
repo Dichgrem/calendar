@@ -40,6 +40,7 @@ export interface UserSettings {
   language: string;
   firstDayOfWeek: number;
   showEventTime: boolean;
+  dateFormat: string;
 }
 
 export interface SyncPullResponse {

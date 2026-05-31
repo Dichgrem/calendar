@@ -41,12 +41,10 @@ export function Layout() {
   return (
     <TopBarCtx.Provider value={{ left: leftEl, center: centerEl }}>
       <div className="flex flex-col h-screen bg-neutral-50 dark:bg-neutral-950">
-        <nav className="flex items-center gap-1 px-4 py-1.5 border-b border-neutral-200 dark:border-neutral-800">
-          <div ref={leftRef} className="shrink-0 flex items-center gap-1" />
-          <div className="flex-1 flex justify-center">
-            <div ref={centerRef} className="flex items-center gap-1" />
-          </div>
-          <div className="shrink-0 flex items-center gap-1">
+        <nav className="grid grid-cols-[1fr_auto_1fr] items-center px-4 py-1.5 border-b border-neutral-200 dark:border-neutral-800">
+          <div ref={leftRef} className="flex items-center gap-1" />
+          <div ref={centerRef} className="flex items-center justify-center gap-1" />
+          <div className="flex items-center gap-1 justify-end">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}

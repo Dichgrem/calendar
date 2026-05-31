@@ -69,6 +69,7 @@ const updateSettingsSchema = z.object({
   language: z.enum(["zh-CN", "en"]).optional(),
   firstDayOfWeek: z.number().int().min(0).max(6).optional(),
   showEventTime: z.boolean().optional(),
+  dateFormat: z.string().max(50).optional(),
 });
 
 settingsRouter.patch("/settings", zValidator("json", updateSettingsSchema), async (c) => {

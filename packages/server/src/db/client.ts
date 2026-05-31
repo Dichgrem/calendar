@@ -27,6 +27,13 @@ export function getDb() {
       );
     `);
 
+    // Add missing columns to existing tables
+    const columns = rawConnection.pragma("table_info(user_settings)") as { name: string }[];
+    const colNames = new Set(columns.map((c) => c.name));
+    if (!colNames.has("date_format")) {
+      rawConnection.exec(`ALTER TABLE user_settings ADD COLUMN date_format TEXT NOT NULL DEFAULT 'zh'`);
+    }
+
     dbInstance = drizzle(rawConnection, { schema });
   }
   return dbInstance;
