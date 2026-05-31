@@ -47,7 +47,9 @@ app.get("*", async (c) => {
   try {
     const asset = await c.env.ASSETS.fetch(c.req.raw);
     if (asset.status !== 404) return asset;
-  } catch { /* fall through */ }
+  } catch (e) {
+    if ((e as { status?: number })?.status !== 404) throw e;
+  }
   return c.env.ASSETS.fetch(new Request(new URL("/index.html", c.req.url)));
 });
 

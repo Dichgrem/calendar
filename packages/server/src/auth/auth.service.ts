@@ -1,4 +1,5 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import scrypt from "scrypt-js";
 import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { users, sessions, calendarMembers, calendars } from "../db/schema.js";
@@ -7,7 +8,10 @@ import type { ID } from "../types.js";
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function hashPassword(password: string, salt: string): string {
-  return scryptSync(password, salt, 64).toString("hex");
+  const passwordBytes = new TextEncoder().encode(password);
+  const saltBytes = new TextEncoder().encode(salt);
+  const key = scrypt.syncScrypt(passwordBytes, saltBytes, 16384, 8, 1, 64);
+  return Buffer.from(key).toString("hex");
 }
 
 export async function register(username: string, password: string): Promise<{ userId: string } | null> {
