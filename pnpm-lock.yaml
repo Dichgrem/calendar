@@ -35,6 +35,9 @@ importers:
       hono:
         specifier: ^4.0.0
         version: 4.12.23
+      tsx:
+        specifier: ^4.0.0
+        version: 4.22.3
       wrangler:
         specifier: ^4.95.0
         version: 4.95.0(@cloudflare/workers-types@4.20260531.1)
@@ -51,9 +54,6 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
-      tsx:
-        specifier: ^4.0.0
-        version: 4.22.3
       typescript:
         specifier: ^5.5.0
         version: 5.9.3

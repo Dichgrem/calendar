@@ -1,6 +1,8 @@
+import { existsSync } from "node:fs";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
 import "./db/node-init.js";
 import { authRouter } from "./auth/auth.routes.js";
 import { syncRouter } from "./sync/routes.js";
@@ -29,6 +31,11 @@ app.route("/api/calendars", calendarsRouter);
 app.route("/api", eventsRouter);
 app.route("/api", icsRouter);
 app.route("/api", settingsRouter);
+
+if (existsSync("./public")) {
+  app.use("*", serveStatic({ root: "./public" }));
+  app.get("*", serveStatic({ path: "./public/index.html" }));
+}
 
 const port = Number(process.env.PORT) || 3000;
 console.log(`Server starting on port ${port}`);
