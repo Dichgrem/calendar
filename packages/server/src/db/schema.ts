@@ -119,7 +119,6 @@ export const sessions = sqliteTable("sessions", {
 
 export const userSettings = sqliteTable("user_settings", {
   userId: text("user_id").primaryKey(),
-  timezone: text("timezone").notNull().default("Asia/Shanghai"),
   language: text("language").notNull().default("zh-CN"),
   firstDayOfWeek: integer("first_day_of_week").notNull().default(0),
   showEventTime: integer("show_event_time", { mode: "boolean" }).notNull().default(true),

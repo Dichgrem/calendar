@@ -66,7 +66,6 @@ settingsRouter.get("/settings", async (c) => {
 });
 
 const updateSettingsSchema = z.object({
-  timezone: z.string().optional(),
   language: z.enum(["zh-CN", "en"]).optional(),
   firstDayOfWeek: z.number().int().min(0).max(6).optional(),
   showEventTime: z.boolean().optional(),
