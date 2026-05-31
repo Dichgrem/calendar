@@ -29,19 +29,19 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white dark:bg-neutral-900 rounded-xl shadow-xl w-96 max-h-[80vh] flex flex-col border border-neutral-200 dark:border-neutral-700">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-700">
-          <h2 className="text-sm font-semibold">{title}</h2>
+      <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-[28rem] max-h-[85vh] flex flex-col border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-neutral-100 dark:border-neutral-800">
+          <h2 className="text-base font-semibold">{title}</h2>
           <button
             onClick={onClose}
-            className="size-6 flex items-center justify-center rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 text-sm"
+            className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 text-xs transition-colors"
           >
             ✕
           </button>
         </div>
-        <div className="flex-1 overflow-auto px-4 py-3">{children}</div>
+        <div className="flex-1 overflow-auto px-5 py-4">{children}</div>
         {footer && (
-          <div className="px-4 py-3 border-t border-neutral-200 dark:border-neutral-700 flex justify-end gap-2">
+          <div className="px-5 py-3 border-t border-neutral-100 dark:border-neutral-800 flex justify-end gap-2 bg-neutral-50/50 dark:bg-neutral-950/50">
             {footer}
           </div>
         )}
