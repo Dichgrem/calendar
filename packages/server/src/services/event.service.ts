@@ -88,13 +88,13 @@ export async function createEvent(
   calendarId: ID,
   data: {
     title: string;
-    description?: string;
+    description?: string | null;
     startAt: string;
     endAt: string;
     allDay?: boolean;
-    rrule?: string;
-    color?: string;
-    location?: string;
+    rrule?: string | null;
+    color?: string | null;
+    location?: string | null;
   },
   userId: ID,
 ): Promise<EventRow | null> {
