@@ -15,7 +15,10 @@ const strings = {
   "cal.today": { "zh-CN": "今天", en: "Today" },
 
   // EventEditor
+  "event.create": { "zh-CN": "新建事件", en: "New Event" },
   "event.edit": { "zh-CN": "编辑事件", en: "Edit Event" },
+  "event.creating": { "zh-CN": "创建中...", en: "Creating..." },
+  "event.calendar": { "zh-CN": "日历", en: "Calendar" },
   "event.title": { "zh-CN": "标题", en: "Title" },
   "event.start": { "zh-CN": "开始", en: "Start" },
   "event.end": { "zh-CN": "结束", en: "End" },
