@@ -43,6 +43,10 @@ nix develop
 | `just format` | Format code with Biome |
 | `just typecheck` | Type check |
 | `just clean` | Clean build artifacts |
+| `just cf-deploy` | Deploy to Cloudflare Workers |
+| `just docker-up` | Build and start Docker container |
+| `just docker-down` | Stop Docker container |
+| `just docker-logs` | View Docker logs |
 
 ## Project Structure
 
@@ -108,5 +112,5 @@ pnpm db:migrate
 | Drizzle ORM | Type-safe SQL query builder |
 | SQLite (better-sqlite3) | Embedded database |
 | Cloudflare D1 | Production database |
-| scrypt | Password hashing |
+| scrypt-js | Password hashing (sync, compatible with Node.js and Workers) |
 | Biome | Code formatting |

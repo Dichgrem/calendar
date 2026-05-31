@@ -43,6 +43,10 @@ nix develop
 | `just format` | Biome 格式化代码 |
 | `just typecheck` | 类型检查 |
 | `just clean` | 清理构建产物 |
+| `just cf-deploy` | 部署到 Cloudflare Workers |
+| `just docker-up` | 构建并启动 Docker 容器 |
+| `just docker-down` | 停止 Docker 容器 |
+| `just docker-logs` | 查看 Docker 日志 |
 
 ## 项目结构
 
@@ -108,5 +112,5 @@ pnpm db:migrate
 | Drizzle ORM | 类型安全 SQL 查询构建 |
 | SQLite (better-sqlite3) | 嵌入式数据库 |
 | Cloudflare D1 | 生产环境数据库 |
-| scrypt | 密码哈希 |
+| scrypt-js | 密码哈希（同步，兼容 Node.js 和 Workers） |
 | Biome | 代码格式化 |

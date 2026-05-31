@@ -2,12 +2,15 @@
 
 ## Cloudflare Workers
 
-### Prerequisites
+### One-Click Deploy
 
-1. Register [Cloudflare](https://cloudflare.com) account
-2. Login: `npx wrangler login`
+```bash
+just cf-deploy
+```
 
-### Deployment Steps
+This script handles: copying `wrangler.toml` → creating D1 database → running migrations → setting `SESSION_SECRET` → deploying.
+
+### Manual Steps
 
 ```bash
 # 1. Clone project
@@ -23,7 +26,7 @@ cp wrangler.toml.example wrangler.toml
 
 # 4. Create D1 database
 pnpm cf:d1:create
-# Copy the returned database_id into wrangler.toml
+# The --update-config flag auto-fills database_id in wrangler.toml
 
 # 5. Run migrations
 pnpm cf:d1:migrate
@@ -31,7 +34,10 @@ pnpm cf:d1:migrate
 # 6. Set secrets
 npx wrangler secret put SESSION_SECRET
 
-# 7. Deploy
+# 7. Deploy (includes frontend build)
+cd ../..
+pnpm --filter @calendar/web build
+cd packages/server
 pnpm cf:deploy
 ```
 
@@ -48,23 +54,31 @@ pnpm cf:deploy
 
 ## Docker
 
-### Using Dockerfile
+### Using Justfile (recommended)
 
 ```bash
-# Build
-docker build -t calendar .
-
-# Run
-docker run -d -p 3000:3000 \
-  -v calendar-data:/app/packages/server/data \
-  -e SESSION_SECRET=your-secret \
-  --name calendar calendar
+just docker-up       # build & start
+just docker-logs     # view logs
+just docker-down     # stop
 ```
 
 ### Using Docker Compose
 
 ```bash
 docker compose up -d
+```
+
+Migrations auto-run on startup (no manual step needed). Access at http://localhost:3000.
+
+### Using Dockerfile
+
+```bash
+docker build -t calendar .
+docker run -d -p 3000:3000 \
+  -v calendar-data:/app/data \
+  -e DATABASE_URL=/app/data/calendar.db \
+  -e SESSION_SECRET=your-secret \
+  --name calendar calendar
 ```
 
 ## Environment Variables
@@ -74,3 +88,4 @@ docker compose up -d
 | `SESSION_SECRET` | Session signing secret | Yes |
 | `CORS_ORIGIN` | Allowed CORS origin | No |
 | `DATABASE_URL` | SQLite database path (Node.js only) | No |
+| `PORT` | Server port (default 3000) | No |

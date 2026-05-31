@@ -2,12 +2,15 @@
 
 ## Cloudflare Workers
 
-### 准备工作
+### 一键部署
 
-1. 注册 [Cloudflare](https://cloudflare.com) 账号
-2. 登录：`npx wrangler login`
+```bash
+just cf-deploy
+```
 
-### 部署步骤
+此脚本自动完成：复制 `wrangler.toml` → 创建 D1 数据库 → 运行迁移 → 设置 `SESSION_SECRET` → 部署。
+
+### 手动步骤
 
 ```bash
 # 1. 克隆项目
@@ -23,7 +26,7 @@ cp wrangler.toml.example wrangler.toml
 
 # 4. 创建 D1 数据库
 pnpm cf:d1:create
-# 将返回的 database_id 填入 wrangler.toml
+# --update-config 标志会自动将 database_id 写入 wrangler.toml
 
 # 5. 运行迁移
 pnpm cf:d1:migrate
@@ -31,7 +34,10 @@ pnpm cf:d1:migrate
 # 6. 设置密钥
 npx wrangler secret put SESSION_SECRET
 
-# 7. 部署
+# 7. 构建前端并部署
+cd ../..
+pnpm --filter @calendar/web build
+cd packages/server
 pnpm cf:deploy
 ```
 
@@ -48,23 +54,31 @@ pnpm cf:deploy
 
 ## Docker
 
-### 使用 Dockerfile
+### 使用 Justfile（推荐）
 
 ```bash
-# 构建
-docker build -t calendar .
-
-# 运行
-docker run -d -p 3000:3000 \
-  -v calendar-data:/app/packages/server/data \
-  -e SESSION_SECRET=your-secret \
-  --name calendar calendar
+just docker-up       # 构建并启动
+just docker-logs     # 查看日志
+just docker-down     # 停止
 ```
 
 ### 使用 Docker Compose
 
 ```bash
 docker compose up -d
+```
+
+启动时自动运行数据库迁移，无需手动执行。访问 http://localhost:3000。
+
+### 使用 Dockerfile
+
+```bash
+docker build -t calendar .
+docker run -d -p 3000:3000 \
+  -v calendar-data:/app/data \
+  -e DATABASE_URL=/app/data/calendar.db \
+  -e SESSION_SECRET=your-secret \
+  --name calendar calendar
 ```
 
 ## 环境变量
@@ -74,3 +88,4 @@ docker compose up -d
 | `SESSION_SECRET` | 会话签名密钥 | 是 |
 | `CORS_ORIGIN` | 允许的跨域来源 | 否 |
 | `DATABASE_URL` | SQLite 数据库路径（仅 Node.js） | 否 |
+| `PORT` | 服务端口（默认 3000） | 否 |

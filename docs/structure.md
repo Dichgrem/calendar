@@ -56,6 +56,7 @@ server/
 - **Sync protocol**: `sync_sequence`-based pull/push, LWW conflict resolution (based on `last_modified` timestamp), transactional writes.
 - **ICS parser**: Custom-built (no third-party ICS library). Stores `raw_ics` to preserve extra VEVENT properties (VALARM, CATEGORIES, STATUS) for round-trip fidelity.
 - **Dual database**: SQLite via `better-sqlite3` for local dev / Docker; Cloudflare D1 via `initD1Db()` for Workers production.
+- **Auto-migration**: `node-init.ts` runs `migrate()` on startup to ensure schema is up to date. D1 migrations are applied via `wrangler d1 migrations apply` during deployment.
 
 ## Web (`packages/web/`)
 
