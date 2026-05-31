@@ -38,7 +38,6 @@ export function SettingsPage() {
 
   const s = settings ?? {
     userId: "",
-    timezone: "Asia/Shanghai",
     language: "zh-CN",
     firstDayOfWeek: 0,
     showEventTime: true,
@@ -86,19 +85,6 @@ export function SettingsPage() {
           <h1 className="text-2xl font-bold mb-6">{t("settings.title")}</h1>
 
           <div className="space-y-4">
-            <label className="block">
-              <span className="text-sm font-medium">{t("settings.timezone")}</span>
-              <select value={s.timezone} onChange={(e) => setSettings({ ...s, timezone: e.target.value })}
-                className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700">
-                <option value="Asia/Shanghai">Asia/Shanghai (UTC+8)</option>
-                <option value="Asia/Tokyo">Asia/Tokyo (UTC+9)</option>
-                <option value="America/New_York">America/New_York (UTC-5)</option>
-                <option value="America/Los_Angeles">America/Los_Angeles (UTC-8)</option>
-                <option value="Europe/London">Europe/London (UTC+0)</option>
-                <option value="Europe/Berlin">Europe/Berlin (UTC+1)</option>
-                <option value="UTC">UTC</option>
-              </select>
-            </label>
             <label className="block">
               <span className="text-sm font-medium">{t("settings.language")}</span>
               <select value={s.language} onChange={(e) => setSettings({ ...s, language: e.target.value })}

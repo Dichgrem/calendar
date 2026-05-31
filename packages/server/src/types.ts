@@ -37,7 +37,6 @@ export interface Event {
 
 export interface UserSettings {
   userId: ID;
-  timezone: string;
   language: string;
   firstDayOfWeek: number;
   showEventTime: boolean;

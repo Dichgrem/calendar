@@ -35,7 +35,6 @@ const strings = {
   "settings.title": { "zh-CN": "设置", en: "Settings" },
   "settings.loading": { "zh-CN": "加载中...", en: "Loading..." },
   "settings.loadFailed": { "zh-CN": "加载设置失败", en: "Failed to load settings" },
-  "settings.timezone": { "zh-CN": "时区", en: "Timezone" },
   "settings.language": { "zh-CN": "语言", en: "Language" },
   "settings.firstDay": { "zh-CN": "每周第一天", en: "First day of week" },
   "settings.sunday": { "zh-CN": "周日", en: "Sunday" },

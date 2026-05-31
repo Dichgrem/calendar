@@ -94,7 +94,6 @@ export async function upsertUserSettings(
     .insert(userSettings)
     .values({
       userId,
-      timezone: data.timezone ?? "Asia/Shanghai",
       language: data.language ?? "zh-CN",
       firstDayOfWeek: data.firstDayOfWeek ?? 0,
       showEventTime: data.showEventTime ?? true,
