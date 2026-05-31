@@ -5,30 +5,16 @@ default:
 install:
     pnpm install
 
-# start dev server
-start:
-    @echo "Starting dev server..."
-    pnpm --filter @calendar/server dev &
-    echo $! > /tmp/calendar-server.pid
-    @echo "Server running (PID: $(cat /tmp/calendar-server.pid))"
+# start dev servers
+start: install
+    @echo "Starting server + web..."
+    @pnpm --filter @calendar/server dev & pnpm --filter @calendar/web dev & wait
 
-# stop dev server
+# stop dev servers
 stop:
-    @[ -f /tmp/calendar-server.pid ] && kill $(cat /tmp/calendar-server.pid) 2>/dev/null && rm -f /tmp/calendar-server.pid && echo "Server stopped" || echo "No server running"
-
-# format source code
-format:
-    biome format --write packages/ 2>/dev/null || echo "biome not installed, run: nix develop"
-
-# run tests (to be added before release)
-test:
-    @echo "Tests will be added at demo stage. Skipping."
-
-# typecheck all packages
-typecheck:
-    pnpm --filter @calendar/server typecheck 2>/dev/null || pnpm typecheck
+    @kill $(lsof -ti:3000) 2>/dev/null; kill $(lsof -ti:5173) 2>/dev/null; true
+    @echo "Stopped"
 
 # clean build artifacts
 clean:
     rm -rf packages/*/dist .turbo node_modules/.cache
-    rm -f /tmp/calendar-server.pid

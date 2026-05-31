@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { serve } from "@hono/node-server";
 import { syncRouter } from "./sync/routes.js";
 import { calendarsRouter } from "./routes/calendars.js";
 import { eventsRouter } from "./routes/events.js";
@@ -17,6 +18,10 @@ app.use(
   }),
 );
 
+app.get("/api/health", (c) => {
+  return c.json({ ok: true, data: { status: "ok" } });
+});
+
 app.route("/api/sync", syncRouter);
 app.route("/api/calendars", calendarsRouter);
 app.route("/api", eventsRouter);
@@ -24,8 +29,8 @@ app.route("/api", todosRouter);
 app.route("/api", icsRouter);
 app.route("/api", settingsRouter);
 
-app.get("/api/health", (c) => {
-  return c.json({ ok: true, data: { status: "ok" } });
-});
+const port = Number(process.env.PORT) || 3000;
+console.log(`Server starting on port ${port}`);
+serve({ fetch: app.fetch, port });
 
 export default app;
