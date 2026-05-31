@@ -44,3 +44,19 @@ test-full:
 # run a single API test, e.g. just test login
 test name:
     ./scripts/test-api.sh {{ name }}
+
+# build and start Docker container
+docker-up:
+    docker compose up --build -d
+
+# stop Docker container
+docker-down:
+    docker compose down
+
+# view Docker logs
+docker-logs:
+    docker compose logs -f
+
+# rebuild and restart Docker container
+docker-rebuild:
+    docker compose up --build -d --force-recreate
