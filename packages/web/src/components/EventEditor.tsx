@@ -81,9 +81,10 @@ export function EventEditor(props: EventEditorProps) {
     },
   });
 
+  const editEventId = props.mode === "edit" ? props.event.id : null;
+
   const updateMutation = useMutation({
-    mutationFn: (data: Partial<Event>) =>
-      api.events.update((props as EditMode).event.id, data),
+    mutationFn: (data: Partial<Event>) => api.events.update(editEventId!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       onClose();
@@ -91,7 +92,7 @@ export function EventEditor(props: EventEditorProps) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => api.events.remove((props as EditMode).event.id),
+    mutationFn: () => api.events.remove(editEventId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       onClose();
