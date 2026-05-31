@@ -38,9 +38,6 @@ importers:
       hono:
         specifier: ^4.0.0
         version: 4.12.23
-      wrangler:
-        specifier: ^4.95.0
-        version: 4.95.0(@cloudflare/workers-types@4.20260531.1)
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -60,6 +57,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      wrangler:
+        specifier: ^4.95.0
+        version: 4.95.0(@cloudflare/workers-types@4.20260531.1)
 
   packages/web:
     dependencies:

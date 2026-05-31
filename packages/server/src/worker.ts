@@ -6,7 +6,7 @@ import { calendarsRouter } from "./routes/calendars.js";
 import { eventsRouter } from "./routes/events.js";
 import { icsRouter } from "./routes/ics.js";
 import { settingsRouter } from "./routes/settings.js";
-import { initD1Db } from "./db/client.js";
+import { initD1Db } from "./db/d1.js";
 
 type Bindings = {
   DB: unknown;
@@ -41,4 +41,8 @@ app.route("/api", eventsRouter);
 app.route("/api", icsRouter);
 app.route("/api", settingsRouter);
 
-export default app;
+export default {
+  async fetch(request: Request, env: Bindings, ctx: ExecutionContext): Promise<Response> {
+    return app.fetch(request, env, ctx);
+  },
+};
