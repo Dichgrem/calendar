@@ -110,7 +110,7 @@ function extractExtraProperties(rawIcs: string): string[] {
     "DTSTART;VALUE=DATE", "DTEND;VALUE=DATE", "RRULE", "LOCATION"
   ]);
   
-  const lines = rawIcs.split("\r\n");
+  const lines = rawIcs.split(/\r\n|\n/);
   const extra: string[] = [];
   let inValarm = false;
   
