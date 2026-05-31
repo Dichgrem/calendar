@@ -56,6 +56,7 @@ server/
 - **同步协议**：基于 `sync_sequence` 的 pull/push，LWW 冲突解决（基于 `last_modified` 时间戳），事务写入。
 - **ICS 解析器**：自研（无第三方 ICS 库）。存储 `raw_ics` 保留额外 VEVENT 属性（VALARM, CATEGORIES, STATUS），确保导入导出保真。
 - **双数据库**：本地开发/Docker 使用 SQLite（better-sqlite3）；Cloudflare Workers 生产环境使用 D1（`initD1Db()`）。
+- **自动迁移**：`node-init.ts` 启动时自动运行 `migrate()` 确保数据库 schema 最新。D1 迁移在部署时通过 `wrangler d1 migrations apply` 执行。
 
 ## 前端 (`packages/web/`)
 
