@@ -97,12 +97,19 @@ export function CalendarView() {
 
   const gotoDate = useCallback((dateOrYear: Date | number, month?: number) => {
     const date = dateOrYear instanceof Date ? dateOrYear : new Date(dateOrYear, month!, 1);
+    if (date.getFullYear() < 1970) date.setFullYear(1970);
     api()?.gotoDate(date);
     setPickerOpen(false);
   }, []);
 
   const goToday = () => { api()?.today(); setPickerOpen(false); };
-  const goPrev = () => api()?.prev();
+  const goPrev = () => {
+    const api2 = api();
+    if (api2) {
+      api2.prev();
+      if (api2.view.currentStart.getFullYear() < 1970) api2.gotoDate(new Date(1970, 0, 1));
+    }
+  };
   const goNext = () => api()?.next();
 
   const isEn = lang === "en";
@@ -231,7 +238,7 @@ export function CalendarView() {
             <div className="flex items-center justify-between mb-3">
               <button onClick={() => setPickerYear((y) => y - 1)}
                 className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500">‹</button>
-              <input type="number" value={pickerYear} onChange={(e) => setPickerYear(Number(e.target.value))}
+              <input type="number" value={pickerYear} onChange={(e) => setPickerYear(Number(e.target.value))} min={1970}
                 className="w-16 text-center text-sm font-semibold border-0 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
               <button onClick={() => setPickerYear((y) => y + 1)}
                 className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500">›</button>

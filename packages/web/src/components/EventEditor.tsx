@@ -194,6 +194,7 @@ export function EventEditor(props: EventEditorProps) {
               type={allDay ? "date" : "datetime-local"}
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
+              min="1970-01-01T00:00"
               className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />
           </label>
@@ -203,6 +204,7 @@ export function EventEditor(props: EventEditorProps) {
               type={allDay ? "date" : "datetime-local"}
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
+              min="1970-01-01T00:00"
               className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />
           </label>
