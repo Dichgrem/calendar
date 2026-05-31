@@ -100,7 +100,11 @@ export async function upsertUserSettings(
     })
     .onConflictDoUpdate({
       target: [userSettings.userId],
-      set: data,
+      set: {
+        language: data.language,
+        firstDayOfWeek: data.firstDayOfWeek,
+        showEventTime: data.showEventTime,
+      },
     });
 
   return (await db

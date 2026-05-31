@@ -75,9 +75,6 @@ export function SettingsPage() {
     queryClient.invalidateQueries({ queryKey: ["events"] });
   };
 
-  if (loading) return <div className="flex flex-col h-full"><p className="p-6 text-sm text-neutral-400">{t("settings.loading")}</p></div>;
-  if (error) return <div className="flex flex-col h-full"><p className="p-6 text-sm text-red-500">{error}</p></div>;
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto">
