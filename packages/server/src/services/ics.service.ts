@@ -268,10 +268,24 @@ export async function importIcsToCalendar(
   return { eventCount };
 }
 
+function isPrivateHost(hostname: string): boolean {
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") return true;
+  if (hostname.startsWith("10.") || hostname.startsWith("192.168.")) return true;
+  if (hostname.startsWith("172.")) {
+    const second = parseInt(hostname.split(".")[1], 10);
+    if (second >= 16 && second <= 31) return true;
+  }
+  if (hostname.startsWith("169.254.")) return true;
+  return false;
+}
+
 export async function fetchIcsFromUrl(url: string): Promise<string> {
   const parsed = new URL(url);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error("Only HTTP and HTTPS URLs are supported");
+  }
+  if (isPrivateHost(parsed.hostname)) {
+    throw new Error("Fetching from private/internal addresses is not allowed");
   }
 
   const controller = new AbortController();
@@ -289,6 +303,11 @@ export async function fetchIcsFromUrl(url: string): Promise<string> {
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    }
+
+    const contentLength = res.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) {
+      throw new Error("Response too large (max 10MB)");
     }
 
     return await res.text();

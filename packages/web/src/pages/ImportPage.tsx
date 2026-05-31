@@ -84,7 +84,7 @@ export function ImportPage() {
     } finally {
       setLoading(false);
     }
-  }, [url]);
+  }, [url, calendars]);
 
   const toggleItem = useCallback((uid: string) => {
     setSelectedUids((prev) => {

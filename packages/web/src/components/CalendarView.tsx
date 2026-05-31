@@ -53,7 +53,7 @@ export function CalendarView() {
   }, [settings?.language, settings?.firstDayOfWeek, settings?.showEventTime]);
 
   useEffect(() => {
-  const dateFormat = settings?.dateFormat ?? (lang === "en" ? "en" : "zh");
+    const dateFormat = settings?.dateFormat ?? (lang === "en" ? "en" : "zh");
     if (!/[Hms]/i.test(dateFormat)) return;
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
