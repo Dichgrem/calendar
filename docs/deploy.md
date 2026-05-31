@@ -5,8 +5,7 @@
 ### Prerequisites
 
 1. Register [Cloudflare](https://cloudflare.com) account
-2. Install wrangler: `npm install -g wrangler`
-3. Login: `wrangler login`
+2. Login: `npx wrangler login`
 
 ### Deployment Steps
 
@@ -18,20 +17,19 @@ cd calendar
 # 2. Install dependencies
 pnpm install
 
-# 3. Create D1 database
+# 3. Copy example config
 cd packages/server
-pnpm cf:d1:create
-# Record the returned database_id
+cp wrangler.toml.example wrangler.toml
 
-# 4. Update config
-# Edit packages/server/wrangler.toml
-# Replace database_id
+# 4. Create D1 database
+pnpm cf:d1:create
+# Copy the returned database_id into wrangler.toml
 
 # 5. Run migrations
 pnpm cf:d1:migrate
 
 # 6. Set secrets
-wrangler secret put SESSION_SECRET
+npx wrangler secret put SESSION_SECRET
 
 # 7. Deploy
 pnpm cf:deploy
@@ -44,6 +42,7 @@ cd calendar
 git pull
 pnpm install
 cd packages/server
+pnpm cf:d1:migrate
 pnpm cf:deploy
 ```
 
@@ -74,4 +73,4 @@ docker compose up -d
 |----------|-------------|----------|
 | `SESSION_SECRET` | Session signing secret | Yes |
 | `CORS_ORIGIN` | Allowed CORS origin | No |
-| `DATABASE_URL` | SQLite database path | No |
+| `DATABASE_URL` | SQLite database path (Node.js only) | No |
