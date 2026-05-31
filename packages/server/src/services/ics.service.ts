@@ -90,7 +90,16 @@ function formatIcsLine(name: string, value: string | null | undefined): string {
 }
 
 function sanitizeIcsDateTime(iso: string): string {
-  return iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const cleaned = iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const year = parseInt(cleaned.slice(0, 4), 10);
+  if (year < 1970) return "1970" + cleaned.slice(4);
+  return cleaned;
+}
+
+function sanitizeIcsDate(dateStr: string): string {
+  const year = parseInt(dateStr.slice(0, 4), 10);
+  if (year < 1970) return "1970" + dateStr.slice(4);
+  return dateStr;
 }
 
 function extractExtraProperties(rawIcs: string): string[] {
@@ -162,13 +171,13 @@ export function serializeIcsCalendar(
     lines.push(formatIcsLine("SUMMARY", e.title));
     if (e.description) lines.push(formatIcsLine("DESCRIPTION", e.description));
     if (e.allDay) {
-      const dtStart = e.startAt.slice(0, 10);
+      const dtStart = sanitizeIcsDate(e.startAt.slice(0, 10).replace(/-/g, ""));
       const dtEnd = e.endAt.slice(0, 10);
       const nextDay = new Date(dtEnd);
       nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-      const dtEndNext = nextDay.toISOString().slice(0, 10);
-      lines.push(formatIcsLine("DTSTART;VALUE=DATE", dtStart.replace(/-/g, "")));
-      lines.push(formatIcsLine("DTEND;VALUE=DATE", dtEndNext.replace(/-/g, "")));
+      const dtEndNext = sanitizeIcsDate(nextDay.toISOString().slice(0, 10).replace(/-/g, ""));
+      lines.push(formatIcsLine("DTSTART;VALUE=DATE", dtStart));
+      lines.push(formatIcsLine("DTEND;VALUE=DATE", dtEndNext));
     } else {
       lines.push(formatIcsLine("DTSTART", sanitizeIcsDateTime(e.startAt)));
       lines.push(formatIcsLine("DTEND", sanitizeIcsDateTime(e.endAt)));
