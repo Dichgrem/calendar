@@ -1,0 +1,15 @@
+services:
+  calendar:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=./data/calendar.db
+      - CORS_ORIGIN=http://localhost:3000
+      - SESSION_SECRET=change-me-in-production
+    volumes:
+      - calendar-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  calendar-data:

@@ -1,0 +1,42 @@
+FROM node:24-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+FROM base AS builder
+RUN apk add --no-cache python3 make g++
+WORKDIR /app
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY tsconfig.base.json ./
+COPY packages/server/package.json packages/server/
+COPY packages/web/package.json packages/web/
+
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+RUN pnpm --filter @calendar/web build
+
+FROM base AS prod
+RUN apk add --no-cache dumb-init
+
+WORKDIR /app
+
+COPY --from=builder /app/packages/server/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+COPY --from=builder /app/package.json ./
+
+RUN pnpm install --filter @calendar/server --prod --frozen-lockfile
+
+COPY --from=builder /app/packages/server/src ./src
+COPY --from=builder /app/packages/server/drizzle ./drizzle
+COPY --from=builder /app/packages/web/dist ./public
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+VOLUME /app/data
+EXPOSE 3000
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "--import", "tsx/esm", "src/index.ts"]
