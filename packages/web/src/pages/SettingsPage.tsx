@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, Check, X, Download, Upload } from "lucide-react";
+import { Pencil, Trash2, Check, X, Download, FileDown } from "lucide-react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
@@ -191,7 +191,7 @@ export function SettingsPage() {
                 setExportSelected(new Set(calendars?.map((c) => c.id) ?? []));
                 setExportOpen(true);
               }} className="h-7 text-xs gap-1">
-                <Upload className="size-3" />{t("settings.exportIcs")}
+                <FileDown className="size-3" />{t("settings.exportIcs")}
               </Button>
             </div>
           </div>

@@ -66,7 +66,9 @@ export function CalendarView() {
   }, [calendars]);
 
   const { data: events, isLoading: evLoading, isError: evError } = useEvents(
-    [...visibleCalendars], dateRange.start, dateRange.end,
+    [...visibleCalendars],
+    searchQuery ? "" : dateRange.start,
+    searchQuery ? "" : dateRange.end,
   );
 
   const { data: allEvents } = useEvents(
@@ -81,11 +83,6 @@ export function CalendarView() {
     setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
     setCurrentDate(arg.view.currentStart);
   }, []);
-
-  const handleEventClick = useCallback((arg: EventClickArg) => {
-    const ev = events.find((e) => e.id === arg.event.id);
-    if (ev) setSelectedEvent(ev);
-  }, [events]);
 
   const toggleCalendar = useCallback((id: string) => {
     setVisibleCalendars((prev) => {
@@ -119,6 +116,11 @@ export function CalendarView() {
 
   const filteredEvents = searchableEvents
     .filter((e) => (!searchCalId || e.calendarId === searchCalId) && (!searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase())));
+
+  const handleEventClick = useCallback((arg: EventClickArg) => {
+    const ev = filteredEvents.find((e) => e.id === arg.event.id);
+    if (ev) setSelectedEvent(ev);
+  }, [filteredEvents]);
 
   const fcEvents = filteredEvents.map((e) => ({
     id: e.id,
