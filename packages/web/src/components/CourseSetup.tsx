@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { GraduationCap } from "@phosphor-icons/react";
 import { api } from "../lib/api";
@@ -31,7 +31,7 @@ function CourseForm({ onClose }: { onClose: () => void }) {
     try { return JSON.parse(existing.courseMeta); } catch { return null; }
   })();
   const [username, setUsername] = useState(savedMeta?.username ?? "");
-  const [password, setPassword] = useState(savedMeta?.password ?? "");
+  const [password, setPassword] = useState("");
   const [semester, setSemester] = useState<"上" | "下">(savedMeta?.semester ?? "上");
   const [year, setYear] = useState(savedMeta?.year ?? String(new Date().getFullYear()));
   const [loading, setLoading] = useState(false);
