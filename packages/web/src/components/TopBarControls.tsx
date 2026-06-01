@@ -49,7 +49,6 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
     const d = new Date(year, month, 1);
     setDisplayMonth({ year, month });
     api()?.gotoDate(d);
-    setPickerOpen(false);
     if (setHighlightDate) {
       setHighlightDate(dateStr(d));
     }
@@ -107,7 +106,7 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
       <button onClick={goNext} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretRight className="size-4" weight="bold" /></button>
       {pickerOpen && (
         <div className="absolute top-10 left-4 z-50 w-56 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-lg p-3">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-center gap-1 mb-3">
             <button onClick={() => setPickerYear((y) => y - 1)}
               className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">{`<`}</button>
             <input type="number" value={pickerYear} onChange={(e) => setPickerYear(Number(e.target.value))} min={1970}
@@ -120,12 +119,10 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
               const isCurrent = i === displayMonth.month && pickerYear === displayMonth.year;
               return (
                 <button key={m} onClick={() => gotoMonth(pickerYear, i)}
-                  className={`px-2 py-1.5 text-sm rounded-md transition-colors dark:text-neutral-300 ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}>{m}</button>
+                  className={`px-2 py-1.5 text-sm rounded-full transition-colors dark:text-neutral-300 ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}>{m}</button>
               );
             })}
           </div>
-          <button onClick={goToday}
-            className="mt-2 w-full py-1.5 flex items-center justify-center rounded-full border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors"><Circle className="size-3.5" weight="bold" /></button>
         </div>
       )}
     </div>
