@@ -6,6 +6,9 @@ import { api } from "../lib/api";
 import { pickDistinctColor } from "../lib/colors";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
+import { useTopBar } from "../components/Layout";
+import { LeftControls, CenterControls } from "../components/TopBarControls";
+import { createPortal } from "react-dom";
 import { Button } from "../components/ui/button";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
 
@@ -29,6 +32,7 @@ export function ImportPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: calendars } = useCalendars();
+  const topBar = useTopBar();
   const [mode, setMode] = useState<"file" | "url">("file");
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
@@ -120,6 +124,8 @@ export function ImportPage() {
 
   return (
     <div className="flex flex-col h-full">
+      {topBar?.left && createPortal(<LeftControls />, topBar.left)}
+      {topBar?.center && createPortal(<CenterControls />, topBar.center)}
       <div className="flex-1 grid place-items-center">
         <div className="w-80">
           {!preview && (

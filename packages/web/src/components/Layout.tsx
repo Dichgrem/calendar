@@ -4,6 +4,7 @@ import { CalendarDots, GearSix, GraduationCap, SignOut, MagnifyingGlass } from "
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "../lib/utils";
 import { useI18n } from "../hooks/use-i18n";
+import { NavProvider } from "../hooks/use-nav";
 import { api } from "../lib/api";
 
 interface TopBarSlots {
@@ -58,6 +59,7 @@ export function Layout() {
   ];
 
   return (
+    <NavProvider>
     <TopBarCtx.Provider value={{ left: leftEl, center: centerEl, right: rightEl, searchDropdown: dropdownEl }}>
       <SearchCtx.Provider value={{ searchQuery, setSearchQuery, searchCalId, setSearchCalId }}>
       <div className="flex flex-col h-screen bg-neutral-50 dark:bg-neutral-950">
@@ -108,5 +110,6 @@ export function Layout() {
       </div>
       </SearchCtx.Provider>
     </TopBarCtx.Provider>
+    </NavProvider>
   );
 }

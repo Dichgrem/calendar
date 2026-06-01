@@ -4,6 +4,9 @@ import { NotePencil, Trash, Check, X, DownloadSimple, FileArrowDown, Globe, Data
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
+import { useTopBar } from "../components/Layout";
+import { LeftControls, CenterControls } from "../components/TopBarControls";
+import { createPortal } from "react-dom";
 import { Button } from "../components/ui/button";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
 import type { UserSettings, Calendar } from "../types";
@@ -54,6 +57,7 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const { t, lang } = useI18n();
   const { data: calendars } = useCalendars();
+  const topBar = useTopBar();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -214,6 +218,8 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col h-full">
+      {topBar?.left && createPortal(<LeftControls />, topBar.left)}
+      {topBar?.center && createPortal(<CenterControls />, topBar.center)}
       <div className="flex-1 overflow-auto">
         <div className="max-w-lg mx-auto p-6 dark:text-neutral-200">
           <h1 className="text-2xl font-bold mb-4 dark:text-white">{t("settings.title")}</h1>
