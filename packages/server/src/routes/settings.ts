@@ -79,6 +79,7 @@ const updateSettingsSchema = z.object({
   showEventTime: z.boolean().optional(),
   dateFormat: z.string().max(50).optional(),
   showLunarCalendar: z.boolean().optional(),
+  showCourseSchedule: z.boolean().optional(),
 });
 
 settingsRouter.patch("/settings", zValidator("json", updateSettingsSchema), async (c) => {

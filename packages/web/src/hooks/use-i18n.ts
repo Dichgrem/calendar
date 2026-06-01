@@ -64,6 +64,7 @@ const strings = {
   "settings.importBtn": { "zh-CN": "导入", en: "Import" },
   "settings.showEventTime": { "zh-CN": "显示事件时间", en: "Show event time" },
   "settings.showLunarCalendar": { "zh-CN": "显示农历", en: "Show Lunar Calendar" },
+  "settings.showCourseSchedule": { "zh-CN": "显示课程表", en: "Show Course Schedule" },
   "settings.dateFormat": { "zh-CN": "日期格式", en: "Date format" },
   "settings.customFormat": { "zh-CN": "自定义格式...", en: "Custom format..." },
   "settings.formatHint": { "zh-CN": "yyyy=年 MM=月 dd=日 HH=时 mm=分 ss=秒", en: "yyyy=year MM=month dd=day HH=hour mm=minute ss=second" },

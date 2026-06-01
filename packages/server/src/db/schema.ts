@@ -130,4 +130,5 @@ export const userSettings = sqliteTable("user_settings", {
   showEventTime: integer("show_event_time", { mode: "boolean" }).notNull().default(true),
   dateFormat: text("date_format").notNull().default("zh"),
   showLunarCalendar: integer("show_lunar_calendar", { mode: "boolean" }).notNull().default(false),
+  showCourseSchedule: integer("show_course_schedule", { mode: "boolean" }).notNull().default(false),
 });

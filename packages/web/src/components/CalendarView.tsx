@@ -66,10 +66,13 @@ export function CalendarView() {
   }, [settings?.language, settings?.firstDayOfWeek, settings?.showEventTime]);
 
   useEffect(() => {
-    if (calendars) {
-      setVisibleCalendars(new Set(calendars.map((c) => c.id)));
+    if (calendars && settings) {
+      const ids = settings.showCourseSchedule
+        ? calendars.map((c) => c.id)
+        : calendars.filter((c) => c.sourceType !== "course_schedule").map((c) => c.id);
+      setVisibleCalendars(new Set(ids));
     }
-  }, [calendars]);
+  }, [calendars, settings?.showCourseSchedule]);
 
   const { data: events, isLoading: evLoading, isError: evError } = useEvents(
     [...visibleCalendars],
