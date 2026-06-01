@@ -107,7 +107,7 @@ pnpm db:migrate
 | React Router v7 | 客户端路由 |
 | Tailwind CSS 3 + CVA | 原子化 CSS + 组件变体管理 |
 | Radix UI | 无头组件原语（Dialog, Select, Popover, Slot） |
-| Lucide React | SVG 图标库 |
+| Phosphor Icons | SVG 图标库（bold 粗体） |
 | Hono v4 | 轻量 Web 框架 |
 | Drizzle ORM | 类型安全 SQL 查询构建 |
 | SQLite (better-sqlite3) | 嵌入式数据库 |

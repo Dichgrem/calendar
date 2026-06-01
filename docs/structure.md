@@ -26,7 +26,10 @@ server/
 │   │   └── permissions.query.ts  # RBAC query-level permission injection
 │   ├── db/
 │   │   ├── client.ts        # SQLite (better-sqlite3, WAL mode) / D1 connection
+│   │   ├── d1.ts            # D1 database initializer with caching guard
+│   │   ├── node-init.ts     # Node.js DB init + auto-migrate on startup
 │   │   └── schema.ts        # Drizzle table definitions (9 tables)
+│   ├── config.ts            # Centralized config with optional config.json overrides
 │   ├── routes/
 │   │   ├── calendars.ts     # Calendar CRUD
 │   │   ├── events.ts        # Event CRUD + overrides
@@ -57,6 +60,7 @@ server/
 - **ICS parser**: Custom-built (no third-party ICS library). Stores `raw_ics` to preserve extra VEVENT properties (VALARM, CATEGORIES, STATUS) for round-trip fidelity.
 - **Dual database**: SQLite via `better-sqlite3` for local dev / Docker; Cloudflare D1 via `initD1Db()` for Workers production.
 - **Auto-migration**: `node-init.ts` runs `migrate()` on startup to ensure schema is up to date. D1 migrations are applied via `wrangler d1 migrations apply` during deployment.
+- **Config system**: `config.ts` provides sensible defaults (zh-CN, Monday, lunar enabled). Optional `config.json` overrides any value; env vars (`PORT`, `DATABASE_URL`) take precedence.
 
 ## Web (`packages/web/`)
 
@@ -100,6 +104,8 @@ web/
 - **Portal slot system**: `Layout` provides `TopBarCtx`. `CalendarView` injects date navigation and calendar switcher into the nav bar via `createPortal`.
 - **Parallel multi-calendar queries**: `useEvents` fires independent queries per calendar, merges results via TanStack Query `combine`.
 - **Dual-mode EventEditor**: Union type `EditMode | CreateMode` for type-safe create/edit in a single component.
+- **Dark mode**: Toggle via FAB group (bottom-right, hover to reveal). Preference persisted in `localStorage`. FullCalendar and all components adapted with Tailwind `dark:` variants.
+- **Phosphor Icons**: All icons use `@phosphor-icons/react` with `weight="bold"` for consistent visual weight.
 - **Vite proxy**: Dev server proxies `/api` to `localhost:3000`.
 
 ## Database Schema

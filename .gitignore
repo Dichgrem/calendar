@@ -13,6 +13,7 @@ backups/
 *.log
 
 todo.md
+problem.md
 AGENTS.md
 
 .direnv/
@@ -20,7 +21,6 @@ reference/
 result
 .DS_Store
 Thumbs.db
-problem.md
 packages/server/wrangler.toml
 packages/server/config.json
 *.tsbuildinfo
