@@ -1,6 +1,6 @@
 import { createContext, useContext, useCallback, useState, type RefCallback } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
-import { Calendar, Settings, LogOut, Search } from "lucide-react";
+import { CalendarDots, GearSix, SignOut, MagnifyingGlass } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "../lib/utils";
 import { useI18n } from "../hooks/use-i18n";
@@ -49,8 +49,8 @@ export function Layout() {
   };
 
   const navItems = [
-    { to: "/calendar", icon: Calendar, label: t("nav.calendar") },
-    { to: "/settings", icon: Settings, label: t("nav.settings") },
+    { to: "/calendar", icon: CalendarDots, label: t("nav.calendar") },
+    { to: "/settings", icon: GearSix, label: t("nav.settings") },
   ];
 
   return (
@@ -61,14 +61,14 @@ export function Layout() {
           <div ref={leftRef} className="flex items-center gap-1" />
           <div ref={centerRef} className="flex items-center justify-center gap-1" />
           <div className="flex items-center gap-1 justify-end">
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-neutral-400" />
+            <div className="relative group flex items-center h-7 mr-1.5">
+              <MagnifyingGlass className="size-4 text-neutral-400 shrink-0" weight="bold" />
               <input
                 type="text"
                 placeholder={t("cal.search")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-7 w-36 pl-7 pr-2 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-600"
+                className="h-7 w-0 pl-0 pr-0 text-xs text-neutral-800 dark:text-transparent border border-transparent bg-transparent rounded-lg group-hover:w-36 focus:w-36 group-hover:px-2 focus:px-2 group-hover:border-neutral-200 dark:group-hover:border-neutral-700 focus:border-neutral-200 dark:focus:border-neutral-700 group-hover:bg-white dark:group-hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 focus:text-neutral-800 dark:focus:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-600 transition-all"
               />
             </div>
             {navItems.map((item) => (
@@ -84,7 +84,7 @@ export function Layout() {
                   )
                 }
               >
-                <item.icon className="size-4" />
+                <item.icon className="size-4" weight="bold" />
               </NavLink>
             ))}
             <button
@@ -92,7 +92,7 @@ export function Layout() {
               className="size-8 flex items-center justify-center rounded-full text-sm text-neutral-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               title={t("nav.logout")}
             >
-              <LogOut className="size-4" />
+              <SignOut className="size-4" weight="bold" />
             </button>
           </div>
         </nav>
