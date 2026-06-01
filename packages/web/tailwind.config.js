@@ -3,7 +3,13 @@ export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   darkMode: "class",
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        border: "var(--color-border)",
+        surface: "var(--color-surface)",
+        muted: "var(--color-text-muted)",
+      },
+    },
   },
   plugins: [],
 };

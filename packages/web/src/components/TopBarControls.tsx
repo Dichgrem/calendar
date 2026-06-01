@@ -101,17 +101,17 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
         className="px-3 py-1.5 text-base font-semibold rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-white tabular-nums">
         {dateLabel}
       </button>
-      <button onClick={goPrev} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretLeft className="size-4" weight="bold" /></button>
-      <button onClick={goToday} className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors" title={t("cal.today")}><Circle className="size-4" weight="bold" /></button>
-      <button onClick={goNext} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretRight className="size-4" weight="bold" /></button>
+      <button onClick={goPrev} aria-label={t("cal.prev")} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretLeft className="size-4" weight="bold" /></button>
+      <button onClick={goToday} aria-label={t("cal.today")} className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors" title={t("cal.today")}><Circle className="size-4" weight="bold" /></button>
+      <button onClick={goNext} aria-label={t("cal.next")} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretRight className="size-4" weight="bold" /></button>
       {pickerOpen && (
         <div className="absolute top-10 left-4 z-50 w-56 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-lg p-3">
           <div className="flex items-center justify-center gap-1 mb-3">
-            <button onClick={() => setPickerYear((y) => y - 1)}
+            <button onClick={() => setPickerYear((y) => y - 1)} aria-label={t("cal.yearPrev")}
               className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">{`<`}</button>
             <input type="number" value={pickerYear} onChange={(e) => setPickerYear(Number(e.target.value))} min={1970}
               className="w-16 text-center text-sm font-semibold border-0 bg-transparent text-neutral-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-            <button onClick={() => setPickerYear((y) => y + 1)}
+            <button onClick={() => setPickerYear((y) => y + 1)} aria-label={t("cal.yearNext")}
               className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">{`>`}</button>
           </div>
           <div className="grid grid-cols-3 gap-1">
@@ -143,6 +143,7 @@ export function CenterControls() {
           key={cal.id}
           onClick={() => toggleCalendar(cal.id)}
           title={cal.name}
+          aria-label={`${t("cal.toggleVisibility")}: ${cal.name}`}
           className="relative size-5 rounded-full border-2 transition-all shrink-0"
           style={{
             backgroundColor: visibleCalendars.has(cal.id) ? cal.color : "transparent",

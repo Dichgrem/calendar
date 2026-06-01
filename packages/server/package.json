@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@calendar/plugin-fdzc-course": "workspace:*",
+    "@calendar/shared": "workspace:*",
     "@cloudflare/workers-types": "^4.20260531.1",
     "@hono/node-server": "^1.13.0",
     "@hono/zod-validator": "^0.4.0",

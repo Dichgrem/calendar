@@ -1,78 +1,15 @@
-export type ID = string;
-
-export type CalendarRole = "viewer" | "editor" | "admin";
-
-export type CalendarSourceType = "ics_import" | "ics_subscription" | "manual" | "auto_log" | "course_schedule";
-
-export interface Calendar {
-  id: ID;
-  name: string;
-  color: string;
-  sourceUrl: string | null;
-  sourceType: CalendarSourceType;
-  ownerId: ID;
-  createdAt: string;
-  updatedAt: string;
-  lastModified: number;
-  courseMeta?: string | null;
-}
-
-export interface Event {
-  id: ID;
-  calendarId: ID;
-  title: string;
-  description: string | null;
-  startAt: string;
-  endAt: string;
-  allDay: boolean;
-  rrule: string | null;
-  color: string | null;
-  location: string | null;
-  parentId: ID | null;
-  originalDate: string | null;
-  deleted: boolean;
-  rawIcs: string | null;
-  createdAt: string;
-  updatedAt: string;
-  lastModified: number;
-}
-
-export interface UserSettings {
-  userId: ID;
-  language: string;
-  firstDayOfWeek: number;
-  showEventTime: boolean;
-  dateFormat: string;
-  showLunarCalendar: boolean;
-  showCourseSchedule: boolean;
-}
-
-export interface SyncPullResponse {
-  changes: {
-    [tableName: string]: {
-      created: Record<string, unknown>[];
-      updated: Record<string, unknown>[];
-      deleted: ID[];
-    };
-  };
-  seq: number;
-}
-
-export interface SyncPushResponse {
-  ok: true;
-  seq: number;
-}
-
-export interface SyncPushConflict {
-  ok: false;
-  error: {
-    code: "CONFLICT";
-    message: string;
-    conflictingIds: ID[];
-  };
-}
-
-export type SyncPushResult = SyncPushResponse | SyncPushConflict;
+export {
+  type ID,
+  type CalendarRole,
+  type CalendarSourceType,
+  type Calendar,
+  type Event,
+  type UserSettings,
+  type SyncPullResponse,
+  type SyncPushResponse,
+  type SyncPushConflict,
+  type SyncPushResult,
+} from "@calendar/shared";
 
 declare const CalendarScopedBrand: unique symbol;
 export type CalendarScoped<T> = T & { [CalendarScopedBrand]: true };
@@ -81,12 +18,12 @@ declare const PermissionedBrand: unique symbol;
 export type Permissioned<T> = T & { [PermissionedBrand]: true };
 
 export interface PermissionContext {
-  userId: ID;
-  roles: Map<ID, CalendarRole>;
+  userId: string;
+  roles: Map<string, import("@calendar/shared").CalendarRole>;
 }
 
-export function roleGte(role: CalendarRole, min: CalendarRole): boolean {
-  const rank: Record<CalendarRole, number> = {
+export function roleGte(role: import("@calendar/shared").CalendarRole, min: import("@calendar/shared").CalendarRole): boolean {
+  const rank: Record<import("@calendar/shared").CalendarRole, number> = {
     viewer: 0,
     editor: 1,
     admin: 2,

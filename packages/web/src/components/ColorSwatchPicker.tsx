@@ -1,4 +1,5 @@
 import { CALENDAR_COLORS } from "../lib/colors";
+import { useI18n } from "../hooks/use-i18n";
 
 interface ColorSwatchPickerProps {
   value: string;
@@ -6,6 +7,7 @@ interface ColorSwatchPickerProps {
 }
 
 export function ColorSwatchPicker({ value, onChange }: ColorSwatchPickerProps) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-wrap gap-1.5">
       {CALENDAR_COLORS.map((c) => (
@@ -13,6 +15,7 @@ export function ColorSwatchPicker({ value, onChange }: ColorSwatchPickerProps) {
           key={c}
           type="button"
           onClick={() => onChange(c)}
+          aria-label={`Color ${c}`}
           className="size-6 rounded-full border-2 transition-transform hover:scale-110"
           style={{
             backgroundColor: c,
@@ -25,7 +28,7 @@ export function ColorSwatchPicker({ value, onChange }: ColorSwatchPickerProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="size-6 rounded-full cursor-pointer border-0 p-0"
-        title="Custom color"
+        title={t("common.customColor")}
       />
     </div>
   );
