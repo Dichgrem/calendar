@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import scrypt from "scrypt-js";
 import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { users, sessions, calendarMembers, calendars, syncSequence } from "../db/schema.js";
+import { users, sessions, calendarMembers, calendars } from "../db/schema.js";
 import type { ID } from "../types.js";
 import { config } from "../config.js";
 
@@ -23,40 +23,30 @@ export async function register(username: string, password: string): Promise<{ us
   const salt = randomBytes(16).toString("hex");
   const passwordHash = hashPassword(password, salt) + ":" + salt;
   const now = new Date().toISOString();
+
+  await db.insert(users).values({
+    id: userId,
+    username,
+    passwordHash,
+    createdAt: now,
+  });
+
   const calendarId = crypto.randomUUID();
-  const lmod = Date.now();
+  await db.insert(calendars).values({
+    id: calendarId,
+    name: "默认日历",
+    color: "#3b82f6",
+    sourceType: "manual",
+    ownerId: userId,
+    createdAt: now,
+    updatedAt: now,
+    lastModified: Date.now(),
+  });
 
-  await db.transaction(async (tx) => {
-    await tx.insert(users).values({
-      id: userId,
-      username,
-      passwordHash,
-      createdAt: now,
-    });
-
-    await tx.insert(calendars).values({
-      id: calendarId,
-      name: "默认日历",
-      color: "#3b82f6",
-      sourceType: "manual",
-      ownerId: userId,
-      createdAt: now,
-      updatedAt: now,
-      lastModified: lmod,
-    });
-
-    await tx.insert(calendarMembers).values({
-      calendarId,
-      userId,
-      role: "admin",
-    });
-
-    await tx.insert(syncSequence).values({
-      tableName: "calendars",
-      recordId: calendarId,
-      op: "created",
-      syncedAt: now,
-    });
+  await db.insert(calendarMembers).values({
+    calendarId,
+    userId,
+    role: "admin",
   });
 
   return { userId };

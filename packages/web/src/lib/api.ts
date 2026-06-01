@@ -53,6 +53,8 @@ export const api = {
       request<ApiResponse<Calendar>>(`/calendars/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     remove: (id: string) =>
       request<ApiResponse<null>>(`/calendars/${id}`, { method: "DELETE" }),
+    reorder: (orderedIds: string[]) =>
+      request<ApiResponse<null>>("/calendars/reorder", { method: "PATCH", body: JSON.stringify({ orderedIds }) }),
   },
 
   events: {
@@ -72,7 +74,7 @@ export const api = {
       request<ApiResponse<unknown>>("/ics/preview", { method: "POST", body: JSON.stringify({ content }) }),
     fetchUrl: (url: string) =>
       request<ApiResponse<{ preview: unknown; content: string }>>("/ics/fetch-url", { method: "POST", body: JSON.stringify({ url }) }),
-    import: (data: { content: string; calendarId?: string; calendarName?: string; color?: string; selectedUids: string[]; overwrite?: boolean }) =>
+    import: (data: { content: string; calendarId?: string; calendarName?: string; color?: string; sourceUrl?: string; selectedUids: string[]; overwrite?: boolean }) =>
       request<ApiResponse<unknown>>("/ics/import", { method: "POST", body: JSON.stringify(data) }),
     exportUrl: (calendarId: string, start?: string, end?: string) =>
       `/api/calendars/${calendarId}/ics/export${start ? `?start=${start}&end=${end}` : ""}`,

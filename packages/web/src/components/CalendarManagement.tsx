@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { NotePencil, Trash, Check, X, DownloadSimple, FileArrowDown, Globe } from "@phosphor-icons/react";
 import { api } from "../lib/api";
@@ -63,8 +63,16 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
   const [commonCalOpen, setCommonCalOpen] = useState(false);
   const [importing, setImporting] = useState<Set<string>>(new Set());
-  const [imported, setImported] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const dragIdRef = useRef<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const importedCommonIds = new Set(
+    COMMON_CALENDARS
+      .filter((cal) => calendars?.some((c) => c.sourceUrl === cal.url))
+      .map((cal) => cal.id)
+  );
 
   const startEditCal = (cal: Calendar) => {
     setEditingCal(cal.id);
@@ -80,9 +88,17 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   };
 
   const deleteCalendar = async (id: string) => {
-    await api.calendars.remove(id);
-    queryClient.invalidateQueries({ queryKey: ["calendars"] });
-    queryClient.invalidateQueries({ queryKey: ["events"] });
+    if (!window.confirm(t("settings.confirmDelete"))) return;
+    setDeleting(id);
+    try {
+      await api.calendars.remove(id);
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    } catch {
+      setImportError(t("settings.deleteFailed"));
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const handleExportCal = (calendarId: string, calName: string) => {
@@ -126,12 +142,12 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
         content,
         calendarName: cal.name,
         color: cal.color,
+        sourceUrl: cal.url,
         selectedUids: preview.items.map((i) => i.uid),
         overwrite: false,
       });
       queryClient.invalidateQueries({ queryKey: ["calendars"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      setImported((prev) => new Set(prev).add(cal.id));
     } catch (err) {
       setImportError(err instanceof Error ? err.message : t("import.importFailed"));
     } finally {
@@ -141,6 +157,34 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
         return next;
       });
     }
+  };
+
+  const handleCalDragStart = (e: React.DragEvent, calId: string) => {
+    dragIdRef.current = calId;
+    setDragId(calId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleCalDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleCalDrop = async (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = dragIdRef.current;
+    if (!sourceId || sourceId === targetId || !calendars) return;
+
+    const ordered = calendars.map((c) => c.id);
+    const fromIdx = ordered.indexOf(sourceId);
+    const toIdx = ordered.indexOf(targetId);
+    ordered.splice(fromIdx, 1);
+    ordered.splice(toIdx, 0, sourceId);
+
+    await api.calendars.reorder(ordered);
+    queryClient.invalidateQueries({ queryKey: ["calendars"] });
+    dragIdRef.current = null;
+    setDragId(null);
   };
 
   return (
@@ -211,12 +255,12 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => handleImportCommon(cal)}
-                disabled={importing.has(cal.id) || imported.has(cal.id)}
+                disabled={importing.has(cal.id) || importedCommonIds.has(cal.id)}
                 className="h-7 text-xs shrink-0"
               >
                 {importing.has(cal.id)
                   ? t("settings.importing")
-                  : imported.has(cal.id)
+                  : importedCommonIds.has(cal.id)
                     ? t("settings.imported")
                     : t("settings.importBtn")}
               </Button>
@@ -230,7 +274,15 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
 
       <div className="space-y-1.5">
         {calendars?.map((cal) => (
-          <div key={cal.id} className="flex items-center gap-2 p-1.5 border rounded-lg border-neutral-200 dark:border-neutral-700">
+          <div
+            key={cal.id}
+            draggable
+            onDragStart={(e) => handleCalDragStart(e, cal.id)}
+            onDragOver={handleCalDragOver}
+            onDrop={(e) => handleCalDrop(e, cal.id)}
+            onDragEnd={() => { dragIdRef.current = null; setDragId(null); }}
+            className={`flex items-center gap-2 p-1.5 border rounded-lg border-neutral-200 dark:border-neutral-700 transition-colors ${dragId === cal.id ? "opacity-50" : ""} ${dragId && dragId !== cal.id ? "border-blue-300 dark:border-blue-700" : ""}`}
+          >
             {editingCal === cal.id ? (
               <>
                 <div className="flex-1 space-y-1.5">
@@ -252,7 +304,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 <button onClick={() => startEditCal(cal)} aria-label={t("settings.editCalendar")} className="size-6 flex items-center justify-center rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400">
                   <NotePencil className="size-3.5" weight="bold" />
                 </button>
-                <button onClick={() => deleteCalendar(cal.id)} aria-label={t("settings.deleteCalendar")} className="size-6 flex items-center justify-center rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-neutral-400 hover:text-red-600">
+                <button onClick={() => deleteCalendar(cal.id)} disabled={deleting === cal.id} aria-label={t("settings.deleteCalendar")} className={`size-6 flex items-center justify-center rounded text-neutral-400 ${deleting === cal.id ? "opacity-50 cursor-not-allowed" : "hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600"}`}>
                   <Trash className="size-3.5" weight="bold" />
                 </button>
               </>
@@ -263,6 +315,10 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
           <p className="text-sm text-neutral-400">{t("settings.noCalendars")}</p>
         )}
       </div>
+
+      {importError && (
+        <p className="mt-2 text-xs text-red-500">{importError}</p>
+      )}
     </>
   );
 }

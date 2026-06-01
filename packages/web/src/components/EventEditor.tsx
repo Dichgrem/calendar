@@ -32,36 +32,50 @@ function roundToNextHour(d: Date): Date {
   return r;
 }
 
+function toLocalInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function EventEditor(props: EventEditorProps) {
   const { open, onClose } = props;
   const queryClient = useQueryClient();
   const { t } = useI18n();
   const [title, setTitle] = useState("");
-  const [startAt, setStartAt] = useState("");
-  const [endAt, setEndAt] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("00:00");
+  const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("00:00");
   const [allDay, setAllDay] = useState(false);
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [calendarId, setCalendarId] = useState("");
 
+  const eventForEffect = props.mode === "edit" ? props.event : null;
+
   useEffect(() => {
     if (!open) return;
-    if (props.mode === "edit") {
-      const { event } = props;
-      setTitle(event.title);
-      setStartAt(event.startAt.slice(0, 16));
-      setEndAt(event.endAt.slice(0, 16));
-      setAllDay(event.allDay);
-      setDescription(event.description ?? "");
-      setLocation(event.location ?? "");
-      setCalendarId(event.calendarId);
-    } else {
+    if (props.mode === "edit" && eventForEffect) {
+      setTitle(eventForEffect.title);
+      setStartDate(eventForEffect.startAt.slice(0, 10));
+      setStartTime(eventForEffect.startAt.slice(11, 16));
+      setEndDate(eventForEffect.endAt.slice(0, 10));
+      setEndTime(eventForEffect.endAt.slice(11, 16));
+      setAllDay(eventForEffect.allDay);
+      setDescription(eventForEffect.description ?? "");
+      setLocation(eventForEffect.location ?? "");
+      setCalendarId(eventForEffect.calendarId);
+    } else if (props.mode === "create") {
       const now = new Date();
       const start = props.defaultStart ?? roundToNextHour(now);
       const end = props.defaultEnd ?? new Date(start.getTime() + 60 * 60 * 1000);
+      const startStr = toLocalInput(start);
+      const endStr = toLocalInput(end);
       setTitle("");
-      setStartAt(toLocalInput(start));
-      setEndAt(toLocalInput(end));
+      setStartDate(startStr.slice(0, 10));
+      setStartTime(startStr.slice(11, 16));
+      setEndDate(endStr.slice(0, 10));
+      setEndTime(endStr.slice(11, 16));
       setAllDay(false);
       setDescription("");
       setLocation("");
@@ -71,7 +85,7 @@ export function EventEditor(props: EventEditorProps) {
         setCalendarId(props.calendars[0].id);
       }
     }
-  }, [open, props.mode]);
+  }, [open, eventForEffect?.id]);
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<Event>) => api.events.create(calendarId, data),
@@ -103,8 +117,8 @@ export function EventEditor(props: EventEditorProps) {
     if (!calendarId) return;
     const data: Partial<Event> = {
       title,
-      startAt: new Date(startAt).toISOString(),
-      endAt: new Date(endAt).toISOString(),
+      startAt: new Date(`${startDate}T${allDay ? "00:00" : startTime}`).toISOString(),
+      endAt: new Date(`${endDate}T${allDay ? "00:00" : endTime}`).toISOString(),
       allDay,
       description: description || null,
       location: location || null,
@@ -137,18 +151,20 @@ export function EventEditor(props: EventEditorProps) {
               size="sm"
               onClick={() => deleteMutation.mutate()}
               disabled={busy}
-              className="text-red-600 hover:text-red-700 mr-auto"
             >
               {t("event.delete")}
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("event.cancel")}
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={busy || noCalendars || !title.trim() || !calendarId}>
-            {createMutation.isPending || updateMutation.isPending
-              ? isCreate ? t("event.creating") : t("event.saving")
-              : t("event.save")}
+          <Button size="sm" onClick={handleSave} disabled={busy}>
+            {busy ? t("event.saving") : t("event.save")}
           </Button>
         </>
       }
@@ -191,23 +207,41 @@ export function EventEditor(props: EventEditorProps) {
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.start")}</span>
-            <input
-              type={allDay ? "date" : "datetime-local"}
-              value={startAt}
-              onChange={(e) => setStartAt(e.target.value)}
-              min="1970-01-01T00:00"
-              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
-            />
+            <div className="mt-1.5 flex gap-1">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="flex-1 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+              />
+              {!allDay && (
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-26 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                />
+              )}
+            </div>
           </label>
           <label className="block">
             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.end")}</span>
-            <input
-              type={allDay ? "date" : "datetime-local"}
-              value={endAt}
-              onChange={(e) => setEndAt(e.target.value)}
-              min="1970-01-01T00:00"
-              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
-            />
+            <div className="mt-1.5 flex gap-1">
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="flex-1 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+              />
+              {!allDay && (
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-26 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                />
+              )}
+            </div>
           </label>
         </div>
 
@@ -247,9 +281,4 @@ export function EventEditor(props: EventEditorProps) {
       </div>
     </Modal>
   );
-}
-
-function toLocalInput(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

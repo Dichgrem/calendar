@@ -204,12 +204,11 @@ export function CalendarView() {
             <button
               key={cal.id}
               onClick={() => setSearchCalId(cal.id)}
-              className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              style={searchCalId === cal.id ? { backgroundColor: cal.color, color: "#fff" } : { color: cal.color }}
+              className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full transition-colors ${searchCalId === cal.id ? "text-white" : ""} hover:bg-neutral-100 dark:hover:bg-neutral-800`}
+              style={searchCalId === cal.id ? { backgroundColor: cal.color } : { color: cal.color }}
             >
               <span className="size-2 rounded-full" style={{ backgroundColor: searchCalId === cal.id ? "#fff" : cal.color }} />
-              <span className="dark:hidden">{cal.name}</span>
-              <span className="hidden dark:inline text-neutral-200">{cal.name}</span>
+              <span>{cal.name}</span>
           </button>
         ))}
       </div>
@@ -335,6 +334,7 @@ export function CalendarView() {
           mode="create"
           calendars={calendars ?? []}
           defaultCalendarId={[...visibleCalendars][0] ?? calendars?.[0]?.id}
+          defaultStart={highlightDate ? new Date(highlightDate + "T00:00:00") : undefined}
           open
           onClose={() => setCreating(false)}
         />

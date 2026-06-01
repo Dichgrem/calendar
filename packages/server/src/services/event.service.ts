@@ -3,8 +3,8 @@ import { db } from "../db/client.js";
 import { events, eventOverrides, calendarMembers, syncSequence } from "../db/schema.js";
 import type { ID } from "../types.js";
 
-async function logSync(tableName: string, recordId: ID, op: "created" | "updated" | "deleted", tx?: any) {
-  await (tx || db).insert(syncSequence).values({
+async function logSync(tableName: string, recordId: ID, op: "created" | "updated" | "deleted") {
+  await db.insert(syncSequence).values({
     tableName,
     recordId,
     op,
@@ -105,25 +105,23 @@ export async function createEvent(
   const now = new Date().toISOString();
   const lmod = Date.now();
 
-  await db.transaction(async (tx) => {
-    await tx.insert(events).values({
-      id,
-      calendarId,
-      title: data.title,
-      description: data.description ?? null,
-      startAt: data.startAt,
-      endAt: data.endAt,
-      allDay: data.allDay ?? false,
-      rrule: data.rrule ?? null,
-      color: data.color ?? null,
-      location: data.location ?? null,
-      createdAt: now,
-      updatedAt: now,
-      lastModified: lmod,
-    });
-
-    await logSync("events", id, "created", tx);
+  await db.insert(events).values({
+    id,
+    calendarId,
+    title: data.title,
+    description: data.description ?? null,
+    startAt: data.startAt,
+    endAt: data.endAt,
+    allDay: data.allDay ?? false,
+    rrule: data.rrule ?? null,
+    color: data.color ?? null,
+    location: data.location ?? null,
+    createdAt: now,
+    updatedAt: now,
+    lastModified: lmod,
   });
+
+  await logSync("events", id, "created");
 
   return await getEvent(id, userId);
 }
@@ -161,10 +159,8 @@ export async function updateEvent(
   if (data.location !== undefined) updateData.location = data.location;
   if (data.deleted !== undefined) updateData.deleted = data.deleted;
 
-  await db.transaction(async (tx) => {
-    await tx.update(events).set(updateData).where(eq(events.id, eventId));
-    await logSync("events", eventId, "updated", tx);
-  });
+  await db.update(events).set(updateData).where(eq(events.id, eventId));
+  await logSync("events", eventId, "updated");
 
   return await getEvent(eventId, userId);
 }
@@ -173,10 +169,8 @@ export async function deleteEvent(eventId: ID, userId: ID): Promise<boolean> {
   const current = await getEvent(eventId, userId);
   if (!current) return false;
 
-  await db.transaction(async (tx) => {
-    await tx.update(events).set({ deleted: true, updatedAt: new Date().toISOString(), lastModified: Date.now() }).where(eq(events.id, eventId));
-    await logSync("events", eventId, "deleted", tx);
-  });
+  await db.update(events).set({ deleted: true, updatedAt: new Date().toISOString(), lastModified: Date.now() }).where(eq(events.id, eventId));
+  await logSync("events", eventId, "deleted");
 
   return true;
 }
@@ -209,31 +203,29 @@ export async function createOverride(
 
   let overrideId = existing[0]?.id ?? crypto.randomUUID();
 
-  await db.transaction(async (tx) => {
-    await tx
-      .insert(eventOverrides)
-      .values({
-        id: overrideId,
-        parentId,
-        originalDate: data.originalDate,
+  await db
+    .insert(eventOverrides)
+    .values({
+      id: overrideId,
+      parentId,
+      originalDate: data.originalDate,
+      overrideStart: data.overrideStart ?? null,
+      overrideEnd: data.overrideEnd ?? null,
+      overrideTitle: data.overrideTitle ?? null,
+      deleted: data.deleted ?? false,
+      lastModified: lmod,
+    })
+    .onConflictDoUpdate({
+      target: [eventOverrides.parentId, eventOverrides.originalDate],
+      set: {
         overrideStart: data.overrideStart ?? null,
         overrideEnd: data.overrideEnd ?? null,
         overrideTitle: data.overrideTitle ?? null,
         deleted: data.deleted ?? false,
         lastModified: lmod,
-      })
-      .onConflictDoUpdate({
-        target: [eventOverrides.parentId, eventOverrides.originalDate],
-        set: {
-          overrideStart: data.overrideStart ?? null,
-          overrideEnd: data.overrideEnd ?? null,
-          overrideTitle: data.overrideTitle ?? null,
-          deleted: data.deleted ?? false,
-          lastModified: lmod,
-        },
-      });
+      },
+    });
 
-    await logSync("event_overrides", overrideId, "created", tx);
-  });
+  await logSync("event_overrides", overrideId, "created");
   return true;
 }

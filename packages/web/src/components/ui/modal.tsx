@@ -12,6 +12,8 @@ interface ModalProps {
 export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.key === "Escape") onClose();
     },
     [onClose],
@@ -27,8 +29,11 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
       <div className="relative bg-white dark:bg-surface rounded-2xl shadow-2xl w-[28rem] max-h-[85vh] flex flex-col border border-border overflow-hidden">
         <div className="flex items-center justify-between px-5 py-2.5 border-b border-border">
           <h2 className="text-base font-semibold dark:text-white">{title}</h2>

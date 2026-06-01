@@ -31,6 +31,7 @@ export const calendarMembers = sqliteTable(
       .references(() => calendars.id, { onDelete: "cascade" }),
     userId: text("user_id").notNull(),
     role: text("role", { enum: ["viewer", "editor", "admin"] }).notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
   },
   (t) => ({
     idxUk: uniqueIndex("idx_calendar_members_uk").on(t.calendarId, t.userId),
