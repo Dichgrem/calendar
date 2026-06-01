@@ -8,7 +8,7 @@ export const calendars = sqliteTable(
     color: text("color").notNull().default("#3b82f6"),
     sourceUrl: text("source_url"),
     sourceType: text("source_type", {
-      enum: ["ics_import", "ics_subscription", "manual", "auto_log"],
+      enum: ["ics_import", "ics_subscription", "manual", "auto_log", "course_schedule"],
     })
       .notNull()
       .default("manual"),
@@ -16,6 +16,7 @@ export const calendars = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
     lastModified: integer("last_modified").notNull(),
+    courseMeta: text("course_meta"),
   },
   (t) => ({
     idxOwner: index("idx_calendars_owner").on(t.ownerId),

@@ -1,0 +1,17 @@
+{
+  "name": "@calendar/plugin-fdzc-course",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "fast-bmp": "^4.0.0",
+    "htmlrewriter": "^0.0.13",
+    "hono": "^4.0.0"
+  }
+}

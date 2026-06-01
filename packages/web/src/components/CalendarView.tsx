@@ -1,19 +1,23 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import type { EventClickArg, DatesSetArg } from "@fullcalendar/core";
-import { Plus, Circle, CaretLeft, CaretRight, Sun, Moon } from "@phosphor-icons/react";
+import type { DateClickArg } from "@fullcalendar/interaction";
+import { Plus, Circle, CaretLeft, CaretRight, Sun, Moon, GraduationCap } from "@phosphor-icons/react";
 import { useEvents } from "../hooks/use-events";
 import { useCalendars } from "../hooks/use-calendars";
 import { useSettings } from "../hooks/use-settings";
 import { useI18n } from "../hooks/use-i18n";
 import { useTopBar, useSearch } from "./Layout";
 import { EventEditor } from "./EventEditor";
+import { TimetableGrid } from "./TimetableGrid";
 import { formatCalendarDate } from "../lib/date-format";
 import { getLunarText } from "../lib/lunar";
 import type { Event } from "../types";
+
+const CourseSetup = lazy(() => import("./CourseSetup").then((m) => ({ default: m.CourseSetup })));
 
 const MONTHS_ZH = [
   "1月", "2月", "3月", "4月", "5月", "6月",
@@ -25,24 +29,29 @@ const MONTHS_EN = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
+function dateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function CalendarView() {
   const calRef = useRef<FullCalendar>(null);
   const topBar = useTopBar();
   const { t, lang } = useI18n();
   const { searchQuery, setSearchQuery, searchCalId, setSearchCalId } = useSearch();
   const [visibleCalendars, setVisibleCalendars] = useState<Set<string>>(new Set());
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [displayMonth, setDisplayMonth] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
     start: new Date().toISOString(),
     end: new Date().toISOString(),
   });
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerYear, setPickerYear] = useState(currentDate.getFullYear());
+  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [creating, setCreating] = useState(false);
-  const [now, setNow] = useState(new Date());
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
   const [dark, setDark] = useState(() => localStorage.getItem("darkMode") === "1");
+  const [viewMode, setViewMode] = useState<"calendar" | "course">("calendar");
+  const [courseSetupOpen, setCourseSetupOpen] = useState(false);
 
   const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
   const { data: settings } = useSettings();
@@ -57,14 +66,9 @@ export function CalendarView() {
   }, [settings?.language, settings?.firstDayOfWeek, settings?.showEventTime]);
 
   useEffect(() => {
-    const dateFormat = settings?.dateFormat ?? (lang === "en" ? "en" : "zh");
-    if (!/[Hms]/i.test(dateFormat)) return;
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, [settings?.dateFormat]);
-
-  useEffect(() => {
-    if (calendars) setVisibleCalendars(new Set(calendars.map((c) => c.id)));
+    if (calendars) {
+      setVisibleCalendars(new Set(calendars.map((c) => c.id)));
+    }
   }, [calendars]);
 
   const { data: events, isLoading: evLoading, isError: evError } = useEvents(
@@ -81,9 +85,28 @@ export function CalendarView() {
 
   const searchableEvents = searchQuery ? allEvents : events;
 
+  const highlightRef = useRef<string | null>(null);
+
+  const applyHighlight = () => {
+    const cur = highlightRef.current;
+    document.querySelectorAll<HTMLElement>(`td[data-date]`).forEach((el) =>
+      el.classList.remove("fc-highlight-search")
+    );
+    if (cur) {
+      document.querySelectorAll<HTMLElement>(`td[data-date="${cur}"]`).forEach((el) =>
+        el.classList.add("fc-highlight-search")
+      );
+    }
+  };
+
+  useEffect(() => {
+    highlightRef.current = highlightDate;
+    setTimeout(applyHighlight, 50);
+  }, [highlightDate]);
+
   const handleDatesSet = useCallback((arg: DatesSetArg) => {
     setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
-    setCurrentDate(arg.view.currentStart);
+    setTimeout(applyHighlight, 60);
   }, []);
 
   const toggleCalendar = useCallback((id: string) => {
@@ -104,15 +127,42 @@ export function CalendarView() {
     setPickerOpen(false);
   }, []);
 
-  const goToday = () => { api()?.today(); setPickerOpen(false); };
+  const gotoMonth = (year: number, month: number) => {
+    const d = new Date(year, month, 1);
+    setDisplayMonth({ year, month });
+    api()?.gotoDate(d);
+    setPickerOpen(false);
+    const ds = dateStr(d);
+    setHighlightDate(ds);
+  };
+
+  const goToday = () => {
+    const d = new Date();
+    setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
+    api()?.today();
+    setPickerOpen(false);
+  };
   const goPrev = () => {
     const api2 = api();
     if (api2) {
       api2.prev();
       if (api2.view.currentStart.getFullYear() < 1970) api2.gotoDate(new Date(1970, 0, 1));
+      const d = api2.getDate();
+      setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
+      const ds = dateStr(new Date(d.getFullYear(), d.getMonth(), 1));
+      setHighlightDate(ds);
     }
   };
-  const goNext = () => api()?.next();
+  const goNext = () => {
+    const api2 = api();
+    if (api2) {
+      api2.next();
+      const d = api2.getDate();
+      setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
+      const ds = dateStr(new Date(d.getFullYear(), d.getMonth(), 1));
+      setHighlightDate(ds);
+    }
+  };
 
   const toggleDark = () => {
     const next = !dark;
@@ -124,11 +174,12 @@ export function CalendarView() {
   const isEn = lang === "en";
   const months = isEn ? MONTHS_EN : MONTHS_ZH;
   const dateFormat = settings?.dateFormat ?? "zh";
-  const hasTime = /[Hms]/i.test(dateFormat);
-  const displayDate = hasTime ? now : currentDate;
+  const highlightDateObj = highlightDate ? new Date(highlightDate + "T00:00:00") : null;
+  const displayDate = highlightDateObj ?? new Date(displayMonth.year, displayMonth.month, 1);
   const dateLabel = formatCalendarDate(displayDate, dateFormat, lang);
 
   const calendarColorMap = new Map(calendars?.map((c) => [c.id, c.color]) ?? []);
+  const hasCourseCalendars = calendars?.some((c) => c.sourceType === "course_schedule") ?? false;
 
   const filteredEvents = searchableEvents
     .filter((e) => (!searchCalId || e.calendarId === searchCalId) && (!searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase())));
@@ -180,8 +231,7 @@ export function CalendarView() {
                 if (e.startAt) {
                   const d = new Date(e.startAt);
                   gotoDate(d);
-                  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                  setHighlightDate(dateStr);
+                  setHighlightDate(dateStr(d));
                   setTimeout(() => setHighlightDate(null), 2000);
                 }
                 setSearchQuery("");
@@ -200,8 +250,8 @@ export function CalendarView() {
 
   const leftControls = (
     <div className="flex items-center gap-0.5">
-      <button onClick={() => setPickerOpen((v) => !v)}
-        className={`px-3 py-1.5 text-base font-semibold rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-white tabular-nums${hasTime ? " font-mono" : ""}`}>
+      <button onClick={() => { setPickerOpen((v) => !v); if (!pickerOpen) setPickerYear(displayMonth.year); }}
+        className="px-3 py-1.5 text-base font-semibold rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-white tabular-nums">
         {dateLabel}
       </button>
       <button onClick={goPrev} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretLeft className="size-4" weight="bold" /></button>
@@ -209,6 +259,16 @@ export function CalendarView() {
       <button onClick={goNext} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretRight className="size-4" weight="bold" /></button>
     </div>
   );
+
+  const rightControls = hasCourseCalendars ? (
+    <button
+      onClick={() => setViewMode(viewMode === "course" ? "calendar" : "course")}
+      className={`size-7 flex items-center justify-center rounded-lg transition-colors ${viewMode === "course" ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900" : "text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+      title={viewMode === "course" ? t("cal.calendarView") : t("cal.courseView")}
+    >
+      <GraduationCap className="size-4" weight="bold" />
+    </button>
+  ) : null;
 
   const centerControls = (
     <>
@@ -237,27 +297,28 @@ export function CalendarView() {
     <div className="flex flex-col h-full">
       {topBar?.left && createPortal(leftControls, topBar.left)}
       {topBar?.center && createPortal(centerControls, topBar.center)}
+      {topBar?.right && rightControls && createPortal(rightControls, topBar.right)}
       {topBar?.searchDropdown && searchDropdown && createPortal(searchDropdown, topBar.searchDropdown)}
 
       <div className="flex-1 relative">
-        {evLoading && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
-        {evError && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
+        {evLoading && viewMode === "calendar" && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
+        {evError && viewMode === "calendar" && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
 
-        {pickerOpen && (
+        {pickerOpen && viewMode === "calendar" && (
           <div className="absolute top-2 left-4 z-50 w-56 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-lg p-3">
             <div className="flex items-center justify-between mb-3">
               <button onClick={() => setPickerYear((y) => y - 1)}
-                className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">‹</button>
+                className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">{`<`}</button>
               <input type="number" value={pickerYear} onChange={(e) => setPickerYear(Number(e.target.value))} min={1970}
                 className="w-16 text-center text-sm font-semibold border-0 bg-transparent text-neutral-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
               <button onClick={() => setPickerYear((y) => y + 1)}
-                className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">›</button>
+                className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">{`>`}</button>
             </div>
             <div className="grid grid-cols-3 gap-1">
               {months.map((m, i) => {
-                const isCurrent = i === currentDate.getMonth() && pickerYear === currentDate.getFullYear();
+                const isCurrent = i === displayMonth.month && pickerYear === displayMonth.year;
                 return (
-                  <button key={m} onClick={() => gotoDate(pickerYear, i)}
+                  <button key={m} onClick={() => gotoMonth(pickerYear, i)}
                     className={`px-2 py-1.5 text-sm rounded-md transition-colors dark:text-neutral-300 ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}>{m}</button>
                 );
               })}
@@ -267,47 +328,52 @@ export function CalendarView() {
           </div>
         )}
 
-        <FullCalendar
-          ref={calRef}
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          events={fcEvents}
-          datesSet={handleDatesSet}
-          eventClick={handleEventClick}
-          dayCellClassNames={(arg) => {
-            const d = arg.date;
-            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-            return dateStr === highlightDate ? ["fc-highlight-search"] : [];
-          }}
-          dayCellContent={settings?.showLunarCalendar ? (arg) => {
-            const lunarText = getLunarText(arg.date);
-            return (
-              <div className="flex items-baseline gap-1">
-                <span className="text-xs text-neutral-400 dark:text-neutral-500 min-w-[2em] text-right">{lunarText}</span>
-                <span>{arg.dayNumberText}</span>
-              </div>
-            );
-          } : undefined}
-          height="100%"
-          locale={isEn ? "en" : "zh-cn"}
-          firstDay={settings?.firstDayOfWeek ?? 0}
-          displayEventTime={settings?.showEventTime ?? true}
-          headerToolbar={false}
-        />
+        {viewMode === "calendar" ? (
+          <FullCalendar
+            ref={calRef}
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            events={fcEvents}
+            datesSet={handleDatesSet}
+            eventClick={handleEventClick}
+            dateClick={(arg) => {
+              const ds = dateStr(arg.date);
+              setHighlightDate(ds);
+            }}
+            dayCellContent={settings?.showLunarCalendar ? (arg) => {
+              const lunarText = getLunarText(arg.date);
+              return (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xs text-neutral-400 dark:text-neutral-500 min-w-[2em] text-right">{lunarText}</span>
+                  <span>{arg.dayNumberText}</span>
+                </div>
+              );
+            } : undefined}
+            height="100%"
+            locale={isEn ? "en" : "zh-cn"}
+            firstDay={settings?.firstDayOfWeek ?? 0}
+            displayEventTime={settings?.showEventTime ?? true}
+            headerToolbar={false}
+          />
+        ) : (
+          <TimetableGrid className="h-full" />
+        )}
       </div>
 
-      {/* FAB group */}
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center gap-3 group">
+        <button
+          onClick={() => setCourseSetupOpen(true)}
+          className="size-10 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-lg flex items-center justify-center text-neutral-700 dark:text-neutral-200 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none group-hover:pointer-events-auto"
+          title={t("cal.importCourse")}
+        >
+          <GraduationCap className="size-5" weight="bold" />
+        </button>
         <button
           onClick={toggleDark}
           className="size-10 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-lg flex items-center justify-center text-neutral-700 dark:text-neutral-200 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none group-hover:pointer-events-auto"
           title={dark ? "浅色模式" : "深色模式"}
         >
-          {dark ? (
-            <Sun className="size-5" weight="bold" />
-          ) : (
-            <Moon className="size-5" weight="bold" />
-          )}
+          {dark ? <Sun className="size-5" weight="bold" /> : <Moon className="size-5" weight="bold" />}
         </button>
         <button
           onClick={() => setCreating(true)}
@@ -317,6 +383,12 @@ export function CalendarView() {
           <Plus className="size-6" weight="bold" />
         </button>
       </div>
+
+      <Suspense fallback={null}>
+        {courseSetupOpen && (
+          <CourseSetup open={courseSetupOpen} onClose={() => setCourseSetupOpen(false)} />
+        )}
+      </Suspense>
 
       {selectedEvent && (
         <EventEditor

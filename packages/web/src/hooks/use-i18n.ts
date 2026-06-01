@@ -16,6 +16,9 @@ const strings = {
   "cal.search": { "zh-CN": "搜索事件...", en: "Search events..." },
   "cal.all": { "zh-CN": "全部", en: "All" },
   "cal.noResults": { "zh-CN": "无匹配结果", en: "No results" },
+  "cal.courseView": { "zh-CN": "课表", en: "Schedule" },
+  "cal.calendarView": { "zh-CN": "日历", en: "Calendar" },
+  "cal.importCourse": { "zh-CN": "导入课程表", en: "Import Course" },
 
   // EventEditor
   "event.create": { "zh-CN": "新建事件", en: "New Event" },
