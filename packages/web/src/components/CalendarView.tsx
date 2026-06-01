@@ -24,7 +24,7 @@ export function CalendarView() {
   const calRef = useRef<FullCalendar>(null);
   const topBar = useTopBar();
   const { t, lang } = useI18n();
-  const { searchQuery, setSearchQuery, searchCalId, setSearchCalId } = useSearch();
+  const { searchQuery, setSearchQuery, searchCalId, setSearchCalId, searchOpen, setSearchOpen } = useSearch();
   const { visibleCalendars, setDisplayMonth } = useNav();
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
     start: new Date().toISOString(),
@@ -35,6 +35,7 @@ export function CalendarView() {
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
   const [dark, setDark] = useState(() => localStorage.getItem("darkMode") === "1");
   const [courseSetupOpen, setCourseSetupOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
   const { data: settings } = useSettings();
@@ -98,6 +99,66 @@ export function CalendarView() {
   const filteredEvents = searchableEvents
     .filter((e) => (!searchCalId || e.calendarId === searchCalId) && (!searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase())));
 
+  useEffect(() => {
+    if (!searchQuery) setSearchCalId(null);
+    setHighlightedIndex(-1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (highlightedIndex < 0) return;
+    const el = document.querySelector(`[data-search-index="${highlightedIndex}"]`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [highlightedIndex]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const calIds = [null, ...(calendars?.map((c) => c.id) ?? [])];
+    const maxIdx = Math.min(filteredEvents.length, 20) - 1;
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setHighlightedIndex((i) => Math.min(i + 1, maxIdx));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setHighlightedIndex((i) => (i === -1 ? maxIdx : Math.max(i - 1, 0)));
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setSearchOpen(false);
+        setSearchQuery("");
+        setSearchCalId(null);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const curIdx = calIds.indexOf(searchCalId);
+        const nextIdx = (curIdx - 1 + calIds.length) % calIds.length;
+        setSearchCalId(calIds[nextIdx]);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const curIdx = calIds.indexOf(searchCalId);
+        const nextIdx = (curIdx + 1) % calIds.length;
+        setSearchCalId(calIds[nextIdx]);
+      } else if (e.key === "Enter" && highlightedIndex >= 0) {
+        e.preventDefault();
+        const ev = filteredEvents[highlightedIndex];
+        if (ev && ev.startAt) {
+          const d = new Date(ev.startAt);
+          setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
+          calRef.current?.getApi()?.gotoDate(d);
+          setHighlightDate(dateStr(d));
+          setTimeout(() => setHighlightDate(null), 2000);
+        }
+        setSearchQuery("");
+        setSearchCalId(null);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [searchOpen, searchQuery, highlightedIndex, filteredEvents, searchCalId, calendars]);
+
   const handleEventClick = useCallback((arg: EventClickArg) => {
     const ev = filteredEvents.find((e) => e.id === arg.event.id);
     if (ev) setSelectedEvent(ev);
@@ -122,9 +183,19 @@ export function CalendarView() {
 
   const centerControls = <CenterControls />;
 
-  const searchDropdown = searchQuery ? (
-    <div className="absolute top-0 left-0 right-0 z-40 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 shadow-lg">
-      <div className="flex items-center gap-1 px-4 py-1.5 border-b border-neutral-100 dark:border-neutral-800">
+  const searchDropdown = searchOpen ? (
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 mt-1 w-96 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
+      <div className="px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
+        <input
+          type="text"
+          placeholder={t("cal.search")}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          autoFocus
+          className="w-full h-7 text-sm text-neutral-800 dark:text-neutral-200 border rounded-lg px-2.5 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-600"
+        />
+      </div>
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-neutral-100 dark:border-neutral-800">
         <button
           onClick={() => setSearchCalId(null)}
           className={`px-2 py-0.5 text-xs rounded-full transition-colors ${searchCalId === null ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900" : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"}`}
@@ -143,14 +214,18 @@ export function CalendarView() {
         ))}
       </div>
       <div className="max-h-64 overflow-y-auto">
-        {filteredEvents.length === 0 && (
-          <p className="px-4 py-3 text-xs text-neutral-400 dark:text-neutral-500">{t("cal.noResults")}</p>
+        {!searchQuery && (
+          <p className="px-3 py-3 text-xs text-neutral-400 dark:text-neutral-500">{t("cal.search")}</p>
         )}
-        {filteredEvents.slice(0, 20).map((e) => {
+        {searchQuery && filteredEvents.length === 0 && (
+          <p className="px-3 py-3 text-xs text-neutral-400 dark:text-neutral-500">{t("cal.noResults")}</p>
+        )}
+        {searchQuery && filteredEvents.slice(0, 20).map((e, idx) => {
           const cal = calendars?.find((c) => c.id === e.calendarId);
           return (
             <button
               key={e.id}
+              data-search-index={idx}
               onClick={() => {
                 if (e.startAt) {
                   const d = new Date(e.startAt);
@@ -159,9 +234,11 @@ export function CalendarView() {
                   setHighlightDate(dateStr(d));
                   setTimeout(() => setHighlightDate(null), 2000);
                 }
+                setSearchOpen(false);
                 setSearchQuery("");
+                setSearchCalId(null);
               }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${idx === highlightedIndex ? "bg-blue-50 dark:bg-blue-950" : "hover:bg-neutral-50 dark:hover:bg-neutral-800"}`}
             >
               <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cal?.color }} />
               <span className="text-sm truncate dark:text-neutral-200">{e.title}</span>
@@ -214,6 +291,7 @@ export function CalendarView() {
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center gap-3 group">
         <button
           onClick={() => setCourseSetupOpen(true)}
+          aria-label={t("cal.importCourse")}
           className="size-10 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-lg flex items-center justify-center text-neutral-700 dark:text-neutral-200 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none group-hover:pointer-events-auto"
           title={t("cal.importCourse")}
         >
@@ -221,13 +299,15 @@ export function CalendarView() {
         </button>
         <button
           onClick={toggleDark}
+          aria-label={dark ? t("cal.lightMode") : t("cal.darkMode")}
           className="size-10 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-lg flex items-center justify-center text-neutral-700 dark:text-neutral-200 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none group-hover:pointer-events-auto"
-          title={dark ? "浅色模式" : "深色模式"}
+          title={dark ? t("cal.lightMode") : t("cal.darkMode")}
         >
           {dark ? <Sun className="size-5" weight="bold" /> : <Moon className="size-5" weight="bold" />}
         </button>
         <button
           onClick={() => setCreating(true)}
+          aria-label={t("event.create")}
           className="size-12 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
           title={t("event.create")}
         >

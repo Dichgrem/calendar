@@ -1,5 +1,6 @@
 import { useCalendars } from "../hooks/use-calendars";
 import { parseMeta } from "../lib/parse-meta";
+import { useI18n } from "../hooks/use-i18n";
 
 interface TimetableGridProps {
   className?: string;
@@ -26,10 +27,12 @@ export function TimetableGrid({ className }: TimetableGridProps) {
   const courseCal = calendars?.find((c) => c.sourceType === "course_schedule" && c.courseMeta);
   const meta = parseMeta(courseCal?.courseMeta);
 
+  const { t } = useI18n();
+
   if (!meta?.rawCourses?.length) {
     return (
       <div className="flex items-center justify-center h-full text-sm text-neutral-400 dark:text-neutral-500">
-        暂无课程数据
+        {t("cal.noCourseData")}
       </div>
     );
   }

@@ -7,6 +7,19 @@ const strings = {
   "nav.schedule": { "zh-CN": "课表", en: "Schedule" },
   "nav.logout": { "zh-CN": "退出", en: "Logout" },
 
+  // LoginPage
+  "login.createAccount": { "zh-CN": "创建账户", en: "Create Account" },
+  "login.login": { "zh-CN": "登录", en: "Login" },
+  "login.firstUseHint": { "zh-CN": "首次使用，请设置用户名和密码。", en: "First time user, please set your username and password." },
+  "login.username": { "zh-CN": "用户名", en: "Username" },
+  "login.password": { "zh-CN": "密码", en: "Password" },
+  "login.creating": { "zh-CN": "创建中...", en: "Creating..." },
+  "login.loggingIn": { "zh-CN": "登录中...", en: "Logging in..." },
+  "login.create": { "zh-CN": "创建", en: "Create" },
+  "login.loginBtn": { "zh-CN": "登录", en: "Login" },
+  "login.registerFailed": { "zh-CN": "注册失败", en: "Registration failed" },
+  "login.loginFailed": { "zh-CN": "用户名或密码错误", en: "Invalid username or password" },
+
   // CalendarView
   "cal.loading": { "zh-CN": "加载...", en: "Loading..." },
   "cal.failed": { "zh-CN": "失败", en: "Failed" },
@@ -14,10 +27,18 @@ const strings = {
   "cal.loadingEvents": { "zh-CN": "加载事件...", en: "Loading events..." },
   "cal.failedEvents": { "zh-CN": "加载事件失败", en: "Failed to load events" },
   "cal.today": { "zh-CN": "今天", en: "Today" },
+  "cal.prev": { "zh-CN": "上一月", en: "Previous month" },
+  "cal.next": { "zh-CN": "下一月", en: "Next month" },
+  "cal.yearPrev": { "zh-CN": "上一年", en: "Previous year" },
+  "cal.yearNext": { "zh-CN": "下一年", en: "Next year" },
+  "cal.toggleVisibility": { "zh-CN": "切换日历可见性", en: "Toggle calendar visibility" },
   "cal.search": { "zh-CN": "搜索事件...", en: "Search events..." },
   "cal.all": { "zh-CN": "全部", en: "All" },
   "cal.noResults": { "zh-CN": "无匹配结果", en: "No results" },
   "cal.importCourse": { "zh-CN": "导入课程表", en: "Import Course" },
+  "cal.darkMode": { "zh-CN": "深色模式", en: "Dark mode" },
+  "cal.lightMode": { "zh-CN": "浅色模式", en: "Light mode" },
+  "cal.noCourseData": { "zh-CN": "暂无课程数据", en: "No course data" },
 
   // EventEditor
   "event.create": { "zh-CN": "新建事件", en: "New Event" },
@@ -35,6 +56,10 @@ const strings = {
   "event.save": { "zh-CN": "保存", en: "Save" },
   "event.saving": { "zh-CN": "保存中...", en: "Saving..." },
   "event.error": { "zh-CN": "操作失败，请重试", en: "Operation failed, please retry" },
+
+  // Common
+  "common.loading": { "zh-CN": "加载中...", en: "Loading..." },
+  "common.customColor": { "zh-CN": "自定义颜色", en: "Custom color" },
 
   // SettingsPage
   "settings.title": { "zh-CN": "设置", en: "Settings" },
@@ -56,6 +81,8 @@ const strings = {
   "settings.exportSelected": { "zh-CN": "导出选中", en: "Export Selected" },
   "settings.cancel": { "zh-CN": "取消", en: "Cancel" },
   "settings.calendars": { "zh-CN": "日历管理", en: "Calendar Management" },
+  "settings.editCalendar": { "zh-CN": "编辑日历", en: "Edit calendar" },
+  "settings.deleteCalendar": { "zh-CN": "删除日历", en: "Delete calendar" },
   "settings.noCalendars": { "zh-CN": "暂无日历", en: "No calendars" },
   "settings.commonCalendars": { "zh-CN": "导入常用日历", en: "Import Common Calendars" },
   "settings.importing": { "zh-CN": "导入中...", en: "Importing..." },
@@ -71,6 +98,8 @@ const strings = {
   "settings.backingUp": { "zh-CN": "备份中...", en: "Backing up..." },
   "settings.exportConfig": { "zh-CN": "导出配置", en: "Export Config" },
   "settings.backupDone": { "zh-CN": "备份完成", en: "Backup complete" },
+  "settings.backupFailed": { "zh-CN": "备份失败", en: "Backup failed" },
+  "settings.exportConfigFailed": { "zh-CN": "导出配置失败", en: "Export config failed" },
 
   // ImportPage
   "import.tabFile": { "zh-CN": "文件导入", en: "File" },

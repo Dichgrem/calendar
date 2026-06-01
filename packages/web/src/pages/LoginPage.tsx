@@ -3,10 +3,12 @@ import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Button } from "../components/ui/button";
+import { useI18n } from "../hooks/use-i18n";
 
 export function LoginPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -39,7 +41,7 @@ export function LoginPage() {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       navigate("/calendar");
     } catch {
-      setError(isFirstUser ? "注册失败" : "用户名或密码错误");
+      setError(isFirstUser ? t("login.registerFailed") : t("login.loginFailed"));
     } finally {
       setLoading(false);
     }
@@ -48,7 +50,7 @@ export function LoginPage() {
   if (checking) {
     return (
       <div className="flex items-center justify-center h-screen bg-neutral-50 dark:bg-neutral-950">
-        <p className="text-sm text-neutral-400">Loading...</p>
+        <p className="text-sm text-neutral-400">{t("cal.loading")}</p>
       </div>
     );
   }
@@ -60,12 +62,12 @@ export function LoginPage() {
         className="w-full max-w-sm p-6 bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-4"
       >
         <h1 className="text-xl font-bold dark:text-white">
-          {isFirstUser ? "创建账户" : "登录"}
+          {isFirstUser ? t("login.createAccount") : t("login.login")}
         </h1>
 
         {isFirstUser && (
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            首次使用，请设置用户名和密码。
+            {t("login.firstUseHint")}
           </p>
         )}
 
@@ -76,7 +78,7 @@ export function LoginPage() {
         )}
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-neutral-200">用户名</span>
+          <span className="text-sm font-medium dark:text-neutral-200">{t("login.username")}</span>
           <input
             type="text"
             value={username}
@@ -88,7 +90,7 @@ export function LoginPage() {
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-neutral-200">密码</span>
+          <span className="text-sm font-medium dark:text-neutral-200">{t("login.password")}</span>
           <input
             type="password"
             value={password}
@@ -101,8 +103,8 @@ export function LoginPage() {
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading
-            ? (isFirstUser ? "创建中..." : "登录中...")
-            : (isFirstUser ? "创建" : "登录")}
+            ? (isFirstUser ? t("login.creating") : t("login.loggingIn"))
+            : (isFirstUser ? t("login.create") : t("login.loginBtn"))}
         </Button>
       </form>
     </div>

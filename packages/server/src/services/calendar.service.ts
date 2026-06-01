@@ -4,8 +4,8 @@ import { calendars, calendarMembers, syncSequence } from "../db/schema.js";
 import type { Calendar, ID, PermissionContext } from "../types.js";
 import { createPermissionGuard } from "../auth/permissions.query.js";
 
-async function logSync(tableName: string, recordId: ID, op: "created" | "updated" | "deleted") {
-  await db.insert(syncSequence).values({
+async function logSync(tableName: string, recordId: ID, op: "created" | "updated" | "deleted", tx?: any) {
+  await (tx || db).insert(syncSequence).values({
     tableName,
     recordId,
     op,
@@ -64,25 +64,27 @@ export async function createCalendar(
   const now = new Date().toISOString();
   const lmod = Date.now();
 
-  await db.insert(calendars).values({
-    id,
-    name: data.name,
-    color: data.color ?? "#3b82f6",
-    sourceUrl: data.sourceUrl ?? null,
-    sourceType: (data.sourceType as Calendar["sourceType"]) ?? "manual",
-    ownerId,
-    createdAt: now,
-    updatedAt: now,
-    lastModified: lmod,
-  });
+  await db.transaction(async (tx) => {
+    await tx.insert(calendars).values({
+      id,
+      name: data.name,
+      color: data.color ?? "#3b82f6",
+      sourceUrl: data.sourceUrl ?? null,
+      sourceType: (data.sourceType as Calendar["sourceType"]) ?? "manual",
+      ownerId,
+      createdAt: now,
+      updatedAt: now,
+      lastModified: lmod,
+    });
 
-  await db.insert(calendarMembers).values({
-    calendarId: id,
-    userId: ownerId,
-    role: "admin",
-  });
+    await tx.insert(calendarMembers).values({
+      calendarId: id,
+      userId: ownerId,
+      role: "admin",
+    });
 
-  await logSync("calendars", id, "created");
+    await logSync("calendars", id, "created", tx);
+  });
 
   return (await getCalendar(id, ownerId))!;
 }
@@ -105,9 +107,10 @@ export async function updateCalendar(
   if (data.color !== undefined) updateData.color = data.color;
   if (data.sourceUrl !== undefined) updateData.sourceUrl = data.sourceUrl;
 
-  await db.update(calendars).set(updateData).where(eq(calendars.id, calendarId));
-
-  await logSync("calendars", calendarId, "updated");
+  await db.transaction(async (tx) => {
+    await tx.update(calendars).set(updateData).where(eq(calendars.id, calendarId));
+    await logSync("calendars", calendarId, "updated", tx);
+  });
 
   return await getCalendar(calendarId, permission.userId);
 }
@@ -120,8 +123,10 @@ export async function deleteCalendar(
   const check = guard.canAdmin(calendarId);
   if (!check.ok) return false;
 
-  await db.delete(calendars).where(eq(calendars.id, calendarId));
-  await logSync("calendars", calendarId, "deleted");
+  await db.transaction(async (tx) => {
+    await tx.delete(calendars).where(eq(calendars.id, calendarId));
+    await logSync("calendars", calendarId, "deleted", tx);
+  });
 
   return true;
 }

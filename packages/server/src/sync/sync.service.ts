@@ -1,7 +1,7 @@
 import type { ID, SyncPullResponse, SyncPushResult } from "../types.js";
 import { db } from "../db/client.js";
 import { syncSequence, deletedLog, calendars, events, eventOverrides } from "../db/schema.js";
-import { sql, eq, gt, and } from "drizzle-orm";
+import { sql, eq, gt, and, inArray } from "drizzle-orm";
 import type { PermissionContext } from "../types.js";
 
 const TABLE_MAP: Record<string, unknown> = {
@@ -33,26 +33,38 @@ export async function pullChanges({
       .from(syncSequence)
       .where(and(eq(syncSequence.tableName, table), gt(syncSequence.id, lastPulledSeq)));
 
+    const createdIds: ID[] = [];
+    const updatedIds: ID[] = [];
+
     for (const seq of seqs) {
       if (seq.op === "deleted") {
         deleted.push(seq.recordId);
+      } else if (seq.op === "created") {
+        createdIds.push(seq.recordId);
       } else {
-        const tableRef = TABLE_MAP[table];
-        if (!tableRef) continue;
+        updatedIds.push(seq.recordId);
+      }
+    }
 
-        const [row] = await db
-          .select()
-          .from(tableRef as any)
-          .where(eq((tableRef as any).id, seq.recordId));
+    const fetchIds = [...createdIds, ...updatedIds];
+    if (fetchIds.length > 0) {
+      const tableRef = TABLE_MAP[table];
+      if (!tableRef) continue;
 
-        if (row) {
-          const record = row as Record<string, unknown>;
-          if (seq.op === "created") {
-            created.push(record);
-          } else {
-            updated.push(record);
-          }
-        }
+      const rows = await db
+        .select()
+        .from(tableRef as any)
+        .where(inArray((tableRef as any).id, fetchIds));
+
+      const rowMap = new Map((rows as any[]).map((r) => [(r as any).id, r]));
+
+      for (const id of createdIds) {
+        const row = rowMap.get(id);
+        if (row) created.push(row as Record<string, unknown>);
+      }
+      for (const id of updatedIds) {
+        const row = rowMap.get(id);
+        if (row) updated.push(row as Record<string, unknown>);
       }
     }
 
@@ -88,18 +100,23 @@ export async function pushChanges({
     const tableRef = TABLE_MAP[table];
     if (!tableRef) continue;
 
-    for (const record of [...tableChanges.created, ...tableChanges.updated]) {
-      const id = record.id as ID;
-      const lastModified = record.lastModified as number;
-      if (lastModified == null) continue;
+    const pushRows = [...tableChanges.created, ...tableChanges.updated]
+      .filter((r) => r.lastModified != null);
+    if (pushRows.length === 0) continue;
 
-      const [existing] = await db
-        .select({ lastModified: (tableRef as any).lastModified })
-        .from(tableRef as any)
-        .where(eq((tableRef as any).id, id));
+    const ids = pushRows.map((r) => r.id as ID);
 
-      if (existing && existing.lastModified > lastModified) {
-        conflictIds.push(id);
+    const existingRows = await db
+      .select({ id: (tableRef as any).id, lastModified: (tableRef as any).lastModified })
+      .from(tableRef as any)
+      .where(inArray((tableRef as any).id, ids));
+
+    const existingMap = new Map((existingRows as any[]).map((r) => [r.id, r.lastModified]));
+
+    for (const record of pushRows) {
+      const existingLm = existingMap.get(record.id as ID);
+      if (existingLm != null && existingLm > (record.lastModified as number)) {
+        conflictIds.push(record.id as ID);
       }
     }
   }

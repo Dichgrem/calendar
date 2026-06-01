@@ -29,8 +29,9 @@ const drizzle = drizzleSqlite(rawConnection, { schema });
 
 try {
   migrate(drizzle, { migrationsFolder: "./drizzle/migrations" });
-} catch {
-  // already migrated or no migrations to apply
+} catch (e) {
+  console.error("Migration failed:", e);
+  process.exit(1);
 }
 
 setRawConnection(rawConnection);

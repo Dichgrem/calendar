@@ -21,19 +21,31 @@ clean:
 format:
     biome format --write packages/
 
+# lint source files
+lint:
+    biome check packages/
+
+# fix auto-fixable lint issues
+lint-fix:
+    biome check --write packages/
+
 # typecheck all packages
 typecheck:
     pnpm run typecheck
 
-# one-click Cloudflare Workers deployment
-cf-deploy: install
-    ./scripts/cf-deploy.sh
+# run unit tests
+test:
+    pnpm run test
 
-# start test server with clean DB
+# run unit tests in watch mode
+test-watch:
+    pnpm vitest
+
+# start test server with clean DB (for integration tests)
 test-run:
     ./scripts/test-run.sh
 
-# run all API tests (requires test-run in another tab)
+# run all API integration tests (requires test-run in another tab)
 test-all:
     ./scripts/test-api.sh all
 
@@ -41,8 +53,8 @@ test-all:
 test-full:
     ./scripts/test-full.sh
 
-# run a single API test, e.g. just test login
-test name:
+# run a single API integration test, e.g. just test-it login
+test-it name:
     ./scripts/test-api.sh {{ name }}
 
 # build and start Docker container
