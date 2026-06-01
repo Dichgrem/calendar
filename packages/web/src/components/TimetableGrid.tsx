@@ -41,7 +41,7 @@ function slotFromTime(hour: number, minute: number): number {
     const sMin = s.hour * 60 + s.minute;
     if (Math.abs(totalMin - sMin) < 5) return i;
   }
-  return 0;
+  return -1;
 }
 
 function extractBlocks(events: any[], calendarColorMap: Map<string, string>): CourseBlock[] {
@@ -52,6 +52,7 @@ function extractBlocks(events: any[], calendarColorMap: Map<string, string>): Co
     const date = new Date(e.startAt);
     const weekday = date.getDay() === 0 ? 7 : date.getDay();
     const startSlot = slotFromTime(date.getHours(), date.getMinutes());
+    if (startSlot < 0) continue;
 
     const endDate = new Date(e.endAt);
     const durMin = (endDate.getTime() - date.getTime()) / 60000;
@@ -97,7 +98,6 @@ export function TimetableGrid({ className }: TimetableGridProps) {
   const blocks = extractBlocks(events ?? [], calendarColorMap);
 
   const days = [1, 2, 3, 4, 5, 6, 7];
-  const totalRows = SLOTS.length;
 
   return (
     <div className={`overflow-auto ${className ?? ""}`}>
