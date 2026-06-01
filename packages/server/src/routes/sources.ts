@@ -29,6 +29,7 @@ sourcesRouter.post("/sources/course/preview", zValidator("json", previewSchema),
       data: {
         preview,
         courses: result.courses,
+        rawCourses: result.rawCourses,
         startDate: result.startDate,
         timetable: result.timetable,
         icsContent: result.icsContent,
@@ -50,11 +51,14 @@ const importSchema = z.object({
   password: z.string().optional(),
   semester: z.string().optional(),
   year: z.string().optional(),
+  rawCourses: z.array(z.any()).optional(),
+  timetable: z.array(z.tuple([z.number(), z.number()])).optional(),
+  startDate: z.tuple([z.number(), z.number(), z.number()]).optional(),
 });
 
 sourcesRouter.post("/sources/course/import", zValidator("json", importSchema), async (c) => {
   const perm = c.get("permission");
-  const { icsContent, calendarName, color, selectedUids, overwrite, username, password, semester, year } = c.req.valid("json");
+  const { icsContent, calendarName, color, selectedUids, overwrite, username, password, semester, year, rawCourses, timetable, startDate } = c.req.valid("json");
 
   const parsed = parseIcsContent(icsContent);
 
@@ -67,9 +71,16 @@ sourcesRouter.post("/sources/course/import", zValidator("json", importSchema), a
     perm.userId,
   );
 
-  if (username || password || semester || year) {
-    const meta = JSON.stringify({ username, password, semester, year });
-    await db.update(calendars).set({ courseMeta: meta }).where(
+  const meta: Record<string, unknown> = {};
+  if (username) meta.username = username;
+  if (password) meta.password = password;
+  if (semester) meta.semester = semester;
+  if (year) meta.year = year;
+  if (rawCourses) meta.rawCourses = rawCourses;
+  if (timetable) meta.timetable = timetable;
+  if (startDate) meta.startDate = startDate;
+  if (Object.keys(meta).length > 0) {
+    await db.update(calendars).set({ courseMeta: JSON.stringify(meta) }).where(
       and(eq(calendars.id, cal.id), eq(calendars.ownerId, perm.userId)),
     );
   }
@@ -126,6 +137,74 @@ sourcesRouter.post("/sources/course/refresh", zValidator("json", z.object({ cale
     const message = err instanceof Error ? err.message : "Refresh failed";
     return c.json({ ok: false, error: { code: "FETCH_FAILED", message } }, 400);
   }
+});
+
+const importAllSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+  calendarName: z.string().optional(),
+  color: z.string().optional(),
+});
+
+sourcesRouter.post("/sources/course/import-all", zValidator("json", importAllSchema), async (c) => {
+  const perm = c.get("permission");
+  const { username, password, calendarName, color } = c.req.valid("json");
+
+  const pairs = [];
+  for (let year = 2023; year <= 2026; year++) {
+    for (const semester of ["上", "下"] as const) {
+      pairs.push({ year: String(year), semester });
+    }
+  }
+
+  const cal = await createCalendar(
+    {
+      name: calendarName ?? "课表",
+      color,
+      sourceType: "course_schedule",
+    },
+    perm.userId,
+  );
+
+  let totalEvents = 0;
+  const allRawCourses: any[] = [];
+  const errors: string[] = [];
+
+  for (const { year, semester } of pairs) {
+    try {
+      const result = await fetchCourseData(username, password, semester, year);
+      allRawCourses.push(...result.rawCourses);
+      const parsed = parseIcsContent(result.icsContent);
+      await importIcsToCalendar(
+        cal.id,
+        parsed,
+        new Set(parsed.components.map((c) => c.uid)),
+        perm.userId,
+        false,
+      );
+      totalEvents += parsed.components.length;
+    } catch (err) {
+      errors.push(`${year}年${semester}学期: ${err instanceof Error ? err.message : "失败"}`);
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+
+  const meta: Record<string, unknown> = {
+    username, password,
+    rawCourses: allRawCourses,
+  };
+  await db.update(calendars).set({ courseMeta: JSON.stringify(meta) }).where(
+    and(eq(calendars.id, cal.id), eq(calendars.ownerId, perm.userId)),
+  );
+
+  return c.json({
+    ok: true,
+    data: {
+      calendarId: cal.id,
+      eventCount: totalEvents,
+      errors: errors.length > 0 ? errors : undefined,
+    },
+  });
 });
 
 export { sourcesRouter };

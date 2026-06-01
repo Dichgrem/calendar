@@ -8,6 +8,8 @@ interface NavState {
   visibleCalendars: Set<string>;
   setVisibleCalendars: (s: Set<string>) => void;
   toggleCalendar: (id: string) => void;
+  labelOverride: string | null;
+  setLabelOverride: (s: string | null) => void;
 }
 
 const NavCtx = createContext<NavState>({
@@ -16,6 +18,8 @@ const NavCtx = createContext<NavState>({
   visibleCalendars: new Set(),
   setVisibleCalendars: () => {},
   toggleCalendar: () => {},
+  labelOverride: null,
+  setLabelOverride: () => {},
 });
 
 export function useNav() {
@@ -28,6 +32,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
     month: new Date().getMonth(),
   });
   const [visibleCalendars, setVisibleCalendars] = useState<Set<string>>(new Set());
+  const [labelOverride, setLabelOverride] = useState<string | null>(null);
   const { data: calendars } = useCalendars();
   const { data: settings } = useSettings();
 
@@ -50,7 +55,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <NavCtx.Provider value={{ displayMonth, setDisplayMonth, visibleCalendars, setVisibleCalendars, toggleCalendar }}>
+    <NavCtx.Provider value={{ displayMonth, setDisplayMonth, visibleCalendars, setVisibleCalendars, toggleCalendar, labelOverride, setLabelOverride }}>
       {children}
     </NavCtx.Provider>
   );
