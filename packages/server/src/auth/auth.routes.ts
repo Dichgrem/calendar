@@ -11,8 +11,9 @@ const SESSION_COOKIE = "session_token";
 const COOKIE_OPTS = {
   httpOnly: true,
   sameSite: "Lax" as const,
+  secure: process.env.NODE_ENV === "production",
   path: "/",
-  maxAge: 30 * 24 * 60 * 60, // 30 days
+  maxAge: 30 * 24 * 60 * 60,
 };
 
 authRouter.get("/auth/status", async (c) => {

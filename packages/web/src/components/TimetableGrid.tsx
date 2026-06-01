@@ -1,4 +1,5 @@
 import { useCalendars } from "../hooks/use-calendars";
+import { parseMeta } from "../lib/parse-meta";
 
 interface TimetableGridProps {
   className?: string;
@@ -14,11 +15,6 @@ interface RawCourse {
   week: [number, number];
   odd: boolean;
   even: boolean;
-}
-
-function parseMeta(meta: string | null | undefined) {
-  if (!meta) return null;
-  try { return JSON.parse(meta); } catch { return null; }
 }
 
 const COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];

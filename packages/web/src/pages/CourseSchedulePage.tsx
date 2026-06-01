@@ -5,11 +5,7 @@ import { LeftControls, CenterControls } from "../components/TopBarControls";
 import { useTopBar } from "../components/Layout";
 import { useNav } from "../hooks/use-nav";
 import { useCalendars } from "../hooks/use-calendars";
-
-function parseMeta(meta: string | null | undefined) {
-  if (!meta) return null;
-  try { return JSON.parse(meta); } catch { return null; }
-}
+import { parseMeta } from "../lib/parse-meta";
 
 export function CourseSchedulePage() {
   const topBar = useTopBar();

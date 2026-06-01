@@ -35,3 +35,7 @@ export function formatCalendarDate(d: Date, format: string, lang: string): strin
     .replace(/mm/g, PAD2(d.getMinutes()))
     .replace(/ss/g, PAD2(d.getSeconds()));
 }
+
+export function dateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}

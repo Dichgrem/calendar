@@ -14,15 +14,11 @@ import { useNav } from "../hooks/use-nav";
 import { useTopBar, useSearch } from "./Layout";
 import { EventEditor } from "./EventEditor";
 import { LeftControls, CenterControls } from "./TopBarControls";
-import { formatCalendarDate } from "../lib/date-format";
+import { formatCalendarDate, dateStr } from "../lib/date-format";
 import { getLunarText } from "../lib/lunar";
 import type { Event } from "../types";
 
 const CourseSetup = lazy(() => import("./CourseSetup").then((m) => ({ default: m.CourseSetup })));
-
-function dateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 export function CalendarView() {
   const calRef = useRef<FullCalendar>(null);

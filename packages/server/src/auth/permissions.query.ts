@@ -1,7 +1,6 @@
 // @ts-nocheck
-import { eq, and, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { SQLiteSelectQueryBuilder } from "drizzle-orm/sqlite-core";
-import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { calendarMembers } from "../db/schema.js";
 import type {
   ID,
@@ -12,12 +11,6 @@ import type {
 } from "../types.js";
 import { roleGte } from "../types.js";
 
-const tablesWithCalendarId = new Set(["events", "event_overrides"]);
-
-const calendarIdColumnMap: Record<string, SQLiteColumn> = {
-  events: calendarMembers.calendarId,
-};
-
 function applyCalendarScope<T extends SQLiteSelectQueryBuilder>(
   qb: T,
   permission: PermissionContext,
@@ -26,13 +19,6 @@ function applyCalendarScope<T extends SQLiteSelectQueryBuilder>(
   return qb
     .leftJoin(calendarMembers, eq(calendarMembers.calendarId, sql.raw(`${calendarIdField}`)))
     .where(eq(calendarMembers.userId, permission.userId)) as CalendarScoped<T>;
-}
-
-export function withViewAccess<T extends SQLiteSelectQueryBuilder>(
-  qb: T,
-  permission: PermissionContext,
-): Permissioned<CalendarScoped<T>> {
-  return applyCalendarScope(qb, permission) as Permissioned<CalendarScoped<T>>;
 }
 
 export function requireRole(

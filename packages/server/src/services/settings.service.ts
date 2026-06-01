@@ -105,12 +105,12 @@ export async function upsertUserSettings(
     .onConflictDoUpdate({
       target: [userSettings.userId],
       set: {
-        language: data.language,
-        firstDayOfWeek: data.firstDayOfWeek,
-        showEventTime: data.showEventTime,
-        dateFormat: data.dateFormat,
-        showLunarCalendar: data.showLunarCalendar,
-        showCourseSchedule: data.showCourseSchedule,
+        language: data.language ?? config.userDefaults.language,
+        firstDayOfWeek: data.firstDayOfWeek ?? config.userDefaults.firstDayOfWeek,
+        showEventTime: data.showEventTime ?? config.userDefaults.showEventTime,
+        dateFormat: data.dateFormat ?? config.userDefaults.dateFormat,
+        showLunarCalendar: data.showLunarCalendar ?? config.userDefaults.showLunarCalendar,
+        showCourseSchedule: data.showCourseSchedule ?? false,
       },
     });
 
