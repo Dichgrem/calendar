@@ -84,9 +84,9 @@ export function CalendarView() {
   );
 
   const { data: allEvents } = useEvents(
-    calendars?.map((c) => c.id) ?? [],
-    searchQuery ? "2000-01-01T00:00:00Z" : dateRange.start,
-    searchQuery ? "2099-12-31T23:59:59Z" : dateRange.end,
+    searchQuery ? (calendars?.map((c) => c.id) ?? []) : [],
+    searchQuery ? "2000-01-01T00:00:00Z" : "",
+    searchQuery ? "2099-12-31T23:59:59Z" : "",
   );
 
   const searchableEvents = searchQuery ? allEvents : events;

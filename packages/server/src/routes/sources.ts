@@ -73,7 +73,6 @@ sourcesRouter.post("/sources/course/import", zValidator("json", importSchema), a
 
   const meta: Record<string, unknown> = {};
   if (username) meta.username = username;
-  if (password) meta.password = password;
   if (semester) meta.semester = semester;
   if (year) meta.year = year;
   if (rawCourses) meta.rawCourses = rawCourses;
@@ -169,11 +168,16 @@ sourcesRouter.post("/sources/course/import-all", zValidator("json", importAllSch
   let totalEvents = 0;
   const allRawCourses: any[] = [];
   const errors: string[] = [];
+  let savedTimetable: [number, number][] | undefined;
+  let savedYear: string | undefined;
+  let savedSemester: string | undefined;
 
   for (const { year, semester } of pairs) {
     try {
       const result = await fetchCourseData(username, password, semester, year);
       allRawCourses.push(...result.rawCourses);
+      if (!savedTimetable) savedTimetable = result.timetable;
+      if (!savedYear) { savedYear = year; savedSemester = semester; }
       const parsed = parseIcsContent(result.icsContent);
       await importIcsToCalendar(
         cal.id,
@@ -190,9 +194,11 @@ sourcesRouter.post("/sources/course/import-all", zValidator("json", importAllSch
   }
 
   const meta: Record<string, unknown> = {
-    username, password,
+    username,
     rawCourses: allRawCourses,
   };
+  if (savedTimetable) meta.timetable = savedTimetable;
+  if (savedYear) { meta.year = savedYear; meta.semester = savedSemester; }
   await db.update(calendars).set({ courseMeta: JSON.stringify(meta) }).where(
     and(eq(calendars.id, cal.id), eq(calendars.ownerId, perm.userId)),
   );

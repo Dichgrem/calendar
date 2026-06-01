@@ -74,27 +74,29 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
     if (api2) {
       api2.prev();
       if (api2.view.currentStart.getFullYear() < 1970) api2.gotoDate(new Date(1970, 0, 1));
-    }
-    const newMonth = displayMonth.month - 1;
-    const next = newMonth < 0
-      ? { year: displayMonth.year - 1, month: 11 }
-      : { year: displayMonth.year, month: newMonth };
-    setDisplayMonth(next);
-    if (setHighlightDate) {
-      setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
+      const d = api2.getDate();
+      setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
+      if (setHighlightDate) setHighlightDate(dateStr(new Date(d.getFullYear(), d.getMonth(), 1)));
+    } else {
+      const nm = displayMonth.month - 1;
+      const next = nm < 0 ? { year: displayMonth.year - 1, month: 11 } : { year: displayMonth.year, month: nm };
+      setDisplayMonth(next);
+      if (setHighlightDate) setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
     }
   };
 
   const goNext = () => {
     const api2 = api();
-    api2?.next();
-    const newMonth = displayMonth.month + 1;
-    const next = newMonth > 11
-      ? { year: displayMonth.year + 1, month: 0 }
-      : { year: displayMonth.year, month: newMonth };
-    setDisplayMonth(next);
-    if (setHighlightDate) {
-      setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
+    if (api2) {
+      api2.next();
+      const d = api2.getDate();
+      setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
+      if (setHighlightDate) setHighlightDate(dateStr(new Date(d.getFullYear(), d.getMonth(), 1)));
+    } else {
+      const nm = displayMonth.month + 1;
+      const next = nm > 11 ? { year: displayMonth.year + 1, month: 0 } : { year: displayMonth.year, month: nm };
+      setDisplayMonth(next);
+      if (setHighlightDate) setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
     }
   };
 
