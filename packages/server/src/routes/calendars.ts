@@ -8,6 +8,7 @@ import {
   createCalendar,
   updateCalendar,
   deleteCalendar,
+  reorderCalendars,
 } from "../services/calendar.service.js";
 
 const calendarsRouter = new Hono().use(authMiddleware);
@@ -50,6 +51,17 @@ const updateSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
   sourceUrl: z.string().url().nullable().optional(),
+});
+
+const reorderSchema = z.object({
+  orderedIds: z.array(z.string()),
+});
+
+calendarsRouter.patch("/reorder", zValidator("json", reorderSchema), async (c) => {
+  const perm = c.get("permission");
+  const { orderedIds } = c.req.valid("json");
+  await reorderCalendars(perm.userId, orderedIds);
+  return c.json({ ok: true, data: null });
 });
 
 calendarsRouter.patch("/:id", zValidator("json", updateSchema), async (c) => {

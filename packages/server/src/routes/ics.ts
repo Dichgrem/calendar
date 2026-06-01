@@ -4,6 +4,9 @@ import { z } from "zod";
 import { authMiddleware } from "../auth/middleware.js";
 import { parseIcsContent, buildPreview, importIcsToCalendar, exportIcs, fetchIcsFromUrl } from "../services/ics.service.js";
 import { createCalendar } from "../services/calendar.service.js";
+import { db } from "../db/client.js";
+import { calendars } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 
 const icsRouter = new Hono().use(authMiddleware);
 
@@ -40,45 +43,48 @@ const importSchema = z.object({
   calendarId: z.string().optional(),
   calendarName: z.string().optional(),
   color: z.string().optional(),
+  sourceUrl: z.string().optional(),
   selectedUids: z.array(z.string()),
   overwrite: z.boolean().optional().default(false),
 });
 
 icsRouter.post("/ics/import", zValidator("json", importSchema), async (c) => {
   const perm = c.get("permission");
-  const { content, calendarId, calendarName, color, selectedUids, overwrite } = c.req.valid("json");
-
-  const parsed = parseIcsContent(content);
+  const { content, calendarId, calendarName, color, sourceUrl, selectedUids, overwrite } = c.req.valid("json");
 
   let targetId = calendarId;
-  if (!targetId) {
-    const cal = await createCalendar(
-      {
-        name: calendarName ?? parsed.name,
-        color,
-        sourceType: "ics_import",
-      },
-      perm.userId,
+  const needsCleanup = !targetId;
+
+  try {
+    const parsed = parseIcsContent(content);
+
+    if (!targetId) {
+      const cal = await createCalendar(
+        { name: calendarName ?? parsed.name, color, sourceUrl, sourceType: "ics_subscription" },
+        perm.userId,
+      );
+      targetId = cal.id;
+    }
+
+    const result = await importIcsToCalendar(
+      targetId, parsed, new Set(selectedUids), perm.userId, overwrite,
     );
-    targetId = cal.id;
+
+    if (!result) {
+      if (needsCleanup && targetId) {
+        await db.delete(calendars).where(eq(calendars.id, targetId));
+      }
+      return c.json({ ok: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
+    }
+
+    return c.json({ ok: true, data: { calendarId: targetId, ...result } });
+  } catch (err) {
+    if (needsCleanup && targetId) {
+      await db.delete(calendars).where(eq(calendars.id, targetId));
+    }
+    const message = err instanceof Error ? err.message : "Import failed";
+    return c.json({ ok: false, error: { code: "IMPORT_FAILED", message } }, 500);
   }
-
-  const result = await importIcsToCalendar(
-    targetId,
-    parsed,
-    new Set(selectedUids),
-    perm.userId,
-    overwrite,
-  );
-
-  if (!result) {
-    return c.json({ ok: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
-  }
-
-  return c.json({
-    ok: true,
-    data: { calendarId: targetId, ...result },
-  });
 });
 
 const exportQuerySchema = z.object({

@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Circle, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNav } from "../hooks/use-nav";
 import { useCalendars } from "../hooks/use-calendars";
 import { useSettings } from "../hooks/use-settings";
 import { useI18n } from "../hooks/use-i18n";
 import { formatCalendarDate, dateStr } from "../lib/date-format";
+import { api } from "../lib/api";
 
 const MONTHS_ZH = [
   "1月", "2月", "3月", "4月", "5月", "6月",
@@ -131,8 +133,39 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
 
 export function CenterControls() {
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
   const { visibleCalendars, toggleCalendar } = useNav();
+  const dragIdRef = useRef<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, calId: string) => {
+    dragIdRef.current = calId;
+    setDragId(calId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = dragIdRef.current;
+    if (!sourceId || sourceId === targetId || !calendars) return;
+
+    const ordered = calendars.map((c) => c.id);
+    const fromIdx = ordered.indexOf(sourceId);
+    const toIdx = ordered.indexOf(targetId);
+    ordered.splice(fromIdx, 1);
+    ordered.splice(toIdx, 0, sourceId);
+
+    await api.calendars.reorder(ordered);
+    queryClient.invalidateQueries({ queryKey: ["calendars"] });
+    dragIdRef.current = null;
+    setDragId(null);
+  };
 
   return (
     <>
@@ -141,10 +174,15 @@ export function CenterControls() {
       {calendars?.map((cal) => (
         <button
           key={cal.id}
+          draggable
+          onDragStart={(e) => handleDragStart(e, cal.id)}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, cal.id)}
+          onDragEnd={() => { dragIdRef.current = null; setDragId(null); }}
           onClick={() => toggleCalendar(cal.id)}
           title={cal.name}
           aria-label={`${t("cal.toggleVisibility")}: ${cal.name}`}
-          className="relative size-5 rounded-full border-2 transition-all shrink-0"
+          className={`relative size-5 rounded-full border-2 transition-all shrink-0 cursor-grab active:cursor-grabbing ${dragId === cal.id ? "scale-125" : ""}`}
           style={{
             backgroundColor: visibleCalendars.has(cal.id) ? cal.color : "transparent",
             borderColor: cal.color,

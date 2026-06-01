@@ -80,26 +80,40 @@ export async function importIcsToCalendar(
 
   let eventCount = 0;
 
+  if (overwrite) {
+    await db.delete(events).where(eq(events.calendarId, calendarId));
+  }
+
   const now = new Date().toISOString();
   const lmod = Date.now();
 
-  await db.transaction(async (tx) => {
-    if (overwrite) {
-      await tx.delete(events).where(eq(events.calendarId, calendarId));
-    }
+  for (const c of parsed.components) {
+    if (c.type !== "VEVENT" || !selectedUids.has(c.uid)) continue;
 
-    for (const c of parsed.components) {
-      if (c.type !== "VEVENT" || !selectedUids.has(c.uid)) continue;
+    const startAt = normalizeDt(getProp(c, "DTSTART")) ?? now;
+    const endAt = normalizeDt(getProp(c, "DTEND")) ?? now;
+    const allDay = isAllDay(c);
 
-      const startAt = normalizeDt(getProp(c, "DTSTART")) ?? now;
-      const endAt = normalizeDt(getProp(c, "DTEND")) ?? now;
-      const allDay = isAllDay(c);
-
-      await tx
-        .insert(events)
-        .values({
-          id: c.uid || crypto.randomUUID(),
-          calendarId,
+    await db
+      .insert(events)
+      .values({
+        id: c.uid || crypto.randomUUID(),
+        calendarId,
+        title: getProp(c, "SUMMARY") || "(Untitled)",
+        description: getProp(c, "DESCRIPTION"),
+        startAt,
+        endAt,
+        allDay,
+        rrule: getProp(c, "RRULE"),
+        location: getProp(c, "LOCATION"),
+        rawIcs: c.rawIcs,
+        createdAt: now,
+        updatedAt: now,
+        lastModified: lmod,
+      })
+      .onConflictDoUpdate({
+        target: [events.id],
+        set: {
           title: getProp(c, "SUMMARY") || "(Untitled)",
           description: getProp(c, "DESCRIPTION"),
           startAt,
@@ -108,28 +122,12 @@ export async function importIcsToCalendar(
           rrule: getProp(c, "RRULE"),
           location: getProp(c, "LOCATION"),
           rawIcs: c.rawIcs,
-          createdAt: now,
           updatedAt: now,
           lastModified: lmod,
-        })
-        .onConflictDoUpdate({
-          target: [events.id],
-          set: {
-            title: getProp(c, "SUMMARY") || "(Untitled)",
-            description: getProp(c, "DESCRIPTION"),
-            startAt,
-            endAt,
-            allDay,
-            rrule: getProp(c, "RRULE"),
-            location: getProp(c, "LOCATION"),
-            rawIcs: c.rawIcs,
-            updatedAt: now,
-            lastModified: lmod,
-          },
-        });
-      eventCount++;
-    }
-  });
+        },
+      });
+    eventCount++;
+  }
 
   return { eventCount };
 }

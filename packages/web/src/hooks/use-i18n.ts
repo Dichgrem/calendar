@@ -83,6 +83,8 @@ const strings = {
   "settings.calendars": { "zh-CN": "日历管理", en: "Calendar Management" },
   "settings.editCalendar": { "zh-CN": "编辑日历", en: "Edit calendar" },
   "settings.deleteCalendar": { "zh-CN": "删除日历", en: "Delete calendar" },
+  "settings.confirmDelete": { "zh-CN": "确定要删除该日历吗？所有事件将被删除。", en: "Delete this calendar? All events will be removed." },
+  "settings.deleteFailed": { "zh-CN": "删除失败，请重试", en: "Failed to delete, please retry" },
   "settings.noCalendars": { "zh-CN": "暂无日历", en: "No calendars" },
   "settings.commonCalendars": { "zh-CN": "导入常用日历", en: "Import Common Calendars" },
   "settings.importing": { "zh-CN": "导入中...", en: "Importing..." },
