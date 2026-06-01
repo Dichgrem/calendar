@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RequireAuth } from "./components/RequireAuth";
 import { Layout } from "./components/Layout";
 import { CalendarPage } from "./pages/CalendarPage";
+import { CourseSchedulePage } from "./pages/CourseSchedulePage";
 import { ImportPage } from "./pages/ImportPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -26,6 +27,7 @@ createRoot(document.getElementById("root")!).render(
             <Route element={<Layout />}>
               <Route index element={<Navigate to="/calendar" replace />} />
               <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/schedule" element={<CourseSchedulePage />} />
               <Route path="/import" element={<ImportPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
