@@ -12,7 +12,6 @@ import { useSettings } from "../hooks/use-settings";
 import { useI18n } from "../hooks/use-i18n";
 import { useTopBar, useSearch } from "./Layout";
 import { EventEditor } from "./EventEditor";
-import { TimetableGrid } from "./TimetableGrid";
 import { formatCalendarDate } from "../lib/date-format";
 import { getLunarText } from "../lib/lunar";
 import type { Event } from "../types";
@@ -50,7 +49,6 @@ export function CalendarView() {
   const [creating, setCreating] = useState(false);
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
   const [dark, setDark] = useState(() => localStorage.getItem("darkMode") === "1");
-  const [viewMode, setViewMode] = useState<"calendar" | "course">("calendar");
   const [courseSetupOpen, setCourseSetupOpen] = useState(false);
 
   const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
@@ -182,8 +180,6 @@ export function CalendarView() {
   const dateLabel = formatCalendarDate(displayDate, dateFormat, lang);
 
   const calendarColorMap = new Map(calendars?.map((c) => [c.id, c.color]) ?? []);
-  const hasCourseCalendars = calendars?.some((c) => c.sourceType === "course_schedule") ?? false;
-
   const filteredEvents = searchableEvents
     .filter((e) => (!searchCalId || e.calendarId === searchCalId) && (!searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase())));
 
@@ -263,16 +259,6 @@ export function CalendarView() {
     </div>
   );
 
-  const rightControls = hasCourseCalendars ? (
-    <button
-      onClick={() => setViewMode(viewMode === "course" ? "calendar" : "course")}
-      className={`size-7 flex items-center justify-center rounded-lg transition-colors ${viewMode === "course" ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900" : "text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
-      title={viewMode === "course" ? t("cal.calendarView") : t("cal.courseView")}
-    >
-      <GraduationCap className="size-4" weight="bold" />
-    </button>
-  ) : null;
-
   const centerControls = (
     <>
       {calLoading && <span className="text-xs text-neutral-400">{t("cal.loading")}</span>}
@@ -300,14 +286,13 @@ export function CalendarView() {
     <div className="flex flex-col h-full">
       {topBar?.left && createPortal(leftControls, topBar.left)}
       {topBar?.center && createPortal(centerControls, topBar.center)}
-      {topBar?.right && rightControls && createPortal(rightControls, topBar.right)}
       {topBar?.searchDropdown && searchDropdown && createPortal(searchDropdown, topBar.searchDropdown)}
 
       <div className="flex-1 relative">
-        {evLoading && viewMode === "calendar" && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
-        {evError && viewMode === "calendar" && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
+        {evLoading && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
+        {evError && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
 
-        {pickerOpen && viewMode === "calendar" && (
+        {pickerOpen && (
           <div className="absolute top-2 left-4 z-50 w-56 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-lg p-3">
             <div className="flex items-center justify-between mb-3">
               <button onClick={() => setPickerYear((y) => y - 1)}
@@ -331,7 +316,6 @@ export function CalendarView() {
           </div>
         )}
 
-        {viewMode === "calendar" ? (
           <FullCalendar
             ref={calRef}
             plugins={[dayGridPlugin, interactionPlugin]}
@@ -358,9 +342,6 @@ export function CalendarView() {
             displayEventTime={settings?.showEventTime ?? true}
             headerToolbar={false}
           />
-        ) : (
-          <TimetableGrid className="h-full" />
-        )}
       </div>
 
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center gap-3 group">

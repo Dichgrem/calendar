@@ -1,6 +1,6 @@
 import { createContext, useContext, useCallback, useState, type RefCallback } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
-import { CalendarDots, GearSix, SignOut, MagnifyingGlass } from "@phosphor-icons/react";
+import { CalendarDots, GearSix, GraduationCap, SignOut, MagnifyingGlass } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "../lib/utils";
 import { useI18n } from "../hooks/use-i18n";
@@ -53,6 +53,7 @@ export function Layout() {
 
   const navItems = [
     { to: "/calendar", icon: CalendarDots, label: t("nav.calendar") },
+    { to: "/schedule", icon: GraduationCap, label: t("nav.schedule") },
     { to: "/settings", icon: GearSix, label: t("nav.settings") },
   ];
 
