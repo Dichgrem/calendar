@@ -4,7 +4,7 @@ import { useNav } from "../hooks/use-nav";
 import { useCalendars } from "../hooks/use-calendars";
 import { useSettings } from "../hooks/use-settings";
 import { useI18n } from "../hooks/use-i18n";
-import { formatCalendarDate } from "../lib/date-format";
+import { formatCalendarDate, dateStr } from "../lib/date-format";
 
 const MONTHS_ZH = [
   "1月", "2月", "3月", "4月", "5月", "6月",
@@ -15,10 +15,6 @@ const MONTHS_EN = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
-
-function dateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 interface TopBarControlsProps {
   calRef?: { current: { getApi: () => any } | null };
