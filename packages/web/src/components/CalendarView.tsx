@@ -73,7 +73,6 @@ export function CalendarView() {
 
   const handleDatesSet = useCallback((arg: DatesSetArg) => {
     setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
-    setDisplayMonth({ year: arg.view.activeStart.getFullYear(), month: arg.view.activeStart.getMonth() });
     setTimeout(applyHighlight, 60);
   }, []);
 
