@@ -9,6 +9,7 @@ import { api } from "../lib/api";
 interface TopBarSlots {
   left: HTMLDivElement | null;
   center: HTMLDivElement | null;
+  right: HTMLDivElement | null;
   searchDropdown: HTMLDivElement | null;
 }
 
@@ -31,6 +32,7 @@ export function useSearch() {
 export function Layout() {
   const [leftEl, setLeftEl] = useState<HTMLDivElement | null>(null);
   const [centerEl, setCenterEl] = useState<HTMLDivElement | null>(null);
+  const [rightEl, setRightEl] = useState<HTMLDivElement | null>(null);
   const [dropdownEl, setDropdownEl] = useState<HTMLDivElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchCalId, setSearchCalId] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export function Layout() {
 
   const leftRef: RefCallback<HTMLDivElement> = useCallback((el) => setLeftEl(el), []);
   const centerRef: RefCallback<HTMLDivElement> = useCallback((el) => setCenterEl(el), []);
+  const rightRef: RefCallback<HTMLDivElement> = useCallback((el) => setRightEl(el), []);
   const dropdownRef: RefCallback<HTMLDivElement> = useCallback((el) => setDropdownEl(el), []);
 
   const handleLogout = async () => {
@@ -54,7 +57,7 @@ export function Layout() {
   ];
 
   return (
-    <TopBarCtx.Provider value={{ left: leftEl, center: centerEl, searchDropdown: dropdownEl }}>
+    <TopBarCtx.Provider value={{ left: leftEl, center: centerEl, right: rightEl, searchDropdown: dropdownEl }}>
       <SearchCtx.Provider value={{ searchQuery, setSearchQuery, searchCalId, setSearchCalId }}>
       <div className="flex flex-col h-screen bg-neutral-50 dark:bg-neutral-950">
         <nav className="grid grid-cols-[1fr_auto_1fr] items-center px-4 py-1.5 border-b border-neutral-200 dark:border-neutral-800">
@@ -71,6 +74,7 @@ export function Layout() {
                 className="h-7 w-0 pl-0 pr-0 text-xs text-neutral-800 dark:text-transparent border border-transparent bg-transparent rounded-lg group-hover:w-36 focus:w-36 group-hover:px-2 focus:px-2 group-hover:border-neutral-200 dark:group-hover:border-neutral-700 focus:border-neutral-200 dark:focus:border-neutral-700 group-hover:bg-white dark:group-hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 focus:text-neutral-800 dark:focus:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-600 transition-all"
               />
             </div>
+            <div ref={rightRef} className="flex items-center gap-1" />
             {navItems.map((item) => (
               <NavLink
                 key={item.to}

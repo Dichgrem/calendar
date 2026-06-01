@@ -14,13 +14,14 @@ async function logSync(tableName: string, recordId: ID, op: "created" | "updated
 }
 
 export async function listCalendars(userId: ID): Promise<Calendar[]> {
-  const rows = await db
+    const rows = await db
     .select({
       id: calendars.id,
       name: calendars.name,
       color: calendars.color,
       sourceUrl: calendars.sourceUrl,
       sourceType: calendars.sourceType,
+      courseMeta: calendars.courseMeta,
       ownerId: calendars.ownerId,
       createdAt: calendars.createdAt,
       updatedAt: calendars.updatedAt,
@@ -42,6 +43,7 @@ export async function getCalendar(calendarId: ID, userId: ID): Promise<Calendar 
       color: calendars.color,
       sourceUrl: calendars.sourceUrl,
       sourceType: calendars.sourceType,
+      courseMeta: calendars.courseMeta,
       ownerId: calendars.ownerId,
       createdAt: calendars.createdAt,
       updatedAt: calendars.updatedAt,

@@ -12,13 +12,23 @@
   --foreground: #fafafa;
 }
 
-.fc-highlight-search {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-  transition: background-color 0.3s ease;
+td.fc-highlight-search {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+  border-radius: 6px !important;
 }
 
-.dark .fc-highlight-search {
-  background-color: rgba(59, 130, 246, 0.3) !important;
+td.fc-highlight-search .fc-daygrid-day-frame {
+  background: transparent !important;
+}
+
+.dark td.fc-highlight-search {
+  background-color: rgba(59, 130, 246, 0.35) !important;
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.7) !important;
+}
+
+.dark td.fc-highlight-search .fc-daygrid-day-frame {
+  background: transparent !important;
 }
 
 .dark .fc {
@@ -69,5 +79,49 @@
 
 .dark .fc .fc-more-popover .fc-popover-header {
   background-color: #27272a;
+  color: #a1a1aa;
+}
+
+.fc-timegrid-slot {
+  height: 2.5em !important;
+}
+
+.fc-timegrid-slot-label {
+  font-size: 0.7rem;
+}
+
+.fc-timegrid-event {
+  border-radius: 6px !important;
+  border: none !important;
+  padding: 2px 4px !important;
+  font-size: 0.75rem !important;
+  line-height: 1.3 !important;
+}
+
+.fc-timegrid-event .fc-event-title {
+  font-weight: 500;
+}
+
+.dark .fc-timegrid-slot-label {
+  color: #71717a;
+}
+
+.dark .fc-timegrid-axis {
+  background-color: #18181b;
+}
+
+.dark .fc-timegrid-slot {
+  border-color: #27272a !important;
+}
+
+.dark .fc-timegrid-now-indicator-line {
+  border-color: #ef4444;
+}
+
+.dark .fc-timegrid-col-header {
+  background-color: #18181b;
+}
+
+.dark .fc-timegrid-col-header .fc-scrollgrid-sync-inner {
   color: #a1a1aa;
 }
