@@ -107,7 +107,7 @@ pnpm db:migrate
 | React Router v7 | Client-side routing |
 | Tailwind CSS 3 + CVA | Atomic CSS + component variants |
 | Radix UI | Headless component primitives (Dialog, Select, Popover, Slot) |
-| Lucide React | SVG icon library |
+| Phosphor Icons | SVG icon library (bold weight) |
 | Hono v4 | Lightweight web framework |
 | Drizzle ORM | Type-safe SQL query builder |
 | SQLite (better-sqlite3) | Embedded database |

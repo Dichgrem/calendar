@@ -26,7 +26,10 @@ server/
 │   │   └── permissions.query.ts  # RBAC 查询级权限注入
 │   ├── db/
 │   │   ├── client.ts        # SQLite (better-sqlite3, WAL 模式) / D1 连接
+│   │   ├── d1.ts            # D1 数据库初始化（带缓存守卫）
+│   │   ├── node-init.ts     # Node.js 数据库初始化 + 启动时自动迁移
 │   │   └── schema.ts        # Drizzle 表定义（9 张表）
+│   ├── config.ts            # 集中配置，支持可选 config.json 覆盖
 │   ├── routes/
 │   │   ├── calendars.ts     # 日历 CRUD
 │   │   ├── events.ts        # 事件 CRUD + 覆盖
@@ -57,6 +60,7 @@ server/
 - **ICS 解析器**：自研（无第三方 ICS 库）。存储 `raw_ics` 保留额外 VEVENT 属性（VALARM, CATEGORIES, STATUS），确保导入导出保真。
 - **双数据库**：本地开发/Docker 使用 SQLite（better-sqlite3）；Cloudflare Workers 生产环境使用 D1（`initD1Db()`）。
 - **自动迁移**：`node-init.ts` 启动时自动运行 `migrate()` 确保数据库 schema 最新。D1 迁移在部署时通过 `wrangler d1 migrations apply` 执行。
+- **配置系统**：`config.ts` 提供合理默认值（简体中文、周一、启用农历）。可选 `config.json` 覆盖任意值；环境变量（`PORT`、`DATABASE_URL`）优先。
 
 ## 前端 (`packages/web/`)
 
@@ -100,6 +104,8 @@ web/
 - **Portal 插槽系统**：`Layout` 提供 `TopBarCtx`，`CalendarView` 通过 `createPortal` 将日期导航和日历切换按钮注入导航栏。
 - **多日历并行查询**：`useEvents` 对每个可见日历发起独立查询，通过 TanStack Query `combine` 合并结果。
 - **双模式 EventEditor**：联合类型 `EditMode | CreateMode` 实现创建/编辑共用同一组件。
+- **深色模式**：通过右下角 FAB 组切换（悬停 + 按钮弹出）。偏好保存在 `localStorage`。FullCalendar 及所有组件均用 Tailwind `dark:` 变体适配。
+- **Phosphor Icons**：所有图标使用 `@phosphor-icons/react`，统一 `weight="bold"` 粗体风格。
 - **Vite 代理**：开发时 `/api` 请求代理到 `localhost:3000`。
 
 ## 数据库 Schema
