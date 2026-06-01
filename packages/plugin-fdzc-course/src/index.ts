@@ -13,8 +13,21 @@ export interface CourseData {
   indexes: number[];
 }
 
+export interface RawCourse {
+  name: string;
+  teacher: string;
+  location: string;
+  weekday: number;
+  index: number;
+  duration: number;
+  week: [number, number];
+  odd: boolean;
+  even: boolean;
+}
+
 export interface CourseFetchResult {
   courses: CourseData[];
+  rawCourses: RawCourse[];
   startDate: [number, number, number];
   timetable: [number, number][];
   icsContent: string;
@@ -103,6 +116,7 @@ export async function fetchCourseData(
 
   return {
     courses,
+    rawCourses: rawCourses as RawCourse[],
     startDate: beginDate,
     timetable: timetableTyped,
     icsContent,

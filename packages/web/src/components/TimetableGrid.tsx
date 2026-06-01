@@ -1,163 +1,170 @@
-import { useEvents } from "../hooks/use-events";
 import { useCalendars } from "../hooks/use-calendars";
 
 interface TimetableGridProps {
   className?: string;
 }
 
-interface CourseBlock {
-  id: string;
-  title: string;
-  location: string;
+interface RawCourse {
+  name: string;
   teacher: string;
+  location: string;
   weekday: number;
-  startSlot: number;
-  endSlot: number;
-  color: string;
+  index: number;
+  duration: number;
+  week: [number, number];
+  odd: boolean;
+  even: boolean;
 }
 
-const SLOTS: { label: string; hour: number; minute: number }[] = [
-  { label: "08:00", hour: 8, minute: 0 },
-  { label: "08:55", hour: 8, minute: 55 },
-  { label: "10:00", hour: 10, minute: 0 },
-  { label: "10:55", hour: 10, minute: 55 },
-  { label: "14:00", hour: 14, minute: 0 },
-  { label: "14:55", hour: 14, minute: 55 },
-  { label: "16:00", hour: 16, minute: 0 },
-  { label: "16:55", hour: 16, minute: 55 },
-  { label: "19:00", hour: 19, minute: 0 },
-  { label: "19:55", hour: 19, minute: 55 },
-  { label: "20:50", hour: 20, minute: 50 },
-];
+function parseMeta(meta: string | null | undefined) {
+  if (!meta) return null;
+  try { return JSON.parse(meta); } catch { return null; }
+}
 
-const SLOT_DURATION_MIN = 45;
+const COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
 
 const WEEKDAYS = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 
-function slotFromTime(hour: number, minute: number): number {
-  const totalMin = hour * 60 + minute;
-  for (let i = 0; i < SLOTS.length; i++) {
-    const s = SLOTS[i];
-    const sMin = s.hour * 60 + s.minute;
-    if (Math.abs(totalMin - sMin) < 5) return i;
-  }
-  return -1;
-}
-
-function extractBlocks(events: any[], calendarColorMap: Map<string, string>): CourseBlock[] {
-  const seen = new Set<string>();
-  const blocks: CourseBlock[] = [];
-
-  for (const e of events) {
-    const date = new Date(e.startAt);
-    const weekday = date.getDay() === 0 ? 7 : date.getDay();
-    const startSlot = slotFromTime(date.getHours(), date.getMinutes());
-    if (startSlot < 0) continue;
-
-    const endDate = new Date(e.endAt);
-    const durMin = (endDate.getTime() - date.getTime()) / 60000;
-    const durSlots = Math.max(1, Math.round(durMin / SLOT_DURATION_MIN));
-
-    const color = e.color ?? calendarColorMap.get(e.calendarId) ?? "#3b82f6";
-    const title = e.title?.split(" - ")[0] ?? e.title ?? "";
-    const location = e.title?.includes(" - ") ? e.title.split(" - ")[1] ?? "" : e.location ?? "";
-    const teacher = e.description?.replace("任课教师：", "").replace("。", "") ?? "";
-
-    const key = `${title}|${weekday}|${startSlot}|${durSlots}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    blocks.push({
-      id: key,
-      title,
-      location,
-      teacher,
-      weekday,
-      startSlot,
-      endSlot: startSlot + durSlots,
-      color,
-    });
-  }
-
-  return blocks;
-}
-
 export function TimetableGrid({ className }: TimetableGridProps) {
   const { data: calendars } = useCalendars();
-  const courseCalIds = calendars
-    ?.filter((c) => c.sourceType === "course_schedule")
-    .map((c) => c.id) ?? [];
+  const courseCal = calendars?.find((c) => c.sourceType === "course_schedule" && c.courseMeta);
+  const meta = parseMeta(courseCal?.courseMeta);
 
-  const { data: events } = useEvents(
-    courseCalIds,
-    "2000-01-01T00:00:00Z",
-    "2099-12-31T23:59:59Z",
-  );
+  if (!meta?.rawCourses?.length) {
+    return (
+      <div className="flex items-center justify-center h-full text-sm text-neutral-400 dark:text-neutral-500">
+        暂无课程数据
+      </div>
+    );
+  }
 
-  const calendarColorMap = new Map(calendars?.map((c) => [c.id, c.color]) ?? []);
-  const blocks = extractBlocks(events ?? [], calendarColorMap);
+  const timetable: [number, number][] = meta.timetable;
+  const rawCourses: RawCourse[] = meta.rawCourses;
 
+  const slotLabels = timetable.map((s) => {
+    const h = String(s[0]).padStart(2, "0");
+    const m = String(s[1]).padStart(2, "0");
+    return `${h}:${m}`;
+  });
+
+  const courseColorMap = new Map<string, string>();
+  let ci = 0;
+  rawCourses.forEach((c) => {
+    if (!courseColorMap.has(c.name)) {
+      courseColorMap.set(c.name, COLORS[ci % COLORS.length]);
+      ci++;
+    }
+  });
+
+  const totalSlots = timetable.length;
   const days = [1, 2, 3, 4, 5, 6, 7];
+
+  type Block = {
+    name: string;
+    location: string;
+    teacher: string;
+    weekday: number;
+    startSlot: number;
+    endSlot: number;
+    weekLabel: string;
+    color: string;
+    colInDay: number;
+    colsInDay: number;
+  };
+
+  const blocks: Block[] = [];
+  const collisions = new Map<string, RawCourse[]>();
+  rawCourses.forEach((c) => {
+    const key = `${c.weekday}-${c.index}`;
+    if (!collisions.has(key)) collisions.set(key, []);
+    collisions.get(key)!.push(c);
+  });
+
+  collisions.forEach((courses) => {
+    courses.forEach((c, colIdx) => {
+      const startSlot = Math.max(0, c.index - 1);
+      const endSlot = Math.min(totalSlots, startSlot + c.duration);
+      const weekLabel = c.odd
+        ? `${c.week[0]}-${c.week[1]}单`
+        : c.even
+          ? `${c.week[0]}-${c.week[1]}双`
+          : `${c.week[0]}-${c.week[1]}`;
+
+      blocks.push({
+        name: c.name,
+        location: c.location,
+        teacher: c.teacher,
+        weekday: c.weekday,
+        startSlot,
+        endSlot,
+        weekLabel,
+        color: courseColorMap.get(c.name) ?? "#3b82f6",
+        colInDay: colIdx,
+        colsInDay: courses.length,
+      });
+    });
+  });
+
+  const ROW_H = 48;
 
   return (
     <div className={`overflow-auto ${className ?? ""}`}>
       <div
         className="grid min-w-[48rem]"
-        style={{
-          gridTemplateColumns: `4rem repeat(${days.length}, 1fr)`,
-          gridTemplateRows: "auto",
-        }}
+        style={{ gridTemplateColumns: "3.5rem repeat(7, 1fr)" }}
       >
-        <div className="h-9 border-b border-neutral-200 dark:border-neutral-700" />
+        <div className="h-8 border-b border-neutral-200 dark:border-neutral-700" />
         {days.map((d) => (
-          <div
-            key={d}
-            className="h-9 flex items-center justify-center text-xs font-medium text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700"
-          >
+          <div key={d} className="h-8 flex items-center justify-center text-xs font-medium text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
             {WEEKDAYS[d]}
           </div>
         ))}
 
-        {SLOTS.map((slot, rowIdx) => (
+        {Array.from({ length: totalSlots }).map((_, rowIdx) => (
           <div key={`row-${rowIdx}`} style={{ display: "contents" }}>
             <div
-              className="h-14 flex items-start justify-end pr-2 text-[10px] text-neutral-400 dark:text-neutral-500 border-b border-neutral-100 dark:border-neutral-800 pt-0.5"
-              style={{ gridRow: rowIdx + 2 }}
+              className="flex items-start justify-end pr-2 text-[10px] text-neutral-400 dark:text-neutral-500 border-b border-neutral-100 dark:border-neutral-800 pt-1 leading-none"
+              style={{ height: ROW_H }}
             >
-              {slot.label}
+              {slotLabels[rowIdx]}
             </div>
-            {days.map((_d, colIdx) => (
+            {days.map((_, di) => (
               <div
-                key={`cell-${rowIdx}-${colIdx}`}
-                className="border-b border-r border-neutral-100 dark:border-neutral-800 relative"
-                style={{ gridRow: rowIdx + 2 }}
+                key={`bg-${rowIdx}-${di}`}
+                className="border-b border-r border-neutral-100 dark:border-neutral-800"
+                style={{ height: ROW_H }}
               />
             ))}
           </div>
         ))}
 
-        {blocks.map((block) => (
-          <div
-            key={block.id}
-            className="rounded-md px-1.5 py-0.5 text-[11px] leading-tight overflow-hidden shadow-sm border-l-2 z-10 m-0.5"
-            style={{
-              gridColumn: block.weekday + 1,
-              gridRow: `${block.startSlot + 2} / span ${Math.max(1, block.endSlot - block.startSlot)}`,
-              backgroundColor: `${block.color}18`,
-              borderColor: block.color,
-              color: block.color,
-            }}
-            title={`${block.title}${block.teacher ? ` - ${block.teacher}` : ""}${block.location ? ` @ ${block.location}` : ""}`}
-          >
-            <div className="font-semibold truncate">{block.title}</div>
-            {block.location && (
-              <div className="truncate opacity-80">{block.location}</div>
-            )}
-            {block.teacher && (
-              <div className="truncate opacity-60">{block.teacher}</div>
-            )}
-          </div>
-        ))}
+        {blocks.map((b, i) => {
+          const w = b.colsInDay > 1 ? `${100 / b.colsInDay}%` : undefined;
+          const ml = b.colsInDay > 1 ? `${(b.colInDay / b.colsInDay) * 100}%` : undefined;
+          return (
+            <div
+              key={`${i}-${b.weekday}-${b.startSlot}`}
+              className="rounded-md px-1.5 py-1 text-[11px] leading-tight overflow-hidden border-l-2 z-10 m-0.5"
+              style={{
+                gridColumn: b.weekday + 1,
+                gridRow: `${b.startSlot + 2} / span ${Math.max(1, b.endSlot - b.startSlot)}`,
+                backgroundColor: `${b.color}15`,
+                borderColor: b.color,
+                color: b.color,
+                width: w,
+                marginLeft: ml,
+                minHeight: ROW_H - 4,
+              }}
+              title={`${b.name} · ${b.teacher} · ${b.location} · ${b.weekLabel}周`}
+            >
+              <div className="font-semibold truncate">{b.name}</div>
+              {b.location && (
+                <div className="truncate opacity-70 text-[10px]">{b.location}</div>
+              )}
+              <div className="truncate opacity-50 text-[9px]">{b.weekLabel}周</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

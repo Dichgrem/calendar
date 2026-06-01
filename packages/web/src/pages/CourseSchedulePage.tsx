@@ -1,17 +1,36 @@
 import { createPortal } from "react-dom";
+import { useEffect } from "react";
 import { TimetableGrid } from "../components/TimetableGrid";
 import { LeftControls, CenterControls } from "../components/TopBarControls";
 import { useTopBar } from "../components/Layout";
+import { useNav } from "../hooks/use-nav";
+import { useCalendars } from "../hooks/use-calendars";
+
+function parseMeta(meta: string | null | undefined) {
+  if (!meta) return null;
+  try { return JSON.parse(meta); } catch { return null; }
+}
 
 export function CourseSchedulePage() {
   const topBar = useTopBar();
+  const { setLabelOverride } = useNav();
+  const { data: calendars } = useCalendars();
+  const courseCal = calendars?.find((c) => c.sourceType === "course_schedule" && c.courseMeta);
+  const meta = parseMeta(courseCal?.courseMeta);
+
+  useEffect(() => {
+    if (meta?.year && meta?.semester) {
+      setLabelOverride(`${meta.year}年${meta.semester}学期`);
+    }
+    return () => setLabelOverride(null);
+  }, [meta?.year, meta?.semester, setLabelOverride]);
 
   return (
-    <div className="h-full flex flex-col p-4">
+    <div className="flex flex-col h-full">
       {topBar?.left && createPortal(<LeftControls />, topBar.left)}
       {topBar?.center && createPortal(<CenterControls />, topBar.center)}
-      <div className="flex-1 border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden bg-white dark:bg-neutral-900">
-        <TimetableGrid className="h-full p-2" />
+      <div className="flex-1">
+        <TimetableGrid className="h-full" />
       </div>
     </div>
   );

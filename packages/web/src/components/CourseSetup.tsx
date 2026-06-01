@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { GraduationCap } from "@phosphor-icons/react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
+import { useCalendars } from "../hooks/use-calendars";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/modal";
 
@@ -23,19 +24,52 @@ export function CourseSetup({ open, onClose }: Props) {
 function CourseForm({ onClose }: { onClose: () => void }) {
   const { t, lang } = useI18n();
   const queryClient = useQueryClient();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [semester, setSemester] = useState<"上" | "下">("上");
-  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const { data: calendars } = useCalendars();
+  const existing = calendars?.find((c) => c.sourceType === "course_schedule" && c.courseMeta);
+  const savedMeta = (() => {
+    if (!existing?.courseMeta) return null;
+    try { return JSON.parse(existing.courseMeta); } catch { return null; }
+  })();
+  const [username, setUsername] = useState(savedMeta?.username ?? "");
+  const [password, setPassword] = useState(savedMeta?.password ?? "");
+  const [semester, setSemester] = useState<"上" | "下">(savedMeta?.semester ?? "上");
+  const [year, setYear] = useState(savedMeta?.year ?? String(new Date().getFullYear()));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<{
     preview: { name: string; items: Array<{ uid: string; title: string; startAt: string | null; endAt: string | null; selected: boolean }> };
     icsContent: string;
     courses: Array<{ name: string; teacher: string; classroom: string; weekday: number; weeks: number[]; indexes: number[] }>;
+    rawCourses: any[];
+    timetable: [number, number][];
+    startDate: [number, number, number];
   } | null>(null);
   const [importing, setImporting] = useState(false);
   const [imported, setImported] = useState(false);
+  const [importingAll, setImportingAll] = useState(false);
+  const [importAllResult, setImportAllResult] = useState<{ count: number; errors?: string[] } | null>(null);
+
+  const handleImportAll = async () => {
+    if (!username || !password) {
+      setError(lang === "en" ? "Please fill in all fields" : "请填写所有字段");
+      return;
+    }
+    setImportingAll(true);
+    setError("");
+    setImportAllResult(null);
+    try {
+      const res = await api.sources.courseImportAll({ username, password });
+      const data = (res as { ok: boolean; data: { calendarId: string; eventCount: number; errors?: string[] } }).data;
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setImportAllResult({ count: data.eventCount, errors: data.errors });
+      if (!data.errors?.length) setTimeout(() => onClose(), 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (lang === "en" ? "Import failed" : "导入失败"));
+    } finally {
+      setImportingAll(false);
+    }
+  };
 
   const handleFetch = async () => {
     if (!username || !password) {
@@ -69,6 +103,9 @@ function CourseForm({ onClose }: { onClose: () => void }) {
         password,
         semester,
         year,
+        rawCourses: preview.rawCourses,
+        timetable: preview.timetable,
+        startDate: preview.startDate,
       });
       queryClient.invalidateQueries({ queryKey: ["calendars"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
@@ -150,12 +187,25 @@ function CourseForm({ onClose }: { onClose: () => void }) {
           {error && (
             <p className="text-sm text-red-500">{error}</p>
           )}
-          <div className="pt-2">
-            <Button onClick={handleFetch} disabled={loading} className="w-full">
+          <div className="pt-2 space-y-2">
+            <Button onClick={handleFetch} disabled={loading || importingAll} className="w-full">
               {loading
                 ? (lang === "en" ? "Fetching..." : "获取中...")
                 : (lang === "en" ? "Fetch Course Schedule" : "获取课程表")}
             </Button>
+            <Button onClick={handleImportAll} disabled={loading || importingAll} variant="outline" className="w-full">
+              {importingAll
+                ? (lang === "en" ? "Importing all..." : "正在导入全部学期...")
+                : (lang === "en" ? "Import All Semesters (2023-2026)" : "一键导入全部学期(2023-2026)")}
+            </Button>
+            {importAllResult && (
+              <p className="text-xs text-green-600 dark:text-green-400">
+                {lang === "en" ? `Imported ${importAllResult.count} events` : `已导入 ${importAllResult.count} 个事件`}
+                {importAllResult.errors?.length ? (
+                  <span className="text-red-500"> · {importAllResult.errors.join("; ")}</span>
+                ) : null}
+              </p>
+            )}
           </div>
         </>
       ) : (
