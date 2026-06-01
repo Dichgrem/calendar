@@ -288,6 +288,15 @@ export function SettingsPage() {
               />
               <span className="text-sm dark:text-neutral-200">{t("settings.showLunarCalendar")}</span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={s.showCourseSchedule}
+                onChange={(e) => setSettings({ ...s, showCourseSchedule: e.target.checked })}
+                className="accent-neutral-900 dark:accent-white"
+              />
+              <span className="text-sm dark:text-neutral-200">{t("settings.showCourseSchedule")}</span>
+            </label>
           </div>
 
           <hr className="my-4 border-neutral-200 dark:border-neutral-800" />

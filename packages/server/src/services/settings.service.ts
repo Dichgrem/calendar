@@ -100,6 +100,7 @@ export async function upsertUserSettings(
       showEventTime: data.showEventTime ?? config.userDefaults.showEventTime,
       dateFormat: data.dateFormat ?? config.userDefaults.dateFormat,
       showLunarCalendar: data.showLunarCalendar ?? config.userDefaults.showLunarCalendar,
+      showCourseSchedule: data.showCourseSchedule ?? false,
     })
     .onConflictDoUpdate({
       target: [userSettings.userId],
@@ -109,6 +110,7 @@ export async function upsertUserSettings(
         showEventTime: data.showEventTime,
         dateFormat: data.dateFormat,
         showLunarCalendar: data.showLunarCalendar,
+        showCourseSchedule: data.showCourseSchedule,
       },
     });
 

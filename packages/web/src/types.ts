@@ -44,6 +44,7 @@ export interface UserSettings {
   showEventTime: boolean;
   dateFormat: string;
   showLunarCalendar: boolean;
+  showCourseSchedule: boolean;
 }
 
 export interface SyncPullResponse {
