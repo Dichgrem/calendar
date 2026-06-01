@@ -118,6 +118,7 @@ export async function parseFullTable(html) {
 
     if (token.includes("周")) {
       const match = weekPattern.exec(token);
+      if (!match) return {};
       return {
         week: match[1].split(",").map((part) => {
           const [start, end] = part.replace("周", "").split("-").map(Number);

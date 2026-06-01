@@ -85,9 +85,9 @@ sourcesRouter.post("/sources/course/import", zValidator("json", importSchema), a
   return c.json({ ok: true, data: { calendarId: cal.id } });
 });
 
-sourcesRouter.post("/sources/course/refresh", async (c) => {
+sourcesRouter.post("/sources/course/refresh", zValidator("json", z.object({ calendarId: z.string() })), async (c) => {
   const perm = c.get("permission");
-  const { calendarId } = await c.req.json();
+  const { calendarId } = c.req.valid("json");
 
   const [cal] = await db
     .select({ courseMeta: calendars.courseMeta, id: calendars.id })
