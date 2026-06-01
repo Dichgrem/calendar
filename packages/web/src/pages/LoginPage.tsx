@@ -59,12 +59,12 @@ export function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm p-6 bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-4"
       >
-        <h1 className="text-xl font-bold">
+        <h1 className="text-xl font-bold dark:text-white">
           {isFirstUser ? "创建账户" : "登录"}
         </h1>
 
         {isFirstUser && (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
             首次使用，请设置用户名和密码。
           </p>
         )}
@@ -76,24 +76,24 @@ export function LoginPage() {
         )}
 
         <label className="block">
-          <span className="text-sm font-medium">用户名</span>
+          <span className="text-sm font-medium dark:text-neutral-200">用户名</span>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
+            className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
             required
             autoFocus
           />
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium">密码</span>
+          <span className="text-sm font-medium dark:text-neutral-200">密码</span>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
+            className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
             required
             minLength={4}
           />

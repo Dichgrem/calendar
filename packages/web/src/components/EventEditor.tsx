@@ -162,11 +162,11 @@ export function EventEditor(props: EventEditorProps) {
 
         {showCalendarSelect && (
           <label className="block">
-            <span className="text-xs font-medium text-neutral-500">{t("event.calendar")}</span>
+            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.calendar")}</span>
             <select
               value={calendarId}
               onChange={(e) => setCalendarId(e.target.value)}
-              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             >
               {props.calendars.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -178,35 +178,35 @@ export function EventEditor(props: EventEditorProps) {
         )}
 
         <label className="block">
-          <span className="text-xs font-medium text-neutral-500">{t("event.title")}</span>
+          <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.title")}</span>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+            className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             autoFocus
           />
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="text-xs font-medium text-neutral-500">{t("event.start")}</span>
+            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.start")}</span>
             <input
               type={allDay ? "date" : "datetime-local"}
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
               min="1970-01-01T00:00"
-              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-neutral-500">{t("event.end")}</span>
+            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.end")}</span>
             <input
               type={allDay ? "date" : "datetime-local"}
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
               min="1970-01-01T00:00"
-              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+              className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />
           </label>
         </div>
@@ -218,26 +218,26 @@ export function EventEditor(props: EventEditorProps) {
             onChange={(e) => setAllDay(e.target.checked)}
             className="accent-neutral-900 dark:accent-white"
           />
-          <span className="text-sm">{t("event.allDay")}</span>
+          <span className="text-sm dark:text-neutral-200">{t("event.allDay")}</span>
         </label>
 
         <label className="block">
-          <span className="text-xs font-medium text-neutral-500">{t("event.location")}</span>
+          <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.location")}</span>
           <input
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+            className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
           />
         </label>
 
         <label className="block">
-          <span className="text-xs font-medium text-neutral-500">{t("event.description")}</span>
+          <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.description")}</span>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400 resize-none"
+            className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400 resize-none"
           />
         </label>
 

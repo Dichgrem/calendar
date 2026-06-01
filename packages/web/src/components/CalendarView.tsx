@@ -4,7 +4,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import type { EventClickArg, DatesSetArg } from "@fullcalendar/core";
-import { Plus, Circle, Search } from "lucide-react";
+import { Plus, Circle, CaretLeft, CaretRight, Sun, Moon } from "@phosphor-icons/react";
 import { useEvents } from "../hooks/use-events";
 import { useCalendars } from "../hooks/use-calendars";
 import { useSettings } from "../hooks/use-settings";
@@ -42,6 +42,7 @@ export function CalendarView() {
   const [creating, setCreating] = useState(false);
   const [now, setNow] = useState(new Date());
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
+  const [dark, setDark] = useState(() => localStorage.getItem("darkMode") === "1");
 
   const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
   const { data: settings } = useSettings();
@@ -113,6 +114,13 @@ export function CalendarView() {
   };
   const goNext = () => api()?.next();
 
+  const toggleDark = () => {
+    const next = !dark;
+    setDark(next);
+    localStorage.setItem("darkMode", next ? "1" : "0");
+    document.documentElement.className = next ? "dark" : "light";
+  };
+
   const isEn = lang === "en";
   const months = isEn ? MONTHS_EN : MONTHS_ZH;
   const dateFormat = settings?.dateFormat ?? "zh";
@@ -144,23 +152,24 @@ export function CalendarView() {
       <div className="flex items-center gap-1 px-4 py-1.5 border-b border-neutral-100 dark:border-neutral-800">
         <button
           onClick={() => setSearchCalId(null)}
-          className={`px-2 py-0.5 text-xs rounded-full transition-colors ${searchCalId === null ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900" : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500"}`}
+          className={`px-2 py-0.5 text-xs rounded-full transition-colors ${searchCalId === null ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900" : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"}`}
         >{t("cal.all")}</button>
-        {calendars?.map((cal) => (
-          <button
-            key={cal.id}
-            onClick={() => setSearchCalId(cal.id)}
-            className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            style={searchCalId === cal.id ? { backgroundColor: cal.color, color: "#fff" } : { color: cal.color }}
-          >
-            <span className="size-2 rounded-full" style={{ backgroundColor: searchCalId === cal.id ? "#fff" : cal.color }} />
-            {cal.name}
+          {calendars?.map((cal) => (
+            <button
+              key={cal.id}
+              onClick={() => setSearchCalId(cal.id)}
+              className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              style={searchCalId === cal.id ? { backgroundColor: cal.color, color: "#fff" } : { color: cal.color }}
+            >
+              <span className="size-2 rounded-full" style={{ backgroundColor: searchCalId === cal.id ? "#fff" : cal.color }} />
+              <span className="dark:hidden">{cal.name}</span>
+              <span className="hidden dark:inline text-neutral-200">{cal.name}</span>
           </button>
         ))}
       </div>
       <div className="max-h-64 overflow-y-auto">
         {filteredEvents.length === 0 && (
-          <p className="px-4 py-3 text-xs text-neutral-400">{t("cal.noResults")}</p>
+          <p className="px-4 py-3 text-xs text-neutral-400 dark:text-neutral-500">{t("cal.noResults")}</p>
         )}
         {filteredEvents.slice(0, 20).map((e) => {
           const cal = calendars?.find((c) => c.id === e.calendarId);
@@ -180,8 +189,8 @@ export function CalendarView() {
               className="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
             >
               <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cal?.color }} />
-              <span className="text-sm truncate">{e.title}</span>
-              <span className="ml-auto text-xs text-neutral-400 shrink-0">{e.startAt ? new Date(e.startAt).toLocaleDateString() : ""}</span>
+              <span className="text-sm truncate dark:text-neutral-200">{e.title}</span>
+              <span className="ml-auto text-xs text-neutral-400 dark:text-neutral-500 shrink-0">{e.startAt ? new Date(e.startAt).toLocaleDateString() : ""}</span>
             </button>
           );
         })}
@@ -192,12 +201,12 @@ export function CalendarView() {
   const leftControls = (
     <div className="flex items-center gap-0.5">
       <button onClick={() => setPickerOpen((v) => !v)}
-        className={`px-3 py-1.5 text-base font-semibold rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 tabular-nums${hasTime ? " font-mono" : ""}`}>
+        className={`px-3 py-1.5 text-base font-semibold rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-white tabular-nums${hasTime ? " font-mono" : ""}`}>
         {dateLabel}
       </button>
-      <button onClick={goPrev} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xl font-bold">‹</button>
-      <button onClick={goToday} className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors" title={t("cal.today")}><Circle className="size-4 stroke-[2.5]" /></button>
-      <button onClick={goNext} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xl font-bold">›</button>
+      <button onClick={goPrev} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretLeft className="size-4" weight="bold" /></button>
+      <button onClick={goToday} className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors" title={t("cal.today")}><Circle className="size-4" weight="bold" /></button>
+      <button onClick={goNext} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretRight className="size-4" weight="bold" /></button>
     </div>
   );
 
@@ -230,7 +239,7 @@ export function CalendarView() {
       {topBar?.center && createPortal(centerControls, topBar.center)}
       {topBar?.searchDropdown && searchDropdown && createPortal(searchDropdown, topBar.searchDropdown)}
 
-      <div className="flex-1 p-2 relative">
+      <div className="flex-1 relative">
         {evLoading && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
         {evError && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
 
@@ -238,23 +247,23 @@ export function CalendarView() {
           <div className="absolute top-2 left-4 z-50 w-56 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-lg p-3">
             <div className="flex items-center justify-between mb-3">
               <button onClick={() => setPickerYear((y) => y - 1)}
-                className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500">‹</button>
+                className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">‹</button>
               <input type="number" value={pickerYear} onChange={(e) => setPickerYear(Number(e.target.value))} min={1970}
-                className="w-16 text-center text-sm font-semibold border-0 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+                className="w-16 text-center text-sm font-semibold border-0 bg-transparent text-neutral-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
               <button onClick={() => setPickerYear((y) => y + 1)}
-                className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500">›</button>
+                className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">›</button>
             </div>
             <div className="grid grid-cols-3 gap-1">
               {months.map((m, i) => {
                 const isCurrent = i === currentDate.getMonth() && pickerYear === currentDate.getFullYear();
                 return (
                   <button key={m} onClick={() => gotoDate(pickerYear, i)}
-                    className={`px-2 py-1.5 text-sm rounded-md transition-colors ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}>{m}</button>
+                    className={`px-2 py-1.5 text-sm rounded-md transition-colors dark:text-neutral-300 ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}>{m}</button>
                 );
               })}
             </div>
             <button onClick={goToday}
-              className="mt-2 w-full py-1.5 flex items-center justify-center rounded-full border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-500 transition-colors"><Circle className="size-3.5" /></button>
+              className="mt-2 w-full py-1.5 flex items-center justify-center rounded-full border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors"><Circle className="size-3.5" weight="bold" /></button>
           </div>
         )}
 
@@ -287,14 +296,27 @@ export function CalendarView() {
         />
       </div>
 
-      {/* FAB: create event */}
-      <button
-        onClick={() => setCreating(true)}
-        className="fixed bottom-6 right-6 z-40 size-12 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        title={t("event.create")}
-      >
-        <Plus className="size-6" />
-      </button>
+      {/* FAB group */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center gap-3 group">
+        <button
+          onClick={toggleDark}
+          className="size-10 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-lg flex items-center justify-center text-neutral-700 dark:text-neutral-200 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none group-hover:pointer-events-auto"
+          title={dark ? "浅色模式" : "深色模式"}
+        >
+          {dark ? (
+            <Sun className="size-5" weight="bold" />
+          ) : (
+            <Moon className="size-5" weight="bold" />
+          )}
+        </button>
+        <button
+          onClick={() => setCreating(true)}
+          className="size-12 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+          title={t("event.create")}
+        >
+          <Plus className="size-6" weight="bold" />
+        </button>
+      </div>
 
       {selectedEvent && (
         <EventEditor

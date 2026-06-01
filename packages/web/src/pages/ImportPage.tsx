@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Upload, FileText, Check, AlertTriangle, Globe } from "lucide-react";
+import { UploadSimple, FileText, Warning, Globe } from "@phosphor-icons/react";
 import { api } from "../lib/api";
 import { pickDistinctColor } from "../lib/colors";
 import { useI18n } from "../hooks/use-i18n";
@@ -129,19 +129,19 @@ export function ImportPage() {
                   onClick={() => { setMode("file"); setError(""); }}
                   className={`flex-1 pb-2 text-sm font-medium transition-colors ${mode === "file" ? "border-b-2 border-neutral-900 dark:border-white text-neutral-900 dark:text-white" : "text-neutral-400 hover:text-neutral-600"}`}
                 >
-                  <Upload className="size-4 inline mr-1" />{t("import.tabFile")}
+                  <UploadSimple className="size-4 inline mr-1" weight="bold" />{t("import.tabFile")}
                 </button>
                 <button
                   onClick={() => { setMode("url"); setError(""); }}
                   className={`flex-1 pb-2 text-sm font-medium transition-colors ${mode === "url" ? "border-b-2 border-neutral-900 dark:border-white text-neutral-900 dark:text-white" : "text-neutral-400 hover:text-neutral-600"}`}
                 >
-                  <Globe className="size-4 inline mr-1" />{t("import.tabUrl")}
+                  <Globe className="size-4 inline mr-1" weight="bold" />{t("import.tabUrl")}
                 </button>
               </div>
 
               {mode === "file" && (
                 <label className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl cursor-pointer hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors">
-                  <Upload className="size-6 text-neutral-400" />
+                  <UploadSimple className="size-6 text-neutral-400" weight="bold" />
                   <span className="text-sm text-neutral-500">
                     {file ? file.name : t("import.selectFile")}
                   </span>
@@ -173,7 +173,7 @@ export function ImportPage() {
 
               {error && (
                 <p className="mt-3 text-sm text-red-500 flex items-center justify-center gap-1">
-                  <AlertTriangle className="size-4" /> {error}
+                  <Warning className="size-4" weight="bold" /> {error}
                 </p>
               )}
 
@@ -186,7 +186,7 @@ export function ImportPage() {
           {preview && (
             <div className="p-4 border border-neutral-200 dark:border-neutral-800 rounded-xl">
               <h2 className="font-semibold flex items-center gap-2 text-sm">
-                <FileText className="size-4" />{preview.name}
+                <FileText className="size-4" weight="bold" />{preview.name}
               </h2>
               <p className="text-xs text-neutral-500 mt-1">
                 {preview.eventCount} {t("import.events")}
@@ -212,7 +212,7 @@ export function ImportPage() {
 
               {overwrite && (
                 <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
-                  <AlertTriangle className="size-3" />{t("import.overwriteWarn")}
+                  <Warning className="size-3" weight="bold" />{t("import.overwriteWarn")}
                 </p>
               )}
 
@@ -242,7 +242,7 @@ export function ImportPage() {
 
               {error && (
                 <p className="mt-2 text-xs text-red-500 flex items-center justify-center gap-1">
-                  <AlertTriangle className="size-3" /> {error}
+                  <Warning className="size-3" weight="bold" /> {error}
                 </p>
               )}
             </div>

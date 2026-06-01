@@ -18,5 +18,56 @@
 }
 
 .dark .fc-highlight-search {
-  background-color: rgba(59, 130, 246, 0.25) !important;
+  background-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .fc {
+  --fc-border-color: #27272a;
+  --fc-page-bg-color: #09090b;
+  --fc-neutral-bg-color: #18181b;
+}
+
+.dark .fc .fc-col-header-cell {
+  background-color: #18181b;
+  color: #a1a1aa;
+}
+
+.dark .fc .fc-daygrid-day {
+  background-color: #09090b;
+}
+
+.dark .fc .fc-day-other .fc-daygrid-day-top {
+  opacity: 0.35;
+}
+
+.dark .fc .fc-daygrid-day-number,
+.dark .fc .fc-col-header-cell-cushion {
+  color: #a1a1aa;
+}
+
+.dark .fc .fc-day-today {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .fc-event,
+.dark .fc-event-main {
+  color: #fff !important;
+}
+
+.dark .fc-event-title {
+  color: #fff !important;
+}
+
+.dark .fc .fc-more-popover {
+  background-color: #18181b;
+  border-color: #27272a;
+}
+
+.dark .fc .fc-more-popover .fc-popover-body {
+  background-color: #18181b;
+}
+
+.dark .fc .fc-more-popover .fc-popover-header {
+  background-color: #27272a;
+  color: #a1a1aa;
 }
