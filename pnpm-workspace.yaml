@@ -1,2 +1,4 @@
 packages:
-  - "packages/*"
+  - "packages/server"
+  - "packages/web"
+  - "packages/shared"

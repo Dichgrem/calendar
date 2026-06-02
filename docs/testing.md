@@ -2,7 +2,7 @@
 
 ## Unit Tests (`just test`)
 
-Vitest workspace: server (node) + web (jsdom). 13 test files, 89 tests.
+Vitest workspace: server (node) + web (jsdom). 14 test files, 98 tests.
 
 ```bash
 just test          # run all unit tests
@@ -19,6 +19,7 @@ just test-watch    # watch mode
 | `sync.test.ts` | 8 | LWW conflict, pull/push protocol |
 | `auth.test.ts` | 8 | scrypt hash, password verification |
 | `calendar-reorder.test.ts` | 6 | splice index correction |
+| `xml.test.ts` | 8 | CalDAV XML parsing (PROPFIND/REPORT/esc) |
 
 ### Web tests (jsdom environment)
 
@@ -31,6 +32,18 @@ just test-watch    # watch mode
 | `ColorSwatchPicker.test.tsx` | 3 | color buttons, onChange |
 | `CalendarManagement.test.ts` | 4 | common calendar import detection |
 | `date-format.test.ts` | 5 | zh/en/custom date formatting |
+
+### Mobile
+
+React Native app with Expo + WatermelonDB. Component tests require Android/iOS runtime.
+
+| File | Coverage |
+|------|----------|
+| `App.tsx` | auth flow, sync trigger, CRUD dispatch |
+| `CalendarScreen.tsx` | month view, calendar visibility pills |
+| `EventEditorScreen.tsx` | date/time split, allDay toggle |
+| `LoginScreen.tsx` | register/login form |
+| `hooks/use-sync.ts` | 60s pull timer, AppState wake |
 
 ### Test infrastructure
 

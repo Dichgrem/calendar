@@ -7,7 +7,8 @@ calendar/
 ├── packages/
 │   ├── server/              # 后端 (Hono + Drizzle + SQLite)
 │   ├── shared/              # 共享 TypeScript 类型
-│   └── web/                 # 前端 (React 19 + Vite + FullCalendar)
+│   ├── web/                 # 前端 (React 19 + Vite + FullCalendar)
+│   └── mobile/              # React Native 移动端 (Expo + WatermelonDB)
 ├── docs/                    # 文档
 ├── biome.json               # 代码格式化
 ├── flake.nix                # Nix 开发环境

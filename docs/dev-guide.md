@@ -40,7 +40,7 @@ nix develop
 |---------|-------------|
 | `just start` | Start dev environment |
 | `just stop` | Stop services |
-| `just test` | Run unit tests (vitest, 89 tests) |
+| `just test` | Run unit tests (vitest, 98 tests) |
 | `just format` | Format code with Biome |
 | `just lint` | Lint code with Biome |
 | `just typecheck` | Type check both packages |
@@ -49,6 +49,17 @@ nix develop
 | `just docker-up` | Build and start Docker container |
 | `just docker-down` | Stop Docker container |
 | `just docker-logs` | View Docker logs |
+
+## Mobile (React Native)
+
+```bash
+cd packages/mobile
+pnpm --filter @calendar/mobile start
+# Press 'a' for Android
+```
+
+Requires Android SDK + Expo CLI. Uses same API server as web frontend.
+Configure `EXPO_PUBLIC_API_URL` in `.env` for the server endpoint.
 
 ## Project Structure
 
