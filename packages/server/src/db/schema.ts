@@ -8,7 +8,7 @@ export const calendars = sqliteTable(
     color: text("color").notNull().default("#3b82f6"),
     sourceUrl: text("source_url"),
     sourceType: text("source_type", {
-      enum: ["ics_import", "ics_subscription", "manual", "auto_log", "course_schedule"],
+      enum: ["ics_import", "ics_subscription", "manual", "auto_log"],
     })
       .notNull()
       .default("manual"),
@@ -16,7 +16,6 @@ export const calendars = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
     lastModified: integer("last_modified").notNull(),
-    courseMeta: text("course_meta"),
   },
   (t) => ({
     idxOwner: index("idx_calendars_owner").on(t.ownerId),
@@ -29,7 +28,7 @@ export const calendarMembers = sqliteTable(
     calendarId: text("calendar_id")
       .notNull()
       .references(() => calendars.id, { onDelete: "cascade" }),
-    userId: text("user_id").notNull(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     role: text("role", { enum: ["viewer", "editor", "admin"] }).notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
   },
@@ -66,6 +65,7 @@ export const events = sqliteTable(
     idxCalendarTime: index("idx_events_calendar_time").on(t.calendarId, t.startAt, t.endAt),
     idxCalendarModified: index("idx_events_calendar_modified").on(t.calendarId, t.lastModified),
     idxParent: index("idx_events_parent").on(t.parentId),
+    idxDeleted: index("idx_events_deleted").on(t.deleted),
   }),
 );
 
@@ -118,18 +118,26 @@ export const users = sqliteTable("users", {
   createdAt: text("created_at").notNull(),
 });
 
-export const sessions = sqliteTable("sessions", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").notNull(),
-  expiresAt: text("expires_at").notNull(),
-});
+export const sessions = sqliteTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: text("expires_at").notNull(),
+  },
+  (t) => ({
+    idxExpiresAt: index("idx_sessions_expires").on(t.expiresAt),
+    idxUserId: index("idx_sessions_user").on(t.userId),
+  }),
+);
 
 export const userSettings = sqliteTable("user_settings", {
-  userId: text("user_id").primaryKey(),
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
   language: text("language").notNull().default("zh-CN"),
-  firstDayOfWeek: integer("first_day_of_week").notNull().default(0),
-  showEventTime: integer("show_event_time", { mode: "boolean" }).notNull().default(true),
+  firstDayOfWeek: integer("first_day_of_week").notNull().default(1),
+  showEventTime: integer("show_event_time", { mode: "boolean" }).notNull().default(false),
   dateFormat: text("date_format").notNull().default("zh"),
-  showLunarCalendar: integer("show_lunar_calendar", { mode: "boolean" }).notNull().default(false),
-  showCourseSchedule: integer("show_course_schedule", { mode: "boolean" }).notNull().default(false),
+  showLunarCalendar: integer("show_lunar_calendar", { mode: "boolean" }).notNull().default(true),
 });

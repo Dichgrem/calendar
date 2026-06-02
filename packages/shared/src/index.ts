@@ -2,7 +2,7 @@ export type ID = string;
 
 export type CalendarRole = "viewer" | "editor" | "admin";
 
-export type CalendarSourceType = "ics_import" | "ics_subscription" | "manual" | "auto_log" | "course_schedule";
+export type CalendarSourceType = "ics_import" | "ics_subscription" | "manual" | "auto_log";
 
 export interface Calendar {
   id: ID;
@@ -14,7 +14,6 @@ export interface Calendar {
   createdAt: string;
   updatedAt: string;
   lastModified: number;
-  courseMeta?: string | null;
 }
 
 export interface Event {
@@ -44,7 +43,6 @@ export interface UserSettings {
   showEventTime: boolean;
   dateFormat: string;
   showLunarCalendar: boolean;
-  showCourseSchedule: boolean;
 }
 
 export interface SyncPullResponse {

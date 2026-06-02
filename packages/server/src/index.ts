@@ -11,7 +11,6 @@ import { calendarsRouter } from "./routes/calendars.js";
 import { eventsRouter } from "./routes/events.js";
 import { icsRouter } from "./routes/ics.js";
 import { settingsRouter } from "./routes/settings.js";
-import { sourcesRouter } from "./routes/sources.js";
 
 const app = new Hono();
 
@@ -33,7 +32,6 @@ app.route("/api/calendars", calendarsRouter);
 app.route("/api", eventsRouter);
 app.route("/api", icsRouter);
 app.route("/api", settingsRouter);
-app.route("/api", sourcesRouter);
 
 if (existsSync("./public")) {
   app.use("*", serveStatic({ root: "./public" }));

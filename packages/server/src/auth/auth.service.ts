@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import scrypt from "scrypt-js";
 import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { users, sessions, calendarMembers, calendars } from "../db/schema.js";
+import { users, sessions, calendarMembers, calendars, userSettings } from "../db/schema.js";
 import type { ID } from "../types.js";
 import { config } from "../config.js";
 
@@ -47,6 +47,10 @@ export async function register(username: string, password: string): Promise<{ us
     calendarId,
     userId,
     role: "admin",
+  });
+
+  await db.insert(userSettings).values({
+    userId,
   });
 
   return { userId };

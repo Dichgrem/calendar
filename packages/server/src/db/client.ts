@@ -1,12 +1,10 @@
-import type { DrizzleD1Database } from "drizzle-orm/d1";
-import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyDrizzleDb = any;
 
-type DrizzleDb = DrizzleD1Database<Record<string, never>> | BetterSQLite3Database<Record<string, never>>;
-
-let _db: DrizzleDb | null = null;
+let _db: AnyDrizzleDb = null;
 let _rawConnection: unknown = null;
 
-export function setDb(d: DrizzleDb): void {
+export function setDb(d: AnyDrizzleDb): void {
   _db = d;
 }
 
@@ -14,10 +12,10 @@ export function setRawConnection(c: unknown): void {
   _rawConnection = c;
 }
 
-export const db = new Proxy({} as DrizzleDb, {
+export const db = new Proxy({} as AnyDrizzleDb, {
   get(_, prop) {
     if (!_db) throw new Error("DB not initialized");
-    return (_db as Record<string | symbol, unknown>)[prop];
+    return _db[prop];
   },
 });
 

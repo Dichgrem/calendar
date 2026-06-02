@@ -22,7 +22,7 @@ export const config: Config = {
   userDefaults: {
     language: "zh-CN",
     firstDayOfWeek: 1,
-    showEventTime: true,
+    showEventTime: false,
     dateFormat: "zh",
     showLunarCalendar: true,
   },

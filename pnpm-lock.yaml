@@ -30,23 +30,8 @@ importers:
         specifier: 3.1.0
         version: 3.1.0(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.3)
 
-  packages/plugin-fdzc-course:
-    dependencies:
-      fast-bmp:
-        specifier: ^4.0.0
-        version: 4.0.1
-      hono:
-        specifier: ^4.0.0
-        version: 4.12.23
-      htmlrewriter:
-        specifier: ^0.0.13
-        version: 0.0.13
-
   packages/server:
     dependencies:
-      '@calendar/plugin-fdzc-course':
-        specifier: workspace:*
-        version: link:../plugin-fdzc-course
       '@calendar/shared':
         specifier: workspace:*
         version: link:../shared
@@ -1852,9 +1837,6 @@ packages:
     resolution: {integrity: sha512-knvyeauYhqjOYvQ66MznSMs83wmHrCycNEN6Ao+2AeYEfxUIkuiVxdEa1qlGEPK+We3n0THiDciYSsCcgW/DoA==}
     engines: {node: '>=12.0.0'}
 
-  fast-bmp@4.0.1:
-    resolution: {integrity: sha512-+KtMijJj+uA8Sl6EXAnhza7US7EXSY5Z9NeiJwT1wopVUksyLMXL5iFmn9FjY8FdkstOkpJI9RuEVXkGpIPSwg==}
-
   fast-glob@3.3.3:
     resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
     engines: {node: '>=8.6.0'}
@@ -1922,9 +1904,6 @@ packages:
     resolution: {integrity: sha512-CV9TW3Y3f8/wT0BRFc1/KAVQ3TUHiXmaAb6VW9vtiMFf7SLoMd1PdAc4W3KFOFETBJUb90KatHqlsZMWV+R9Gg==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
 
-  htmlrewriter@0.0.13:
-    resolution: {integrity: sha512-HPxT+y/i9RzNeKrJ6MBFXwB+FeTfHPfcBzoKHVnk3oiKn2s6x13tLoxjggI+0/yOSBG1n8SV//PGDBJYT/4XQw==}
-
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
 
@@ -1937,9 +1916,6 @@ packages:
 
   ini@1.3.8:
     resolution: {integrity: sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==}
-
-  iobuffer@6.0.1:
-    resolution: {integrity: sha512-SZWYkWNfjIXIBYSDpXDYIgshqtbOPsi4lviawAEceR1Kqk+sHDlcQjWrzNQsii80AyBY0q5c8HCTNjqo74ul+Q==}
 
   is-binary-path@2.1.0:
     resolution: {integrity: sha512-ZMERYes6pDydyuGidse7OsHxtbI7WVeUEozgR/g7rd0xUimYNlvZRE/K2MgZTjWy725IfelLeVcEM97mmtRGXw==}
@@ -3877,10 +3853,6 @@ snapshots:
 
   expect-type@1.3.0: {}
 
-  fast-bmp@4.0.1:
-    dependencies:
-      iobuffer: 6.0.1
-
   fast-glob@3.3.3:
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -3940,8 +3912,6 @@ snapshots:
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  htmlrewriter@0.0.13: {}
-
   ieee754@1.2.1: {}
 
   indent-string@4.0.0: {}
@@ -3949,8 +3919,6 @@ snapshots:
   inherits@2.0.4: {}
 
   ini@1.3.8: {}
-
-  iobuffer@6.0.1: {}
 
   is-binary-path@2.1.0:
     dependencies:

@@ -132,7 +132,7 @@ export async function pushChanges({
     };
   }
 
-  await db.transaction(async (tx) => {
+  await db.transaction(async (tx: any) => {
     for (const [table, tableChanges] of Object.entries(changes)) {
       const tableRef = TABLE_MAP[table];
       if (!tableRef) continue;

@@ -81,15 +81,6 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
         />
         <span className="text-sm dark:text-neutral-200">{t("settings.showLunarCalendar")}</span>
       </label>
-      <label className="flex items-center gap-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={s.showCourseSchedule}
-          onChange={(e) => onUpdate({ ...s, showCourseSchedule: e.target.checked })}
-          className="accent-neutral-900 dark:accent-white"
-        />
-        <span className="text-sm dark:text-neutral-200">{t("settings.showCourseSchedule")}</span>
-      </label>
     </div>
   );
 }

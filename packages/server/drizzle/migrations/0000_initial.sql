@@ -1,22 +1,10 @@
-CREATE TABLE `users` (
-	`id` text PRIMARY KEY NOT NULL,
-	`username` text NOT NULL,
-	`password_hash` text NOT NULL,
-	`created_at` text NOT NULL
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX `idx_users_username` ON `users` (`username`);--> statement-breakpoint
-CREATE TABLE `sessions` (
-	`id` text PRIMARY KEY NOT NULL,
-	`user_id` text NOT NULL,
-	`expires_at` text NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE `calendar_members` (
 	`calendar_id` text NOT NULL,
 	`user_id` text NOT NULL,
 	`role` text NOT NULL,
-	FOREIGN KEY (`calendar_id`) REFERENCES `calendars`(`id`) ON UPDATE no action ON DELETE cascade
+	`sort_order` integer DEFAULT 0 NOT NULL,
+	FOREIGN KEY (`calendar_id`) REFERENCES `calendars`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `idx_calendar_members_uk` ON `calendar_members` (`calendar_id`,`user_id`);--> statement-breakpoint
@@ -81,6 +69,16 @@ CREATE TABLE `events` (
 CREATE INDEX `idx_events_calendar_time` ON `events` (`calendar_id`,`start_at`,`end_at`);--> statement-breakpoint
 CREATE INDEX `idx_events_calendar_modified` ON `events` (`calendar_id`,`last_modified`);--> statement-breakpoint
 CREATE INDEX `idx_events_parent` ON `events` (`parent_id`);--> statement-breakpoint
+CREATE INDEX `idx_events_deleted` ON `events` (`deleted`);--> statement-breakpoint
+CREATE TABLE `sessions` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`expires_at` text NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `idx_sessions_expires` ON `sessions` (`expires_at`);--> statement-breakpoint
+CREATE INDEX `idx_sessions_user` ON `sessions` (`user_id`);--> statement-breakpoint
 CREATE TABLE `sync_sequence` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`table_name` text NOT NULL,
@@ -91,12 +89,19 @@ CREATE TABLE `sync_sequence` (
 --> statement-breakpoint
 CREATE TABLE `user_settings` (
 	`user_id` text PRIMARY KEY NOT NULL,
-	`timezone` text DEFAULT 'Asia/Shanghai' NOT NULL,
 	`language` text DEFAULT 'zh-CN' NOT NULL,
-	`default_reminder_before` integer DEFAULT 15 NOT NULL,
-	`first_day_of_week` integer DEFAULT 0 NOT NULL,
-	`show_completed_todos` integer DEFAULT false NOT NULL,
-	`show_event_time` integer DEFAULT true NOT NULL,
+	`first_day_of_week` integer DEFAULT 1 NOT NULL,
+	`show_event_time` integer DEFAULT false NOT NULL,
 	`date_format` text DEFAULT 'zh' NOT NULL,
-	`show_lunar_calendar` integer DEFAULT false NOT NULL
+	`show_lunar_calendar` integer DEFAULT true NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
+--> statement-breakpoint
+CREATE TABLE `users` (
+	`id` text PRIMARY KEY NOT NULL,
+	`username` text NOT NULL,
+	`password_hash` text NOT NULL,
+	`created_at` text NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);

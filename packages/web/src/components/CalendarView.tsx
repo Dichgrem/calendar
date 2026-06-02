@@ -1,11 +1,11 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import type { EventClickArg, DatesSetArg } from "@fullcalendar/core";
 import type { DateClickArg } from "@fullcalendar/interaction";
-import { Plus, Sun, Moon, GraduationCap } from "@phosphor-icons/react";
+import { Plus, Sun, Moon } from "@phosphor-icons/react";
 import { useEvents } from "../hooks/use-events";
 import { useCalendars } from "../hooks/use-calendars";
 import { useSettings } from "../hooks/use-settings";
@@ -17,8 +17,6 @@ import { LeftControls, CenterControls } from "./TopBarControls";
 import { formatCalendarDate, dateStr } from "../lib/date-format";
 import { getLunarText } from "../lib/lunar";
 import type { Event } from "../types";
-
-const CourseSetup = lazy(() => import("./CourseSetup").then((m) => ({ default: m.CourseSetup })));
 
 export function CalendarView() {
   const calRef = useRef<FullCalendar>(null);
@@ -34,7 +32,6 @@ export function CalendarView() {
   const [creating, setCreating] = useState(false);
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
   const [dark, setDark] = useState(() => localStorage.getItem("darkMode") === "1");
-  const [courseSetupOpen, setCourseSetupOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
@@ -63,8 +60,8 @@ export function CalendarView() {
     const calendarApi = calRef.current?.getApi();
     if (calendarApi && settings) {
       calendarApi.setOption("locale", settings.language === "en" ? "en" : "zh-cn");
-      calendarApi.setOption("firstDay", settings.firstDayOfWeek ?? 0);
-      calendarApi.setOption("displayEventTime", settings.showEventTime ?? true);
+      calendarApi.setOption("firstDay", settings.firstDayOfWeek ?? 1);
+      calendarApi.setOption("displayEventTime", settings.showEventTime ?? false);
     }
   }, [settings?.language, settings?.firstDayOfWeek, settings?.showEventTime]);
 
@@ -281,21 +278,13 @@ export function CalendarView() {
           } : undefined}
           height="100%"
           locale={lang === "en" ? "en" : "zh-cn"}
-          firstDay={settings?.firstDayOfWeek ?? 0}
-          displayEventTime={settings?.showEventTime ?? true}
+          firstDay={settings?.firstDayOfWeek ?? 1}
+          displayEventTime={settings?.showEventTime ?? false}
           headerToolbar={false}
         />
       </div>
 
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center gap-3 group">
-        <button
-          onClick={() => setCourseSetupOpen(true)}
-          aria-label={t("cal.importCourse")}
-          className="size-10 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-lg flex items-center justify-center text-neutral-700 dark:text-neutral-200 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none group-hover:pointer-events-auto"
-          title={t("cal.importCourse")}
-        >
-          <GraduationCap className="size-5" weight="bold" />
-        </button>
         <button
           onClick={toggleDark}
           aria-label={dark ? t("cal.lightMode") : t("cal.darkMode")}
@@ -313,13 +302,6 @@ export function CalendarView() {
           <Plus className="size-6" weight="bold" />
         </button>
       </div>
-
-      <Suspense fallback={null}>
-        {courseSetupOpen && (
-          <CourseSetup open={courseSetupOpen} onClose={() => setCourseSetupOpen(false)} />
-        )}
-      </Suspense>
-
       {selectedEvent && (
         <EventEditor
           mode="edit"
