@@ -6,6 +6,7 @@
 calendar/
 ├── packages/
 │   ├── server/              # 后端 (Hono + Drizzle + SQLite)
+│   ├── shared/              # 共享 TypeScript 类型
 │   └── web/                 # 前端 (React 19 + Vite + FullCalendar)
 ├── docs/                    # 文档
 ├── biome.json               # 代码格式化
@@ -38,7 +39,9 @@ server/
 │   ├── services/
 │   │   ├── calendar.service.ts
 │   │   ├── event.service.ts
-│   │   ├── ics.service.ts   # 自研 ICS 解析器 + 序列化器（RFC 5545）
+│   │   ├── ics-parser.ts     # 自研 ICS 解析器（RFC 5545）
+│   │   ├── ics-serializer.ts # ICS 导出序列化器
+│   │   ├── ics.service.ts    # ICS 导入/导出/预览 + URL 抓取
 │   │   └── settings.service.ts
 │   ├── sync/
 │   │   ├── routes.ts        # /sync/pull + /sync/push

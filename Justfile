@@ -33,6 +33,10 @@ lint-fix:
 typecheck:
     pnpm run typecheck
 
+# one-click Cloudflare Workers deployment
+cf-deploy: install
+    ./scripts/cf-deploy.sh
+
 # run unit tests
 test:
     pnpm run test

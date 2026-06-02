@@ -40,8 +40,10 @@ nix develop
 |---------|-------------|
 | `just start` | Start dev environment |
 | `just stop` | Stop services |
+| `just test` | Run unit tests (vitest, 89 tests) |
 | `just format` | Format code with Biome |
-| `just typecheck` | Type check |
+| `just lint` | Lint code with Biome |
+| `just typecheck` | Type check both packages |
 | `just clean` | Clean build artifacts |
 | `just cf-deploy` | Deploy to Cloudflare Workers |
 | `just docker-up` | Build and start Docker container |
