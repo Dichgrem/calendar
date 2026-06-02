@@ -40,8 +40,10 @@ nix develop
 |------|------|
 | `just start` | 启动开发环境 |
 | `just stop` | 停止服务 |
+| `just test` | 运行单元测试 (vitest, 89 测试) |
 | `just format` | Biome 格式化代码 |
-| `just typecheck` | 类型检查 |
+| `just lint` | Biome 代码检查 |
+| `just typecheck` | 两个包的类型检查 |
 | `just clean` | 清理构建产物 |
 | `just cf-deploy` | 部署到 Cloudflare Workers |
 | `just docker-up` | 构建并启动 Docker 容器 |

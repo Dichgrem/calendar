@@ -1,4 +1,4 @@
-CREATE TABLE `calendar_members` (
+CREATE TABLE IF NOT EXISTS `calendar_members` (
 	`calendar_id` text NOT NULL,
 	`user_id` text NOT NULL,
 	`role` text NOT NULL,
@@ -7,9 +7,9 @@ CREATE TABLE `calendar_members` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `idx_calendar_members_uk` ON `calendar_members` (`calendar_id`,`user_id`);--> statement-breakpoint
-CREATE INDEX `idx_calendar_members_user` ON `calendar_members` (`user_id`);--> statement-breakpoint
-CREATE TABLE `calendars` (
+CREATE UNIQUE INDEX IF NOT EXISTS `idx_calendar_members_uk` ON `calendar_members` (`calendar_id`,`user_id`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `idx_calendar_members_user` ON `calendar_members` (`user_id`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `calendars` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`color` text DEFAULT '#3b82f6' NOT NULL,
@@ -21,8 +21,8 @@ CREATE TABLE `calendars` (
 	`last_modified` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX `idx_calendars_owner` ON `calendars` (`owner_id`);--> statement-breakpoint
-CREATE TABLE `deleted_log` (
+CREATE INDEX IF NOT EXISTS `idx_calendars_owner` ON `calendars` (`owner_id`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `deleted_log` (
 	`id` text PRIMARY KEY NOT NULL,
 	`table_name` text NOT NULL,
 	`record_id` text NOT NULL,
@@ -30,9 +30,9 @@ CREATE TABLE `deleted_log` (
 	`last_modified` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX `idx_deleted_log_modified` ON `deleted_log` (`last_modified`);--> statement-breakpoint
-CREATE INDEX `idx_deleted_log_table` ON `deleted_log` (`table_name`,`record_id`);--> statement-breakpoint
-CREATE TABLE `event_overrides` (
+CREATE INDEX IF NOT EXISTS `idx_deleted_log_modified` ON `deleted_log` (`last_modified`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `idx_deleted_log_table` ON `deleted_log` (`table_name`,`record_id`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `event_overrides` (
 	`id` text PRIMARY KEY NOT NULL,
 	`parent_id` text NOT NULL,
 	`original_date` text NOT NULL,
@@ -44,8 +44,8 @@ CREATE TABLE `event_overrides` (
 	FOREIGN KEY (`parent_id`) REFERENCES `events`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `idx_overrides_parent_date` ON `event_overrides` (`parent_id`,`original_date`);--> statement-breakpoint
-CREATE TABLE `events` (
+CREATE UNIQUE INDEX IF NOT EXISTS `idx_overrides_parent_date` ON `event_overrides` (`parent_id`,`original_date`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `events` (
 	`id` text PRIMARY KEY NOT NULL,
 	`calendar_id` text NOT NULL,
 	`title` text NOT NULL,
@@ -66,20 +66,20 @@ CREATE TABLE `events` (
 	FOREIGN KEY (`calendar_id`) REFERENCES `calendars`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `idx_events_calendar_time` ON `events` (`calendar_id`,`start_at`,`end_at`);--> statement-breakpoint
-CREATE INDEX `idx_events_calendar_modified` ON `events` (`calendar_id`,`last_modified`);--> statement-breakpoint
-CREATE INDEX `idx_events_parent` ON `events` (`parent_id`);--> statement-breakpoint
-CREATE INDEX `idx_events_deleted` ON `events` (`deleted`);--> statement-breakpoint
-CREATE TABLE `sessions` (
+CREATE INDEX IF NOT EXISTS `idx_events_calendar_time` ON `events` (`calendar_id`,`start_at`,`end_at`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `idx_events_calendar_modified` ON `events` (`calendar_id`,`last_modified`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `idx_events_parent` ON `events` (`parent_id`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `idx_events_deleted` ON `events` (`deleted`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `sessions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
 	`expires_at` text NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `idx_sessions_expires` ON `sessions` (`expires_at`);--> statement-breakpoint
-CREATE INDEX `idx_sessions_user` ON `sessions` (`user_id`);--> statement-breakpoint
-CREATE TABLE `sync_sequence` (
+CREATE INDEX IF NOT EXISTS `idx_sessions_expires` ON `sessions` (`expires_at`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `idx_sessions_user` ON `sessions` (`user_id`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `sync_sequence` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`table_name` text NOT NULL,
 	`record_id` text NOT NULL,
@@ -87,7 +87,7 @@ CREATE TABLE `sync_sequence` (
 	`synced_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `user_settings` (
+CREATE TABLE IF NOT EXISTS `user_settings` (
 	`user_id` text PRIMARY KEY NOT NULL,
 	`language` text DEFAULT 'zh-CN' NOT NULL,
 	`first_day_of_week` integer DEFAULT 1 NOT NULL,
@@ -97,11 +97,11 @@ CREATE TABLE `user_settings` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
 	`password_hash` text NOT NULL,
 	`created_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);
+CREATE UNIQUE INDEX IF NOT EXISTS `users_username_unique` ON `users` (`username`);

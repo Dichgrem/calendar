@@ -1,10 +1,47 @@
 # Testing
 
-No automated test suite yet. Shell-based API tests and a manual test plan below.
+## Unit Tests (`just test`)
 
-## API Tests (`just test-*` recipes)
+Vitest workspace: server (node) + web (jsdom). 13 test files, 89 tests.
 
-Requires a test server running in another terminal:
+```bash
+just test          # run all unit tests
+just test-watch    # watch mode
+```
+
+### Server tests (node environment)
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| `ics-parser.test.ts` | 6 | ICS parsing basics |
+| `ics-serializer.test.ts` | 7 | ICS serialization |
+| `ics-edge.test.ts` | 9 | RFC 5545 line folding, VALARM, SSRF |
+| `sync.test.ts` | 8 | LWW conflict, pull/push protocol |
+| `auth.test.ts` | 8 | scrypt hash, password verification |
+| `calendar-reorder.test.ts` | 6 | splice index correction |
+
+### Web tests (jsdom environment)
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| `modal.test.tsx` | 8 | ESC/backdrop/close, INPUT guard |
+| `EventEditor.component.test.tsx` | 9 | create/edit mode, allDay, defaultStart |
+| `EventEditor.test.ts` | 9 | toLocalInput, roundToNextHour, split-merge |
+| `LoginPage.test.tsx` | 7 | register/login form, loading state |
+| `ColorSwatchPicker.test.tsx` | 3 | color buttons, onChange |
+| `CalendarManagement.test.ts` | 4 | common calendar import detection |
+| `date-format.test.ts` | 5 | zh/en/custom date formatting |
+
+### Test infrastructure
+
+- `vitest.workspace.ts` — workspace config referencing server/web
+- `packages/server/vitest.config.ts` — node environment
+- `packages/web/vitest.config.ts` — jsdom + `@testing-library/jest-dom`
+- `packages/web/src/test-setup.ts` — jsdom matchers
+
+## API Integration Tests (`just test-*` recipes)
+
+Shell-based `curl` + `jq` tests. Requires test server:
 
 ```bash
 # Terminal 1: start test server
@@ -13,93 +50,47 @@ just test-run
 # Terminal 2: run tests
 just test-all        # all tests
 just test-full       # full integration test
-just test-login      # individual test
+just test-it login   # individual test
 ```
-
-Tests use `curl` + `jq` with cookie-based auth (credentials: `admin` / `admin123`).
 
 ## Test Plan
 
 ### Authentication
-
 - [ ] First visit → `auth/status` returns `registered: false`
 - [ ] Register → returns 201, sets session cookie
-- [ ] Register again (duplicate) → returns 403
-- [ ] Login with correct password → returns 200, sets session cookie
-- [ ] Login with wrong password → returns 401
-- [ ] Access protected endpoint without cookie → returns error
-
-### Session
-
-- [ ] Authenticated cookie → accepted on all protected endpoints
-- [ ] No cookie → rejected on protected endpoints
-- [ ] Logout → cookie invalidated, subsequent requests rejected
-- [ ] Change password → old password verified, new password set
+- [ ] Register duplicate → returns 403
+- [ ] Login correct/wrong → 200 / 401
+- [ ] Protected endpoint without cookie → error
 
 ### Calendars
-
-- [ ] `GET /api/calendars` → returns calendar list
-- [ ] `POST /api/calendars` → creates calendar with name and color
-- [ ] `GET /api/calendars/:id` → returns calendar detail
-- [ ] `PATCH /api/calendars/:id` → updates name/color
-- [ ] `DELETE /api/calendars/:id` → removes calendar
+- [ ] CRUD: GET/POST/GET/:id/PATCH/DELETE
+- [ ] Reorder via PATCH /calendars/reorder
 - [ ] Default calendar auto-created on registration
 
 ### Events
-
-- [ ] `POST /api/calendars/:cid/events` → creates event with title, dates, description
-- [ ] `GET /api/calendars/:cid/events?start=&end=` → returns events in date range
-- [ ] `GET /api/events/:id` → returns event detail
-- [ ] `PATCH /api/events/:id` → updates event fields
-- [ ] `DELETE /api/events/:id` → soft-deletes event
-- [ ] Event with RRULE → recurring events parsed correctly
+- [ ] CRUD + soft-delete
+- [ ] Date range queries + recurring events (RRULE)
 
 ### ICS
-
-- [ ] `POST /api/ics/preview` → parses ICS and returns event preview
-- [ ] `POST /api/ics/fetch-url` → fetches remote ICS URL
-- [ ] `POST /api/ics/import` → imports events into calendar
-- [ ] `GET /api/calendars/:cid/ics/export` → exports calendar as ICS
-- [ ] Export preserves VALARM, CATEGORIES, STATUS via raw_ics
-- [ ] Import with `overwrite: true` → clears calendar first
-
-### Settings
-
-- [ ] `GET /api/settings` → returns default settings
-- [ ] `PATCH /api/settings` → updates language, firstDayOfWeek, showEventTime, dateFormat, showLunarCalendar
-- [ ] Settings persist across sessions
+- [ ] Preview / fetch-url / import / export
+- [ ] Export preserves raw_ics extensions
+- [ ] Overwrite mode
 
 ### Sync
-
-- [ ] `GET /api/sync/pull?last_pulled_seq=0` → returns all changes
-- [ ] `POST /api/sync/push` → pushes local changes
-- [ ] Changes include created/updated/deleted tracking
-
-### Backup
-
-- [ ] `POST /api/backup` → creates backup file
-- [ ] `GET /api/backups` → lists available backups
-- [ ] `GET /api/backup/download/:filename` → downloads backup
-- [ ] `POST /api/backup/restore` → restores from backup
+- [ ] GET /sync/pull returns incremental changes
+- [ ] POST /sync/push with LWW conflict detection
 
 ### UI
+- [ ] Calendar month view + date click highlight
+- [ ] Event create/edit via modal
+- [ ] Search with keyboard navigation (arrows + esc)
+- [ ] Dark mode toggle + persistence
+- [ ] Calendar drag reorder (top bar + settings)
+- [ ] Common calendar import with duplicate detection
+- [ ] Login/register flow
+- [ ] Settings persistence
 
-- [ ] Calendar page loads with month view
-- [ ] First visit shows registration page
-- [ ] Login → redirects to calendar view
-- [ ] Create event via FAB button → appears on calendar
-- [ ] Click event → edit modal opens
-- [ ] Search events → filtered results, click navigates to date
-- [ ] Lunar calendar toggle → shows/hides lunar dates
-- [ ] Common calendars import → adds holiday calendars
-- [ ] ICS import page → file upload and URL tabs work
-- [ ] ICS export dialog → multi-select calendars, download
-- [ ] Dark mode toggle works
-- [ ] Logout → returns to login page
-- [ ] Mobile responsive layout
-
-### Platform Adapters
-
-- [ ] Cloudflare Workers: deploy and verify all endpoints
-- [ ] Node.js: `just start` and test all endpoints locally
-- [ ] Docker: build and test all endpoints
+### Platform
+- [ ] Cloudflare Workers: deploy + verify
+- [ ] Node.js: `just start` + test
+- [ ] Docker: build + test

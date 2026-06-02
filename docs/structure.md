@@ -6,6 +6,7 @@
 calendar/
 ├── packages/
 │   ├── server/              # Backend (Hono + Drizzle + SQLite)
+│   ├── shared/              # Shared TypeScript types
 │   └── web/                 # Frontend (React 19 + Vite + FullCalendar)
 ├── docs/                    # Documentation
 ├── biome.json               # Code formatting
@@ -31,14 +32,16 @@ server/
 │   │   └── schema.ts        # Drizzle table definitions (9 tables)
 │   ├── config.ts            # Centralized config with optional config.json overrides
 │   ├── routes/
-│   │   ├── calendars.ts     # Calendar CRUD
+│   │   ├── calendars.ts     # Calendar CRUD + reorder
 │   │   ├── events.ts        # Event CRUD + overrides
 │   │   ├── ics.ts           # ICS import/export/preview
 │   │   └── settings.ts      # User settings + backup/restore
 │   ├── services/
 │   │   ├── calendar.service.ts
 │   │   ├── event.service.ts
-│   │   ├── ics.service.ts   # Custom ICS parser + serializer (RFC 5545)
+│   │   ├── ics-parser.ts     # Custom ICS parser (RFC 5545)
+│   │   ├── ics-serializer.ts # ICS export serializer
+│   │   ├── ics.service.ts    # ICS import/export/preview + URL fetching
 │   │   └── settings.service.ts
 │   ├── sync/
 │   │   ├── routes.ts        # /sync/pull + /sync/push
