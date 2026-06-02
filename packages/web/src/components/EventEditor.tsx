@@ -25,14 +25,14 @@ interface CreateMode {
 
 type EventEditorProps = EditMode | CreateMode;
 
-function roundToNextHour(d: Date): Date {
+export function roundToNextHour(d: Date): Date {
   const r = new Date(d);
   r.setMinutes(0, 0, 0);
   r.setHours(r.getHours() + 1);
   return r;
 }
 
-function toLocalInput(d: Date): string {
+export function toLocalInput(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

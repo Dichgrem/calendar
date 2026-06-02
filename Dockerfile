@@ -10,6 +10,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY tsconfig.base.json ./
 COPY packages/server/package.json packages/server/
 COPY packages/web/package.json packages/web/
+COPY packages/shared/package.json packages/shared/
 
 RUN pnpm install --frozen-lockfile
 
@@ -21,8 +22,9 @@ RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
-RUN mkdir -p packages/server
+RUN mkdir -p packages/server packages/shared
 COPY --from=builder /app/packages/server/package.json packages/server/
+COPY --from=builder /app/packages/shared/package.json packages/shared/
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/pnpm-lock.yaml ./
 COPY --from=builder /app/package.json ./
@@ -30,6 +32,8 @@ COPY --from=builder /app/package.json ./
 RUN pnpm install --filter @calendar/server --prod --frozen-lockfile
 
 COPY --from=builder /app/packages/server/src packages/server/src
+COPY --from=builder /app/packages/shared/src packages/shared/src
+COPY --from=builder /app/packages/shared/tsconfig.json packages/shared/
 COPY --from=builder /app/packages/server/drizzle packages/server/drizzle
 COPY --from=builder /app/packages/web/dist packages/server/public
 

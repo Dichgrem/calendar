@@ -179,7 +179,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
     const fromIdx = ordered.indexOf(sourceId);
     const toIdx = ordered.indexOf(targetId);
     ordered.splice(fromIdx, 1);
-    ordered.splice(toIdx, 0, sourceId);
+    ordered.splice(fromIdx < toIdx ? toIdx - 1 : toIdx, 0, sourceId);
 
     await api.calendars.reorder(ordered);
     queryClient.invalidateQueries({ queryKey: ["calendars"] });
