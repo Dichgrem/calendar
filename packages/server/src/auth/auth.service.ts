@@ -1,5 +1,3 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
-import scrypt from "scrypt-js";
 import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { users, sessions, calendarMembers, calendars, userSettings } from "../db/schema.js";
@@ -8,11 +6,32 @@ import { config } from "../config.js";
 
 const SESSION_DURATION_MS = config.sessionDurationMs;
 
-function hashPassword(password: string, salt: string): string {
-  const passwordBytes = new TextEncoder().encode(password);
-  const saltBytes = new TextEncoder().encode(salt);
-  const key = scrypt.syncScrypt(passwordBytes, saltBytes, 16384, 8, 1, 64);
-  return Buffer.from(key).toString("hex");
+function bytesToHex(bytes: Uint8Array): string {
+  let hex = "";
+  for (const b of bytes) hex += b.toString(16).padStart(2, "0");
+  return hex;
+}
+
+function randomHex(bytes: number): string {
+  const arr = new Uint8Array(bytes);
+  crypto.getRandomValues(arr);
+  return bytesToHex(arr);
+}
+
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
+  return diff === 0;
+}
+
+async function hashPassword(password: string, salt: string): Promise<string> {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: enc.encode(salt), iterations: 100000, hash: "SHA-256" }, keyMaterial, 256);
+  return bytesToHex(new Uint8Array(bits));
 }
 
 export async function register(username: string, password: string): Promise<{ userId: string } | null> {
@@ -20,8 +39,8 @@ export async function register(username: string, password: string): Promise<{ us
   if (existing.length > 0) return null;
 
   const userId = crypto.randomUUID();
-  const salt = randomBytes(16).toString("hex");
-  const passwordHash = hashPassword(password, salt) + ":" + salt;
+  const salt = randomHex(16);
+  const passwordHash = (await hashPassword(password, salt)) + ":" + salt;
   const now = new Date().toISOString();
 
   await db.insert(users).values({
@@ -61,16 +80,11 @@ export async function login(username: string, password: string): Promise<{ userI
   if (!user) return null;
 
   const [storedHash, salt] = user.passwordHash.split(":");
-  const inputHash = hashPassword(password, salt);
+  const inputHash = await hashPassword(password, salt);
 
-  const storedBuf = Buffer.from(storedHash, "hex");
-  const inputBuf = Buffer.from(inputHash, "hex");
+  if (!safeEqual(storedHash, inputHash)) return null;
 
-  if (storedBuf.length !== inputBuf.length || !timingSafeEqual(storedBuf, inputBuf)) {
-    return null;
-  }
-
-  const sessionId = randomBytes(32).toString("hex");
+  const sessionId = randomHex(32);
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS).toISOString();
 
   await db.insert(sessions).values({
@@ -103,16 +117,12 @@ export async function changePassword(userId: string, oldPassword: string, newPas
   if (!user) return false;
 
   const [storedHash, salt] = user.passwordHash.split(":");
-  const inputHash = hashPassword(oldPassword, salt);
-  const storedBuf = Buffer.from(storedHash, "hex");
-  const inputBuf = Buffer.from(inputHash, "hex");
+  const inputHash = await hashPassword(oldPassword, salt);
 
-  if (storedBuf.length !== inputBuf.length || !timingSafeEqual(storedBuf, inputBuf)) {
-    return false;
-  }
+  if (!safeEqual(storedHash, inputHash)) return false;
 
-  const newSalt = randomBytes(16).toString("hex");
-  const newHash = hashPassword(newPassword, newSalt) + ":" + newSalt;
+  const newSalt = randomHex(16);
+  const newHash = (await hashPassword(newPassword, newSalt)) + ":" + newSalt;
 
   await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, userId));
   return true;
