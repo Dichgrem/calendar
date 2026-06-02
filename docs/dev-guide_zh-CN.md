@@ -40,7 +40,7 @@ nix develop
 |------|------|
 | `just start` | 启动开发环境 |
 | `just stop` | 停止服务 |
-| `just test` | 运行单元测试 (vitest, 89 测试) |
+| `just test` | 运行单元测试 (vitest, 98 测试) |
 | `just format` | Biome 格式化代码 |
 | `just lint` | Biome 代码检查 |
 | `just typecheck` | 两个包的类型检查 |
@@ -49,6 +49,17 @@ nix develop
 | `just docker-up` | 构建并启动 Docker 容器 |
 | `just docker-down` | 停止 Docker 容器 |
 | `just docker-logs` | 查看 Docker 日志 |
+
+## 移动端 (React Native)
+
+```bash
+cd packages/mobile
+pnpm --filter @calendar/mobile start
+# 按 'a' 启动 Android
+```
+
+需要 Android SDK + Expo CLI。使用与 web 前端相同的 API 服务器。
+在 `.env` 中配置 `EXPO_PUBLIC_API_URL` 设置服务器地址。
 
 ## 项目结构
 

@@ -2,7 +2,7 @@
 
 ## 单元测试 (`just test`)
 
-Vitest workspace 模式: server (node) + web (jsdom)。13 测试文件，89 测试。
+Vitest workspace 模式: server (node) + web (jsdom)。14 测试文件，98 测试。
 
 ```bash
 just test          # 运行所有单元测试

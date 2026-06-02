@@ -2,7 +2,17 @@
 
 ## Authentication
 
-All endpoints except `/api/auth/status` and `/api/auth/register` require a valid session cookie.
+All endpoints except `/api/auth/status`, `/api/auth/register`, and `/api/auth/login` require authentication via session cookie (httpOnly) or `Authorization: Bearer <token>` header.
+
+CalDAV endpoints support Basic Auth (`Authorization: Basic <base64(user:pass)>`) in addition to Bearer token.
+
+### Get Token
+
+```
+GET /api/auth/token
+
+Response: { "ok": true, "data": { "token": "<session_id>" } }
+```
 
 ### Check Status
 
@@ -289,3 +299,45 @@ Content-Type: application/json
   "last_pulled_seq": 0
 }
 ```
+
+## CalDAV
+
+RFC 4791 / 4918 compliant CalDAV endpoint. Compatible with DAVx5.
+
+### Service Discovery
+
+```
+PROPFIND /.well-known/caldav → 301 → /dav/
+OPTIONS /dav/ → 200 with DAV: 1, 2, 3, calendar-access
+```
+
+### List Calendars
+
+```
+PROPFIND /dav/ (Depth: 0)
+→ 207 Multi-Status XML with current-user-principal + calendar-home-set
+```
+
+### List Events
+
+```
+PROPFIND /dav/calendars/:id/ (Depth: 1)
+REPORT /dav/calendars/:id/ (calendar-query with time-range)
+→ 207 Multi-Status XML with event resources
+```
+
+### Get / Create / Delete Event
+
+```
+GET /dav/calendars/:id/:uid.ics → 200 ICS
+PUT /dav/calendars/:id/:uid.ics → 204 (create or update)
+DELETE /dav/calendars/:id/:uid.ics → 204 (soft delete)
+```
+
+### Create Calendar
+
+```
+MKCALENDAR /dav/ → 201 with Location header
+```
+
+Authentication: Basic Auth (username + web login password) or Bearer token. DAVx5 config URL: `https://<domain>/dav/`

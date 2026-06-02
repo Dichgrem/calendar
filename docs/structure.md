@@ -5,9 +5,10 @@
 ```
 calendar/
 ├── packages/
-│   ├── server/              # Backend (Hono + Drizzle + SQLite)
+│   ├── server/              # Backend (Hono + Drizzle + SQLite/D1)
 │   ├── shared/              # Shared TypeScript types
-│   └── web/                 # Frontend (React 19 + Vite + FullCalendar)
+│   ├── web/                 # Frontend (React 19 + Vite + FullCalendar)
+│   └── mobile/              # React Native mobile app (Expo + WatermelonDB)
 ├── docs/                    # Documentation
 ├── biome.json               # Code formatting
 ├── flake.nix                # Nix dev environment

@@ -2,7 +2,17 @@
 
 ## 认证
 
-除 `/api/auth/status` 和 `/api/auth/register` 外，所有接口需要有效 session cookie。
+除 `/api/auth/status`、`/api/auth/register` 和 `/api/auth/login` 外，所有接口需要 session cookie (httpOnly) 或 `Authorization: Bearer <token>` 头。
+
+CalDAV 接口同时支持 Basic Auth (`Authorization: Basic <base64(用户名:密码)>`)。
+
+### 获取令牌
+
+```
+GET /api/auth/token
+
+Response: { "ok": true, "data": { "token": "<session_id>" } }
+```
 
 ### 检查状态
 
@@ -289,3 +299,45 @@ Content-Type: application/json
   "last_pulled_seq": 0
 }
 ```
+
+## CalDAV
+
+RFC 4791 / 4918 兼容的 CalDAV 接口。兼容 DAVx5。
+
+### 服务发现
+
+```
+PROPFIND /.well-known/caldav → 301 → /dav/
+OPTIONS /dav/ → 200 带 DAV: 1, 2, 3, calendar-access 头
+```
+
+### 列出日历
+
+```
+PROPFIND /dav/ (Depth: 0)
+→ 207 Multi-Status XML 含 current-user-principal + calendar-home-set
+```
+
+### 列出事件
+
+```
+PROPFIND /dav/calendars/:id/ (Depth: 1)
+REPORT /dav/calendars/:id/ (calendar-query 时间范围查询)
+→ 207 Multi-Status XML 含事件资源
+```
+
+### 获取 / 创建 / 删除事件
+
+```
+GET /dav/calendars/:id/:uid.ics → 200 ICS
+PUT /dav/calendars/:id/:uid.ics → 204 (创建或更新)
+DELETE /dav/calendars/:id/:uid.ics → 204 (软删除)
+```
+
+### 创建日历
+
+```
+MKCALENDAR /dav/ → 201 带 Location 头
+```
+
+认证：Basic Auth（用户名 + 网页登录密码）或 Bearer token。DAVx5 配置 URL：`https://<域名>/dav/`
