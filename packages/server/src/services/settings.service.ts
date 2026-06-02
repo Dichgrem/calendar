@@ -27,7 +27,7 @@ export async function backupDatabase(): Promise<{ filename: string; path: string
 
   const conn = getRawConnection();
   if (conn) {
-    await conn.backup(dest);
+    await (conn as any).backup(dest);
   } else {
     fs.copyFileSync(dbPath, dest);
   }
@@ -100,7 +100,6 @@ export async function upsertUserSettings(
       showEventTime: data.showEventTime ?? config.userDefaults.showEventTime,
       dateFormat: data.dateFormat ?? config.userDefaults.dateFormat,
       showLunarCalendar: data.showLunarCalendar ?? config.userDefaults.showLunarCalendar,
-      showCourseSchedule: data.showCourseSchedule ?? false,
     })
     .onConflictDoUpdate({
       target: [userSettings.userId],
@@ -110,7 +109,6 @@ export async function upsertUserSettings(
         showEventTime: data.showEventTime ?? config.userDefaults.showEventTime,
         dateFormat: data.dateFormat ?? config.userDefaults.dateFormat,
         showLunarCalendar: data.showLunarCalendar ?? config.userDefaults.showLunarCalendar,
-        showCourseSchedule: data.showCourseSchedule ?? false,
       },
     });
 

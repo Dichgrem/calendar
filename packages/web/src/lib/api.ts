@@ -103,15 +103,4 @@ export const api = {
       a.click();
     },
   },
-
-  sources: {
-    coursePreview: (data: { username: string; password: string; semester: string; year: string }) =>
-      request<ApiResponse<unknown>>("/sources/course/preview", { method: "POST", body: JSON.stringify(data) }),
-    courseImport: (data: { icsContent: string; calendarName?: string; color?: string; selectedUids: string[]; overwrite?: boolean; username?: string; password?: string; semester?: string; year?: string; rawCourses?: any[]; timetable?: [number, number][]; startDate?: [number, number, number] }) =>
-      request<ApiResponse<{ calendarId: string }>>("/sources/course/import", { method: "POST", body: JSON.stringify(data) }),
-    courseRefresh: (calendarId: string) =>
-      request<ApiResponse<{ eventCount: number }>>("/sources/course/refresh", { method: "POST", body: JSON.stringify({ calendarId }) }),
-    courseImportAll: (data: { username: string; password: string; calendarName?: string; color?: string }) =>
-      request<ApiResponse<{ calendarId: string; eventCount: number; errors?: string[] }>>("/sources/course/import-all", { method: "POST", body: JSON.stringify(data) }),
-  },
 };

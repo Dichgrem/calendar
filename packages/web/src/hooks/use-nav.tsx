@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { useCalendars } from "./use-calendars";
-import { useSettings } from "./use-settings";
 
 interface NavState {
   displayMonth: { year: number; month: number };
@@ -34,16 +33,12 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [visibleCalendars, setVisibleCalendars] = useState<Set<string>>(new Set());
   const [labelOverride, setLabelOverride] = useState<string | null>(null);
   const { data: calendars } = useCalendars();
-  const { data: settings } = useSettings();
 
   useEffect(() => {
-    if (calendars && settings) {
-      const ids = settings.showCourseSchedule
-        ? calendars.map((c) => c.id)
-        : calendars.filter((c) => c.sourceType !== "course_schedule").map((c) => c.id);
-      setVisibleCalendars(new Set(ids));
+    if (calendars) {
+      setVisibleCalendars(new Set(calendars.map((c) => c.id)));
     }
-  }, [calendars, settings?.showCourseSchedule]);
+  }, [calendars]);
 
   const toggleCalendar = useCallback((id: string) => {
     setVisibleCalendars((prev) => {

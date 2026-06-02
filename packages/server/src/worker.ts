@@ -6,7 +6,6 @@ import { calendarsRouter } from "./routes/calendars.js";
 import { eventsRouter } from "./routes/events.js";
 import { icsRouter } from "./routes/ics.js";
 import { settingsRouter } from "./routes/settings.js";
-import { sourcesRouter } from "./routes/sources.js";
 import { initD1Db } from "./db/d1.js";
 
 type Bindings = {
@@ -42,7 +41,6 @@ app.route("/api/calendars", calendarsRouter);
 app.route("/api", eventsRouter);
 app.route("/api", icsRouter);
 app.route("/api", settingsRouter);
-app.route("/api", sourcesRouter);
 
 // SPA fallback — serve index.html for non-API routes
 app.get("*", async (c) => {

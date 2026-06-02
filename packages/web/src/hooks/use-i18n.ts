@@ -4,7 +4,6 @@ const strings = {
   // Layout nav
   "nav.calendar": { "zh-CN": "日历", en: "Calendar" },
   "nav.settings": { "zh-CN": "设置", en: "Settings" },
-  "nav.schedule": { "zh-CN": "课表", en: "Schedule" },
   "nav.logout": { "zh-CN": "退出", en: "Logout" },
 
   // LoginPage
@@ -35,10 +34,8 @@ const strings = {
   "cal.search": { "zh-CN": "搜索事件...", en: "Search events..." },
   "cal.all": { "zh-CN": "全部", en: "All" },
   "cal.noResults": { "zh-CN": "无匹配结果", en: "No results" },
-  "cal.importCourse": { "zh-CN": "导入课程表", en: "Import Course" },
   "cal.darkMode": { "zh-CN": "深色模式", en: "Dark mode" },
   "cal.lightMode": { "zh-CN": "浅色模式", en: "Light mode" },
-  "cal.noCourseData": { "zh-CN": "暂无课程数据", en: "No course data" },
 
   // EventEditor
   "event.create": { "zh-CN": "新建事件", en: "New Event" },
@@ -92,7 +89,6 @@ const strings = {
   "settings.importBtn": { "zh-CN": "导入", en: "Import" },
   "settings.showEventTime": { "zh-CN": "显示事件时间", en: "Show event time" },
   "settings.showLunarCalendar": { "zh-CN": "显示农历", en: "Show Lunar Calendar" },
-  "settings.showCourseSchedule": { "zh-CN": "显示课程表", en: "Show Course Schedule" },
   "settings.dateFormat": { "zh-CN": "日期格式", en: "Date format" },
   "settings.customFormat": { "zh-CN": "自定义格式...", en: "Custom format..." },
   "settings.formatHint": { "zh-CN": "yyyy=年 MM=月 dd=日 HH=时 mm=分 ss=秒", en: "yyyy=year MM=month dd=day HH=hour mm=minute ss=second" },

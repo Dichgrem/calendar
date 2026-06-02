@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1780130256522,
-      "tag": "0000_slow_captain_universe",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1781000000000,
-      "tag": "0001_course_meta",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1782000000000,
-      "tag": "0002_show_course_schedule",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1783000000000,
-      "tag": "0003_calendar_sort",
+      "when": 1780363641436,
+      "tag": "0000_initial",
       "breakpoints": true
     }
   ]
