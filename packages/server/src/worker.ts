@@ -6,6 +6,7 @@ import { calendarsRouter } from "./routes/calendars.js";
 import { eventsRouter } from "./routes/events.js";
 import { icsRouter } from "./routes/ics.js";
 import { settingsRouter } from "./routes/settings.js";
+import { caldavRouter } from "./caldav/routes.js";
 import { initD1Db } from "./db/d1.js";
 
 type Bindings = {
@@ -17,13 +18,26 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+app.use("*", async (c, next) => {
+  await next();
+  if (c.req.path?.startsWith("/dav") || c.req.path?.startsWith("/.well-known/caldav")) {
+    c.res.headers.set("DAV", "1, 2, 3, calendar-access");
+  }
+});
+
 app.use(
   "*",
   cors({
     origin: (origin, c) => c.env.CORS_ORIGIN ?? origin ?? "*",
     credentials: true,
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "PROPFIND", "REPORT", "MKCALENDAR"],
   }),
 );
+
+app.onError((err, c) => {
+  console.error("Worker error:", err.message);
+  return c.json({ ok: false, error: { code: "INTERNAL", message: err.message } }, 500);
+});
 
 app.get("/api/health", (c) => {
   return c.json({ ok: true, data: { status: "ok" } });
@@ -41,6 +55,10 @@ app.route("/api/calendars", calendarsRouter);
 app.route("/api", eventsRouter);
 app.route("/api", icsRouter);
 app.route("/api", settingsRouter);
+app.route("/dav", caldavRouter);
+
+app.on("PROPFIND", "/.well-known/caldav", (c) => c.redirect("/dav/", 301));
+app.on("PROPFIND", "/.well-known/caldav/", (c) => c.redirect("/dav/", 301));
 
 // SPA fallback — serve index.html for non-API routes
 app.get("*", async (c) => {

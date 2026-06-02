@@ -40,9 +40,11 @@ export const api = {
       request<ApiResponse<{ userId: string }>>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
     logout: () => request<ApiResponse<null>>("/auth/logout", { method: "POST" }),
     me: () => request<ApiResponse<{ userId: string }>>("/auth/me"),
-    changePassword: (data: { oldPassword: string; newPassword: string }) =>
+        changePassword: (data: { oldPassword: string; newPassword: string }) =>
       request<ApiResponse<null>>("/auth/change-password", { method: "POST", body: JSON.stringify(data) }),
-  },
+        changeUsername: (data: { username: string }) =>
+      request<ApiResponse<null>>("/auth/change-username", { method: "POST", body: JSON.stringify(data) }),
+      },
 
   calendars: {
     list: () => request<ApiResponse<Calendar[]>>("/calendars"),
