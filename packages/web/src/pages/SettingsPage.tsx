@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Database, Package, PencilSimple } from "@phosphor-icons/react";
 import { api } from "../lib/api";
+import { isNative } from "../lib/capacitor";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
 import { useTopBar } from "../components/Layout";
@@ -25,6 +26,8 @@ export function SettingsPage() {
   const [backingUp, setBackingUp] = useState(false);
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
   const [caldavCopied, setCaldavCopied] = useState(false);
+  const [serverUrl, setServerUrl] = useState(localStorage.getItem("serverUrl") || "");
+  const [serverUrlSaved, setServerUrlSaved] = useState(false);
   const [accountUser, setAccountUser] = useState("");
   const [editUsername, setEditUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
@@ -198,6 +201,31 @@ export function SettingsPage() {
 
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
 
+          {/* Server URL - native only */}
+          {isNative && (
+            <section>
+              <h2 className="text-sm font-semibold mb-3 dark:text-white">{t("settings.serverUrl")}</h2>
+              <div className="space-y-2 bg-neutral-50 dark:bg-neutral-900 rounded-lg p-3 border border-neutral-100 dark:border-neutral-800">
+                <input
+                  type="url"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder="http://192.168.1.100:3000"
+                  className="block w-full border rounded px-2 py-1 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                />
+                <p className="text-xs text-neutral-400">{t("settings.serverUrlHint")}</p>
+                <Button size="sm" onClick={() => {
+                  if (serverUrl) localStorage.setItem("serverUrl", serverUrl.replace(/\/+$/, ""));
+                  else localStorage.removeItem("serverUrl");
+                  setServerUrlSaved(true);
+                  setTimeout(() => setServerUrlSaved(false), 2000);
+                }} className="h-7 text-xs">
+                  {serverUrlSaved ? t("settings.serverUrlSaved") : t("settings.save")}
+                </Button>
+              </div>
+            </section>
+          )}
+
           {/* CalDAV */}
           {accountUser && (
             <section>
@@ -206,8 +234,8 @@ export function SettingsPage() {
                 <div>
                   <span className="text-neutral-500">{t("settings.caldavUrl")}</span>
                   <div className="mt-0.5 flex gap-1">
-                    <input readOnly value={window.location.origin + "/dav/"} className="flex-1 border rounded px-2 py-1 text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-xs" />
-                    <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(window.location.origin + "/dav/"); setCaldavCopied(true); setTimeout(() => setCaldavCopied(false), 2000); }} className="h-7 text-xs shrink-0">{caldavCopied ? t("settings.caldavCopied") : t("settings.caldavCopy")}</Button>
+                    <input readOnly value={(isNative ? (localStorage.getItem("serverUrl") || window.location.origin) : window.location.origin) + "/dav/"} className="flex-1 border rounded px-2 py-1 text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-xs" />
+                    <Button variant="outline" size="sm" onClick={() => { const caldavUrl = (isNative ? (localStorage.getItem("serverUrl") || window.location.origin) : window.location.origin) + "/dav/"; navigator.clipboard.writeText(caldavUrl); setCaldavCopied(true); setTimeout(() => setCaldavCopied(false), 2000); }} className="h-7 text-xs shrink-0">{caldavCopied ? t("settings.caldavCopied") : t("settings.caldavCopy")}</Button>
                   </div>
                 </div>
                 <p className="text-neutral-400">{t("settings.caldavHint")}</p>
