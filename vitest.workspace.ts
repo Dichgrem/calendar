@@ -1,1 +1,1 @@
-export default ["packages/web"];
+export default ["web"];

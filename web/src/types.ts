@@ -1,3 +1,5 @@
+// ---- shared types (inlined from @calendar/shared) ----
+
 export type ID = string;
 
 export type CalendarRole = "viewer" | "editor" | "admin";
@@ -55,19 +57,3 @@ export interface SyncPullResponse {
   };
   seq: number;
 }
-
-export interface SyncPushResponse {
-  ok: true;
-  seq: number;
-}
-
-export interface SyncPushConflict {
-  ok: false;
-  error: {
-    code: "CONFLICT";
-    message: string;
-    conflictingIds: ID[];
-  };
-}
-
-export type SyncPushResult = SyncPushResponse | SyncPushConflict;

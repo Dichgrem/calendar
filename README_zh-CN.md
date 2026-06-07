@@ -52,9 +52,8 @@ calendar/
 │   ├── db/                  # SQLite
 │   ├── apperror/            # 错误类型
 │   └── validate/            # 验证辅助
-├── packages/
-│   ├── web/                 # React 前端
-│   └── shared/              # 共享类型
+├── web/                     # React SPA
+├── mobile/                  # Android WebView 壳
 ├── go.mod
 ├── Justfile
 └── Dockerfile

@@ -21,7 +21,7 @@ jobs:
           packages: platforms;android-34 build-tools;34.0.0
       - run: pnpm --filter @calendar/web build
       - name: Build APK
-        working-directory: packages/web
+        working-directory: web
         run: |
           npx cap add android
           npx cap sync
@@ -36,4 +36,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: packages/web/android/app/build/outputs/apk/debug/app-debug.apk
+          path: web/android/app/build/outputs/apk/debug/app-debug.apk
