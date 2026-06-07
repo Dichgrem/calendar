@@ -1,23 +1,26 @@
 default:
     @just --list
 
-# install JS dependencies (for frontend)
+# install JS dependencies
 install:
     pnpm install
 
-# build frontend into web/dist
+# build frontend and copy to embed directory
 build-web: install
     pnpm --filter @calendar/web build
+    rm -rf cmd/server/dist
+    cp -r web/dist cmd/server/dist
 
-# build Go binary (require pnpm build first)
+# build Go binary
 build-go:
-    go build -o ./bin/server ./cmd/server/
+    go build -ldflags="-s -w" -o bin/server ./cmd/server/
 
-# build everything
+# build everything (frontend + go)
 build: build-web build-go
 
-# start dev server with auto-reload
+# start dev server (builds frontend first if dist missing)
 dev:
+    @if [ ! -d cmd/server/dist ]; then echo "Building frontend..."; just build-web; fi
     go run ./cmd/server/
 
 # run all Go unit tests
@@ -28,21 +31,21 @@ test:
 test-verbose:
     go test ./... -v -count=1
 
-# run benchmarks (if any)
+# run benchmarks
 bench:
     go test ./... -bench=. -benchmem
 
-# vet + staticcheck
+# vet
 lint:
     go vet ./...
 
-# format all Go code
+# format Go
 format:
     go fmt ./...
 
 # clean build artifacts
 clean:
-    rm -rf bin/ data/calendar.db
+    rm -rf bin/ cmd/server/dist/ data/calendar.db
 
 # build Docker image
 docker-build:
