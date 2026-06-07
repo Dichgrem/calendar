@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { NotePencil, Trash, Check, X, DownloadSimple, FileArrowDown, Globe } from "@phosphor-icons/react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
+import { useCalendarReorder } from "../hooks/use-calendar-reorder";
 import { Button } from "../components/ui/button";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
 import type { Calendar } from "../types";
@@ -65,8 +66,9 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const [importing, setImporting] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const dragIdRef = useRef<string | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
+  const { dragId, onDragStart, onDragOver, onDrop, onDragEnd } = useCalendarReorder(
+    calendars?.map((c) => c.id) ?? []
+  );
 
   const importedCommonIds = new Set(
     COMMON_CALENDARS
@@ -159,34 +161,6 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
     }
   };
 
-  const handleCalDragStart = (e: React.DragEvent, calId: string) => {
-    dragIdRef.current = calId;
-    setDragId(calId);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleCalDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleCalDrop = async (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    const sourceId = dragIdRef.current;
-    if (!sourceId || sourceId === targetId || !calendars) return;
-
-    const ordered = calendars.map((c) => c.id);
-    const fromIdx = ordered.indexOf(sourceId);
-    const toIdx = ordered.indexOf(targetId);
-    ordered.splice(fromIdx, 1);
-    ordered.splice(fromIdx < toIdx ? toIdx - 1 : toIdx, 0, sourceId);
-
-    await api.calendars.reorder(ordered);
-    queryClient.invalidateQueries({ queryKey: ["calendars"] });
-    dragIdRef.current = null;
-    setDragId(null);
-  };
-
   return (
     <>
       <hr className="my-4 border-neutral-200 dark:border-neutral-800" />
@@ -277,10 +251,10 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
           <div
             key={cal.id}
             draggable
-            onDragStart={(e) => handleCalDragStart(e, cal.id)}
-            onDragOver={handleCalDragOver}
-            onDrop={(e) => handleCalDrop(e, cal.id)}
-            onDragEnd={() => { dragIdRef.current = null; setDragId(null); }}
+            onDragStart={(e) => onDragStart(e, cal.id)}
+            onDragOver={onDragOver}
+            onDrop={(e) => onDrop(e, cal.id)}
+            onDragEnd={onDragEnd}
             className={`flex items-center gap-2 p-1.5 border rounded-lg border-neutral-200 dark:border-neutral-700 transition-colors ${dragId === cal.id ? "opacity-50" : ""} ${dragId && dragId !== cal.id ? "border-blue-300 dark:border-blue-700" : ""}`}
           >
             {editingCal === cal.id ? (

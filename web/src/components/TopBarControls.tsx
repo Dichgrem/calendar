@@ -1,12 +1,11 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Circle, CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNav } from "../hooks/use-nav";
 import { useCalendars } from "../hooks/use-calendars";
 import { useSettings } from "../hooks/use-settings";
 import { useI18n } from "../hooks/use-i18n";
+import { useCalendarReorder } from "../hooks/use-calendar-reorder";
 import { formatCalendarDate, dateStr } from "../lib/date-format";
-import { api } from "../lib/api";
 
 const MONTHS_ZH = [
   "1月", "2月", "3月", "4月", "5月", "6月",
@@ -38,19 +37,19 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
   const displayDate = highlightDateObj ?? new Date(displayMonth.year, displayMonth.month, 1);
   const dateLabel = labelOverride ?? formatCalendarDate(displayDate, dateFormat, lang);
 
-  const api = () => calRef?.current?.getApi();
+  const calApi = () => calRef?.current?.getApi();
 
   const gotoDate = (dateOrYear: Date | number, month?: number) => {
     const date = dateOrYear instanceof Date ? dateOrYear : new Date(dateOrYear, month!, 1);
     if (date.getFullYear() < 1970) date.setFullYear(1970);
-    api()?.gotoDate(date);
+    calApi()?.gotoDate(date);
     setPickerOpen(false);
   };
 
   const gotoMonth = (year: number, month: number) => {
     const d = new Date(year, month, 1);
     setDisplayMonth({ year, month });
-    api()?.gotoDate(d);
+    calApi()?.gotoDate(d);
     if (setHighlightDate) {
       setHighlightDate(dateStr(d));
     }
@@ -59,7 +58,7 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
   const goToday = () => {
     const d = new Date();
     setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
-    api()?.today();
+    calApi()?.today();
     setPickerOpen(false);
     if (setHighlightDate) {
       setHighlightDate(dateStr(new Date(d.getFullYear(), d.getMonth(), 1)));
@@ -67,11 +66,11 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
   };
 
   const goPrev = () => {
-    const api2 = api();
-    if (api2) {
-      api2.prev();
-      if (api2.view.currentStart.getFullYear() < 1970) api2.gotoDate(new Date(1970, 0, 1));
-      const d = api2.getDate();
+    const a = calApi();
+    if (a) {
+      a.prev();
+      if (a.view.currentStart.getFullYear() < 1970) a.gotoDate(new Date(1970, 0, 1));
+      const d = a.getDate();
       setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
       if (setHighlightDate) setHighlightDate(dateStr(new Date(d.getFullYear(), d.getMonth(), 1)));
     } else {
@@ -83,10 +82,10 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
   };
 
   const goNext = () => {
-    const api2 = api();
-    if (api2) {
-      api2.next();
-      const d = api2.getDate();
+    const a = calApi();
+    if (a) {
+      a.next();
+      const d = a.getDate();
       setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
       if (setHighlightDate) setHighlightDate(dateStr(new Date(d.getFullYear(), d.getMonth(), 1)));
     } else {
@@ -133,39 +132,11 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
 
 export function CenterControls() {
   const { t } = useI18n();
-  const queryClient = useQueryClient();
   const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
   const { visibleCalendars, toggleCalendar } = useNav();
-  const dragIdRef = useRef<string | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
-
-  const handleDragStart = (e: React.DragEvent, calId: string) => {
-    dragIdRef.current = calId;
-    setDragId(calId);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    const sourceId = dragIdRef.current;
-    if (!sourceId || sourceId === targetId || !calendars) return;
-
-    const ordered = calendars.map((c) => c.id);
-    const fromIdx = ordered.indexOf(sourceId);
-    const toIdx = ordered.indexOf(targetId);
-    ordered.splice(fromIdx, 1);
-    ordered.splice(fromIdx < toIdx ? toIdx - 1 : toIdx, 0, sourceId);
-
-    await api.calendars.reorder(ordered);
-    queryClient.invalidateQueries({ queryKey: ["calendars"] });
-    dragIdRef.current = null;
-    setDragId(null);
-  };
+  const { dragId, onDragStart, onDragOver, onDrop, onDragEnd } = useCalendarReorder(
+    calendars?.map((c) => c.id) ?? []
+  );
 
   return (
     <>
@@ -175,10 +146,10 @@ export function CenterControls() {
         <button
           key={cal.id}
           draggable
-          onDragStart={(e) => handleDragStart(e, cal.id)}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, cal.id)}
-          onDragEnd={() => { dragIdRef.current = null; setDragId(null); }}
+          onDragStart={(e) => onDragStart(e, cal.id)}
+          onDragOver={onDragOver}
+          onDrop={(e) => onDrop(e, cal.id)}
+          onDragEnd={onDragEnd}
           onClick={() => toggleCalendar(cal.id)}
           title={cal.name}
           aria-label={`${t("cal.toggleVisibility")}: ${cal.name}`}

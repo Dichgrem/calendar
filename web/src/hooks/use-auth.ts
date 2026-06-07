@@ -7,12 +7,8 @@ export function useAuth() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["auth", "me"],
     queryFn: async () => {
-      try {
-        const res = await api.auth.me();
-        return (res as { ok: boolean; data: { userId: string } }).data;
-      } catch {
-        return null;
-      }
+      const res = await api.auth.me();
+      return (res as { ok: boolean; data: { userId: string; username: string } }).data;
     },
     retry: false,
     staleTime: 60_000,
@@ -21,10 +17,11 @@ export function useAuth() {
   return {
     user: data,
     isLoading,
-    isAuthenticated: !!data,
+    isAuthenticated: !error && !!data,
     error,
     logout: async () => {
       await api.auth.logout();
+      queryClient.setQueryData(["auth", "me"], null);
       queryClient.invalidateQueries({ queryKey: ["auth"] });
     },
   };
