@@ -53,7 +53,6 @@ calendar/
 │   ├── apperror/            # 错误类型
 │   └── validate/            # 验证辅助
 ├── web/                     # React SPA
-├── mobile/                  # Android WebView shell
 ├── go.mod
 ├── Justfile
 └── Dockerfile
