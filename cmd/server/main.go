@@ -19,6 +19,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"calendar/internal/auth"
+	"calendar/internal/backup"
 	"calendar/internal/config"
 	"calendar/internal/db"
 	cal "calendar/internal/calendar"
@@ -84,6 +85,7 @@ func main() {
 		ev.RegisterRoutes(r)
 		settings.RegisterRoutes(r)
 		ics.RegisterRoutes(r)
+		backup.RegisterRoutes(r)
 	})
 
 	// Static file serving with SPA fallback (catch-all, matched last)

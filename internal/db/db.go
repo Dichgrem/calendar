@@ -9,6 +9,7 @@ import (
 )
 
 var DB *sql.DB
+var Path string
 
 // Open initializes the SQLite database and runs pending migrations.
 func Open(databaseURL string) error {
@@ -18,6 +19,7 @@ func Open(databaseURL string) error {
 		return err
 	}
 
+	Path = databaseURL
 	var err error
 	DB, err = sql.Open("sqlite", databaseURL+"?_journal_mode=WAL&_foreign_keys=ON")
 	if err != nil {
