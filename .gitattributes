@@ -1,0 +1,25 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Go
+*.go text diff=golang
+
+# TypeScript / JavaScript
+*.ts text diff=typescript
+*.tsx text diff=typescript
+*.js text
+*.json text
+
+# Shell
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Markdown
+*.md text
+
+# Binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.jar binary
+*.keystore binary
