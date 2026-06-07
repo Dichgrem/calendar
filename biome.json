@@ -23,6 +23,6 @@
     }
   },
   "files": {
-    "includes": ["packages/**/*.ts", "packages/**/*.tsx", "packages/**/*.json"]
+    "includes": ["web/**/*.ts", "web/**/*.tsx", "web/**/*.json"]
   }
 }

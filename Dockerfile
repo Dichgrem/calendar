@@ -7,13 +7,11 @@ RUN corepack enable && corepack prepare pnpm@9 --activate
 WORKDIR /app
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY tsconfig.base.json ./
-COPY packages/web/package.json packages/web/
-COPY packages/shared/package.json packages/shared/
+COPY web/package.json web/
 
 RUN pnpm install --frozen-lockfile
 
-COPY packages/web/ packages/web/
-COPY packages/shared/ packages/shared/
+COPY web/ web/
 
 RUN pnpm --filter @calendar/web build
 
@@ -23,7 +21,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-COPY --from=frontend-builder /app/packages/web/dist ./cmd/server/dist
+COPY --from=frontend-builder /app/web/dist ./cmd/server/dist
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /server ./cmd/server/
 
 # Stage 3: Runtime

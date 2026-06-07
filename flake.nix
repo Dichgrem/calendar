@@ -19,6 +19,9 @@
           name = "calendar-dev";
 
           buildInputs = with pkgs; [
+            go
+            gopls
+            sqlite
             nodejs_24
             pnpm
             biome
@@ -26,10 +29,10 @@
 
           shellHook = ''
             echo "calendar dev shell"
-            echo "  just start  - start dev server"
-            echo "  just stop   - stop dev server"
-            echo "  just format - format code"
-            echo "  just test   - run tests"
+            echo "  go run ./cmd/server/   — start backend"
+            echo "  just build-web         — build frontend"
+            echo "  just test              — run tests"
+            echo "  just lint              — vet + typecheck"
           '';
         };
       });
