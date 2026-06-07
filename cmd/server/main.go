@@ -27,6 +27,7 @@ import (
 	"calendar/internal/ics"
 	"calendar/internal/middleware"
 	"calendar/internal/settings"
+	"calendar/internal/sync"
 )
 
 //go:embed dist
@@ -86,6 +87,7 @@ func main() {
 		settings.RegisterRoutes(r)
 		ics.RegisterRoutes(r)
 		backup.RegisterRoutes(r)
+		sync.RegisterRoutes(r)
 	})
 
 	// Static file serving with SPA fallback (catch-all, matched last)
