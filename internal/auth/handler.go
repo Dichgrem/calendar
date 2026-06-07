@@ -254,24 +254,32 @@ func HandleChangeUsername(w http.ResponseWriter, r *http.Request) {
 
 func setSessionCookie(w http.ResponseWriter, sessionID string, duration time.Duration, secure bool) {
 	maxAge := int(duration.Seconds())
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode // cross-origin APK needs None
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
 		Value:    sessionID,
 		Path:     "/",
 		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 		Secure:   secure,
 		MaxAge:   maxAge,
 	})
 }
 
 func clearSessionCookie(w http.ResponseWriter, secure bool) {
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 		Secure:   secure,
 		MaxAge:   -1,
 	})
