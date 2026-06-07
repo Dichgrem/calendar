@@ -56,6 +56,7 @@ func main() {
 	r.Use(chimw.Recoverer)
 	r.Use(middleware.ErrorHandler)
 	r.Use(middleware.SecurityHeaders)
+	r.Use(middleware.CORS)
 
 	// Public routes (no auth)
 	r.Group(func(r chi.Router) {
