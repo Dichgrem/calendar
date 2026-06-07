@@ -1,47 +1,39 @@
-FROM node:22-alpine AS base
+# Stage 1: Build React frontend
+FROM node:22-alpine AS frontend-builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
-FROM base AS builder
-RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY tsconfig.base.json ./
-COPY packages/server/package.json packages/server/
 COPY packages/web/package.json packages/web/
 COPY packages/shared/package.json packages/shared/
 
 RUN pnpm install --frozen-lockfile
 
-COPY . .
+COPY packages/web/ packages/web/
+COPY packages/shared/ packages/shared/
+
 RUN pnpm --filter @calendar/web build
 
-FROM base AS prod
-RUN apk add --no-cache dumb-init
-
+# Stage 2: Build Go binary
+FROM golang:1.25-alpine AS go-builder
 WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+COPY --from=frontend-builder /app/packages/web/dist ./cmd/server/dist
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /server ./cmd/server/
 
-RUN mkdir -p packages/server packages/shared
-COPY --from=builder /app/packages/server/package.json packages/server/
-COPY --from=builder /app/packages/shared/package.json packages/shared/
-COPY --from=builder /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/pnpm-lock.yaml ./
-COPY --from=builder /app/package.json ./
-
-RUN pnpm install --filter @calendar/server --prod --frozen-lockfile
-
-COPY --from=builder /app/packages/server/src packages/server/src
-COPY --from=builder /app/packages/shared/src packages/shared/src
-COPY --from=builder /app/packages/shared/tsconfig.json packages/shared/
-COPY --from=builder /app/packages/server/drizzle packages/server/drizzle
-COPY --from=builder /app/packages/web/dist packages/server/public
-
-ENV NODE_ENV=production
-ENV PORT=3000
-
+# Stage 3: Runtime
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates tzdata
+WORKDIR /app
+COPY --from=go-builder /server .
 EXPOSE 3000
-
-WORKDIR /app/packages/server
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "--import", "tsx/esm", "src/index.ts"]
+ENV PORT=3000
+ENV DATABASE_URL=/app/data/calendar.db
+ENV SECURE_COOKIES=true
+VOLUME ["/app/data"]
+ENTRYPOINT ["./server"]

@@ -1,99 +1,67 @@
-<p align="right">
-  <a href="README.md">English</a> |
-  <a href="README_zh-CN.md">简体中文</a>
-</p>
-
 # Calendar
 
-A lightweight, self-hosted calendar application with ICS import/export and lunar calendar support.
+自托管日历应用，Go 后端 + React 前端，单二进制部署。
 
----
-
-## Features
-
-- **Multi-platform** — Cloudflare Workers, Node.js / Docker
-- **Web UI** — FullCalendar month view, light/dark mode, mobile responsive
-- **Single-user auth** — Password-based login with session cookies
-- **ICS import/export** — File upload, remote URL, calendar management
-- **Lunar calendar** — Built-in Chinese lunar date display
-- **Event search** — Global search with calendar filter
-- **Common calendars** — One-click subscribe to Chinese holidays, festivals, solar terms
-- **Date format** — Customizable date/time display
-- **i18n** — Chinese and English support
-
----
-
-## Quick Start
-
-### Cloudflare Workers (recommended, free)
+## 快速开始
 
 ```bash
-# 1. Clone and enter the project
-git clone https://github.com/Dichgrem/calendar.git
-cd calendar
+# 前端构建
+pnpm install && pnpm --filter @calendar/web build
 
-# 2. Install dependencies
-pnpm install
-
-# 3. Copy and edit config
-cd packages/server
-cp wrangler.toml.example wrangler.toml
-
-# 4. Create D1 database, fill database_id into wrangler.toml
-pnpm cf:d1:create
-
-# 5. Run migrations and set session secret
-pnpm cf:d1:migrate
-npx wrangler secret put SESSION_SECRET
-
-# 6. Deploy
-pnpm cf:deploy
+# Go 构建 & 启动
+go build -o server ./cmd/server/ && ./server
 ```
 
-### Node.js / Docker
+浏览器访问 `http://localhost:3000`。
 
-**Direct Node.js:**
+## 环境变量
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `PORT` | `3000` | 服务端口 |
+| `DATABASE_URL` | `./data/calendar.db` | SQLite 文件路径 |
+| `SECURE_COOKIES` | `false` | 生产环境设 `true` |
+| `USER_DEFAULT_LANGUAGE` | `zh-CN` | 默认语言 |
+| `USER_DEFAULT_FIRST_DAY_OF_WEEK` | `1` | 周起始日 (0=周日) |
+| `USER_DEFAULT_DATE_FORMAT` | `zh` | 日期格式 |
+| `USER_DEFAULT_SHOW_EVENT_TIME` | `false` | 显示事件时间 |
+| `USER_DEFAULT_SHOW_LUNAR_CALENDAR` | `true` | 显示农历 |
+
+## 常用命令
+
 ```bash
-cd calendar
-pnpm install
-pnpm dev
-# Server: http://localhost:3000
-# Web: http://localhost:5173
+just dev          # 启动开发服务器
+just test         # 运行测试
+just build        # 构建前端 + Go 二进制
+just docker-build # 构建 Docker 镜像
+just docker-up    # Docker Compose 启动
 ```
 
-**Docker:**
-```bash
-docker build -t calendar .
-docker run -d -p 3000:3000 -v calendar-data:/data --name calendar calendar
+## 项目结构
+
+```
+calendar/
+├── cmd/server/main.go       # 入口
+├── internal/
+│   ├── auth/                # 认证 + 会话
+│   ├── calendar/            # 日历 CRUD
+│   ├── event/               # 事件 CRUD + override
+│   ├── settings/            # 用户设置
+│   ├── middleware/          # 会话/角色/错误处理
+│   ├── config/              # 环境变量
+│   ├── db/                  # SQLite
+│   ├── apperror/            # 错误类型
+│   └── validate/            # 验证辅助
+├── packages/
+│   ├── web/                 # React 前端
+│   └── shared/              # 共享类型
+├── go.mod
+├── Justfile
+└── Dockerfile
 ```
 
----
+## 技术栈
 
-## Documentation
-
-| Doc | EN | 中文 |
-|---|---|---|
-| Usage Guide | [usage.md](docs/usage.md) | [usage_zh-CN.md](docs/usage_zh-CN.md) |
-| Deployment | [deploy.md](docs/deploy.md) | [deploy_zh-CN.md](docs/deploy_zh-CN.md) |
-| API Reference | [api.md](docs/api.md) | [api_zh-CN.md](docs/api_zh-CN.md) |
-| Development Guide | [dev-guide.md](docs/dev-guide.md) | [dev-guide_zh-CN.md](docs/dev-guide_zh-CN.md) |
-| Architecture & Structure | [structure.md](docs/structure.md) | [structure_zh-CN.md](docs/structure_zh-CN.md) |
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 19, TypeScript, Vite 6, FullCalendar v6, TanStack Query v5 |
-| Styling | Tailwind CSS 3, CVA, Radix UI, Lucide React |
-| Backend | Hono v4, Drizzle ORM |
-| Database | SQLite (better-sqlite3), Cloudflare D1 |
-| Auth | scrypt password hashing, httpOnly cookie sessions |
-| Tooling | pnpm, Turborepo, Biome, Nix Flake |
-
----
-
-## License
-
-[GNU AGPL v3.0](LICENSE)
+- **后端**: Go + Chi + modernc.org/sqlite
+- **前端**: React 19 + Vite + TanStack Query + Tailwind CSS
+- **部署**: 单二进制 (< 15MiB)，go:embed 嵌入前端静态文件
