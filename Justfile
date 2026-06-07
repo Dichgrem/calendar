@@ -1,78 +1,65 @@
 default:
     @just --list
 
-# install dependencies
+# install JS dependencies (for frontend)
 install:
     pnpm install
 
-# start dev servers
-start: install
-    @pnpm --filter @calendar/server dev & pnpm --filter @calendar/web dev & wait
+# build frontend into web/dist
+build-web: install
+    pnpm --filter @calendar/web build
 
-# stop dev servers
-stop:
-    @kill $(lsof -ti:3000) 2>/dev/null; kill $(lsof -ti:5173) 2>/dev/null; true
+# build Go binary (require pnpm build first)
+build-go:
+    go build -o ./bin/server ./cmd/server/
+
+# build everything
+build: build-web build-go
+
+# start dev server with auto-reload
+dev:
+    go run ./cmd/server/
+
+# run all Go unit tests
+test:
+    go test ./... -count=1
+
+# run tests with verbose output
+test-verbose:
+    go test ./... -v -count=1
+
+# run benchmarks (if any)
+bench:
+    go test ./... -bench=. -benchmem
+
+# vet + staticcheck
+lint:
+    go vet ./...
+
+# format all Go code
+format:
+    go fmt ./...
 
 # clean build artifacts
 clean:
-    rm -rf packages/*/dist .turbo node_modules/.cache
+    rm -rf bin/ data/calendar.db
 
-# format source files with Biome
-format:
-    biome format --write packages/
+# build Docker image
+docker-build:
+    docker build -t calendar:latest .
 
-# lint source files
-lint:
-    biome check packages/
+# run Docker container
+docker-run:
+    docker run -p 3000:3000 -v $(pwd)/data:/app/data calendar:latest
 
-# fix auto-fixable lint issues
-lint-fix:
-    biome check --write packages/
-
-# typecheck all packages
-typecheck:
-    pnpm run typecheck
-
-# one-click Cloudflare Workers deployment
-cf-deploy: install
-    ./scripts/cf-deploy.sh
-
-# run unit tests
-test:
-    pnpm run test
-
-# run unit tests in watch mode
-test-watch:
-    pnpm vitest
-
-# start test server with clean DB (for integration tests)
-test-run:
-    ./scripts/test-run.sh
-
-# run all API integration tests (requires test-run in another tab)
-test-all:
-    ./scripts/test-api.sh all
-
-# run full integration test (requires test-run in another tab)
-test-full:
-    ./scripts/test-full.sh
-
-# run a single API integration test, e.g. just test-it login
-test-it name:
-    ./scripts/test-api.sh {{ name }}
-
-# build and start Docker container
+# build and start Docker
 docker-up:
     docker compose up --build -d
 
-# stop Docker container
+# stop Docker
 docker-down:
     docker compose down
 
 # view Docker logs
 docker-logs:
     docker compose logs -f
-
-# rebuild and restart Docker container
-docker-rebuild:
-    docker compose up --build -d --force-recreate

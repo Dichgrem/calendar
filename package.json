@@ -6,8 +6,6 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
-    "db:generate": "turbo db:generate",
-    "db:migrate": "turbo db:migrate",
     "test": "vitest run"
   },
   "devDependencies": {

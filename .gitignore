@@ -1,5 +1,6 @@
 node_modules/
 dist/
+!cmd/server/dist/
 .output/
 data/
 backups/
@@ -12,6 +13,12 @@ backups/
 .env.*.local
 *.log
 
+# Go build artifacts
+/bin/
+/server
+*.test
+*.out
+
 todo.md
 problem.md
 AGENTS.md
@@ -21,6 +28,4 @@ reference/
 result
 .DS_Store
 Thumbs.db
-packages/server/wrangler.toml
-packages/server/config.json
 *.tsbuildinfo
