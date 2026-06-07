@@ -23,7 +23,6 @@ jobs:
       - name: Build APK
         working-directory: web
         run: |
-          npx cap add android
           npx cap sync
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           # Generate debug keystore at default location
