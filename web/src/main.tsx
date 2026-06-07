@@ -6,7 +6,7 @@ import { RequireAuth } from "./components/RequireAuth";
 import { Layout } from "./components/Layout";
 import { ServerUrlDialog } from "./components/ServerUrlDialog";
 import { isNative } from "./lib/capacitor";
-import { CalendarPage } from "./pages/CalendarPage";
+import { CalendarView } from "./components/CalendarView";
 import { ImportPage } from "./pages/ImportPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -32,7 +32,7 @@ function App() {
             <Route element={<RequireAuth />}>
               <Route element={<Layout />}>
                 <Route index element={<Navigate to="/calendar" replace />} />
-                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/calendar" element={<CalendarView />} />
                 <Route path="/import" element={<ImportPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>

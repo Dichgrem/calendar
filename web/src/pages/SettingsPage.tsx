@@ -25,7 +25,6 @@ export function SettingsPage() {
   const [saveError, setSaveError] = useState("");
   const [backingUp, setBackingUp] = useState(false);
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
-  const [caldavCopied, setCaldavCopied] = useState(false);
   const [serverUrl, setServerUrl] = useState(localStorage.getItem("serverUrl") || "");
   const [serverUrlSaved, setServerUrlSaved] = useState(false);
   const [accountUser, setAccountUser] = useState("");
@@ -226,24 +225,6 @@ export function SettingsPage() {
             </section>
           )}
 
-          {/* CalDAV */}
-          {accountUser && (
-            <section>
-              <h2 className="text-sm font-semibold mb-3 dark:text-white">{t("settings.caldav")}</h2>
-              <div className="space-y-2 text-xs">
-                <div>
-                  <span className="text-neutral-500">{t("settings.caldavUrl")}</span>
-                  <div className="mt-0.5 flex gap-1">
-                    <input readOnly value={(isNative ? (localStorage.getItem("serverUrl") || window.location.origin) : window.location.origin) + "/dav/"} className="flex-1 border rounded px-2 py-1 text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-xs" />
-                    <Button variant="outline" size="sm" onClick={() => { const caldavUrl = (isNative ? (localStorage.getItem("serverUrl") || window.location.origin) : window.location.origin) + "/dav/"; navigator.clipboard.writeText(caldavUrl); setCaldavCopied(true); setTimeout(() => setCaldavCopied(false), 2000); }} className="h-7 text-xs shrink-0">{caldavCopied ? t("settings.caldavCopied") : t("settings.caldavCopy")}</Button>
-                  </div>
-                </div>
-                <p className="text-neutral-400">{t("settings.caldavHint")}</p>
-              </div>
-            </section>
-          )}
-
-          {/* Backup */}
           <section>
             {backupResult && (
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">

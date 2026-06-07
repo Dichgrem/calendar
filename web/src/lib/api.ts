@@ -15,14 +15,14 @@ function getBaseUrl(): string {
   return serverUrl ? `${serverUrl}/api` : "/api";
 }
 
-const BASE = "/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const base = getBaseUrl();
+  const { headers: initHeaders, ...rest } = init ?? {};
   const res = await fetch(`${base}${path}`, {
+    ...rest,
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...init?.headers },
-    ...init,
+    headers: { "Content-Type": "application/json", ...initHeaders },
   });
 
   if (!res.ok) {
