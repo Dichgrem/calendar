@@ -40,8 +40,8 @@ export function LoginPage() {
       }
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       navigate("/calendar");
-    } catch {
-      setError(isFirstUser ? t("login.registerFailed") : t("login.loginFailed"));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : (isFirstUser ? t("login.registerFailed") : t("login.loginFailed")));
     } finally {
       setLoading(false);
     }

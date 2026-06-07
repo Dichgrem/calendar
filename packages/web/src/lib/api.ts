@@ -10,10 +10,16 @@ interface ApiError {
   error: { code: string; message: string };
 }
 
+function getBaseUrl(): string {
+  const serverUrl = localStorage.getItem("serverUrl")?.replace(/\/+$/, "");
+  return serverUrl ? `${serverUrl}/api` : "/api";
+}
+
 const BASE = "/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const base = getBaseUrl();
+  const res = await fetch(`${base}${path}`, {
     credentials: "include",
     headers: { "Content-Type": "application/json", ...init?.headers },
     ...init,
@@ -79,7 +85,7 @@ export const api = {
     import: (data: { content: string; calendarId?: string; calendarName?: string; color?: string; sourceUrl?: string; selectedUids: string[]; overwrite?: boolean }) =>
       request<ApiResponse<unknown>>("/ics/import", { method: "POST", body: JSON.stringify(data) }),
     exportUrl: (calendarId: string, start?: string, end?: string) =>
-      `/api/calendars/${calendarId}/ics/export${start ? `?start=${start}&end=${end}` : ""}`,
+      `${getBaseUrl()}/calendars/${calendarId}/ics/export${start ? `?start=${start}&end=${end}` : ""}`,
   },
 
   sync: {
@@ -100,7 +106,7 @@ export const api = {
     create: () => request<ApiResponse<{ filename: string; path: string }>>("/backup", { method: "POST" }),
     download: (filename: string) => {
       const a = document.createElement("a");
-      a.href = `${BASE}/backup/download/${filename}`;
+      a.href = `${getBaseUrl()}/backup/download/${filename}`;
       a.download = filename;
       a.click();
     },

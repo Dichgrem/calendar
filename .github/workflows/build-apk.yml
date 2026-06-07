@@ -1,21 +1,39 @@
 name: Build APK
-
 on:
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker build -t apk -f Dockerfile.capacitor .
-
-      - name: Extract APK
-        run: docker cp $(docker create apk):/apk/app-release.apk ./app-release.apk
-
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platforms;android-34 build-tools;34.0.0
+      - run: pnpm --filter @calendar/web build
+      - name: Build APK
+        working-directory: packages/web
+        run: |
+          npx cap add android
+          npx cap sync
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          # Generate debug keystore at default location
+          mkdir -p ~/.android
+          keytool -genkeypair -v -keystore ~/.android/debug.keystore \
+            -storepass android -keypass android \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          cd android && ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: app-release.apk
+          name: app-debug
+          path: packages/web/android/app/build/outputs/apk/debug/app-debug.apk
