@@ -43,7 +43,6 @@ calendar/
 │   ├── sync/                # 同步 pull/push
 │   └── validate/            # 共享校验
 ├── web/                     # React SPA（pnpm workspace）
-├── mobile/                  # Android WebView 壳
 ├── go.mod / go.sum
 ├── Justfile                 # 任务运行器
 ├── Dockerfile               # 三阶段构建（node + go → alpine）
