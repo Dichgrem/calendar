@@ -51,6 +51,11 @@ func main() {
 		log.Fatalf("Migration failed: %v", err)
 	}
 
+	// Clean up events with empty dates (test artifacts from earlier development)
+	if _, err := db.DB.Exec("DELETE FROM events WHERE deleted = 0 AND (start_at = '' OR end_at = '')"); err != nil {
+		log.Printf("Cleanup events: %v", err)
+	}
+
 	// Register CalDAV HTTP methods for Chi
 	chi.RegisterMethod("PROPFIND")
 	chi.RegisterMethod("REPORT")

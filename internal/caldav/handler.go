@@ -94,7 +94,7 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 
 	rows, err := db.DB.Query(`
 		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified
-		FROM events WHERE calendar_id = ? AND deleted = 0 AND start_at != '' AND end_at != ''`, calendarID)
+		FROM events WHERE calendar_id = ? AND deleted = 0`, calendarID)
 	if err != nil { http.Error(w, "Internal Server Error", 500); return }
 	defer rows.Close()
 
@@ -366,6 +366,14 @@ func buildCal(title string, desc, rrule, loc *string, startAt, endAt, uid, dtsta
 // setDateProp sets a date property, auto-detecting all-day vs datetime.
 func setDateProp(props ical.Props, name, value string) {
 	if value == "" { return }
+	// ICS raw date: YYYYMMDD
+	if len(value) == 8 {
+		t, err := time.Parse("20060102", value)
+		if err != nil { props.SetText(name, value); return }
+		props.SetDate(name, t)
+		return
+	}
+	// ISO date: YYYY-MM-DD
 	if len(value) == 10 {
 		t, _ := time.Parse("2006-01-02", value)
 		props.SetDate(name, t)
@@ -391,7 +399,16 @@ func calendarEvents(cal *ical.Calendar) []*ical.Component {
 	return evs
 }
 
-func compProp(c *ical.Component, name string) string { s, _ := c.Props.Text(name); return s }
+func compProp(c *ical.Component, name string) string {
+	s, _ := c.Props.Text(name)
+	if s == "" {
+		vals := c.Props.Values(name)
+		if len(vals) > 0 && vals[0].Value != "" {
+			return vals[0].Value
+		}
+	}
+	return s
+}
 
 func writeXML(w http.ResponseWriter, ms multiStatus) {
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
