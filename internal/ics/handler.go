@@ -541,6 +541,17 @@ func setDateProp(props ical.Props, name, value string) {
 		props.SetDate(name, t)
 		return
 	}
+	// ICS raw datetime: YYYYMMDDTHHMMSS[Z]
+	if len(value) == 15 || len(value) == 16 {
+		s := value[0:4] + "-" + value[4:6] + "-" + value[6:8] + "T" +
+			value[9:11] + ":" + value[11:13] + ":" + value[13:15]
+		if len(value) == 16 && value[15] == 'Z' { s += "Z" }
+		t, err := time.Parse(time.RFC3339, s+"Z")
+		if err != nil { t, err = time.Parse("2006-01-02T15:04:05", s) }
+		if err != nil { props.SetText(name, value); return }
+		props.SetDateTime(name, t)
+		return
+	}
 	// ISO date: YYYY-MM-DD
 	if len(value) == 10 {
 		t, _ := time.Parse("2006-01-02", value)
