@@ -110,9 +110,9 @@ func main() {
 	r.Get("/.well-known/carddav", notFound)
 	r.Method("PROPFIND", "/.well-known/carddav", http.HandlerFunc(notFound))
 
-	// CalDAV server — RequireAuth middleware for proper authentication.
+	// CalDAV server — CaldavAuth handles Basic/Bearer + DAV challenge.
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.RequireAuth)
+		r.Use(middleware.CaldavAuth)
 		caldav.RegisterRoutes(r)
 	})
 
