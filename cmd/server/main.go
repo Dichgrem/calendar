@@ -81,6 +81,10 @@ func main() {
 		})
 	})
 
+	notFound := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	}
+
 	// Protected REST routes (auth required)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAuth)
@@ -97,10 +101,14 @@ func main() {
 		sync.RegisterRoutes(r)
 	})
 
-	// /.well-known/caldav is public per RFC 6764 — DAVx5 fetches this
-	// without credentials before attempting authenticated PROPFIND.
+	// /.well-known/caldav — public, RFC 6764.
 	r.Get("/.well-known/caldav", caldav.WellKnownHandler)
 	r.Method("PROPFIND", "/.well-known/caldav", http.HandlerFunc(caldav.WellKnownHandler))
+
+	// /.well-known/carddav — DAVx5 probes for both services.
+	// Return 404 so it skips CardDAV cleanly.
+	r.Get("/.well-known/carddav", notFound)
+	r.Method("PROPFIND", "/.well-known/carddav", http.HandlerFunc(notFound))
 
 	// CalDAV server — RequireAuth middleware for proper authentication.
 	r.Group(func(r chi.Router) {
