@@ -364,7 +364,7 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 			                    all_day, rrule, color, location, created_at, updated_at, last_modified, raw_ics)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`, eventID, calendarID, title, strOrNil(desc), startAt, endAt,
-			allDay, strOrNil(rruleVal), nil, strOrNil(loc), now, now, lmod, req.Content)
+			allDay, strOrNil(rruleVal), nil, strOrNil(loc), now, now, lmod, serializeEvent(ev))
 		if err != nil {
 			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 			return
@@ -392,7 +392,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	db.DB.QueryRow("SELECT name FROM calendars WHERE id = ?", calendarID).Scan(&calName)
 
 	rows, err := db.DB.Query(`
-		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at
+		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, raw_ics
 		FROM events WHERE calendar_id = ? AND deleted = 0
 	`, calendarID)
 	if err != nil {
@@ -410,29 +410,39 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var id, title, startAt, endAt, createdAt, updatedAt string
-		var desc, rrule, loc *string
+		var desc, rrule, loc, rawIcs *string
 		var allDay int
-		if rows.Scan(&id, &title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt) != nil {
+		if rows.Scan(&id, &title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &rawIcs) != nil {
 			continue
 		}
 
-		ev := ical.NewEvent()
-		ev.Props.SetText(ical.PropUID, id+"@calendar")
-		ev.Props.SetText(ical.PropSummary, title)
-		if desc != nil {
-			ev.Props.SetText(ical.PropDescription, *desc)
+		// Try to parse raw_ics to preserve original properties (VALARM etc).
+		// Falls back to DB columns if raw_ics is missing or unparseable.
+		var ev *ical.Component
+		if rawIcs != nil && *rawIcs != "" {
+			if parsed, err := ical.NewDecoder(bytes.NewReader([]byte(*rawIcs))).Decode(); err == nil {
+				for _, c := range parsed.Children {
+					if c.Name == ical.CompEvent {
+						ev = c
+						break
+					}
+				}
+			}
 		}
-		ev.Props.SetText(ical.PropDateTimeStart, startAt)
-		ev.Props.SetText(ical.PropDateTimeEnd, endAt)
-		if rrule != nil {
-			ev.Props.SetText(ical.PropRecurrenceRule, *rrule)
+		if ev == nil {
+			evComp := ical.NewEvent()
+			evComp.Props.SetText(ical.PropUID, id+"@calendar")
+			evComp.Props.SetText(ical.PropSummary, title)
+			if desc != nil { evComp.Props.SetText(ical.PropDescription, *desc) }
+			evComp.Props.SetText(ical.PropDateTimeStart, startAt)
+			evComp.Props.SetText(ical.PropDateTimeEnd, endAt)
+			if rrule != nil { evComp.Props.SetText(ical.PropRecurrenceRule, *rrule) }
+			if loc != nil { evComp.Props.SetText(ical.PropLocation, *loc) }
+			evComp.Props.SetText(ical.PropDateTimeStamp, createdAt)
+			ev = evComp.Component
 		}
-		if loc != nil {
-			ev.Props.SetText(ical.PropLocation, *loc)
-		}
-		ev.Props.SetText(ical.PropDateTimeStamp, createdAt)
 
-		icalCal.Children = append(icalCal.Children, ev.Component)
+		icalCal.Children = append(icalCal.Children, ev)
 	}
 
 	var buf bytes.Buffer
@@ -507,4 +517,16 @@ func strOrNil(s string) interface{} {
 		return nil
 	}
 	return s
+}
+
+// serializeEvent wraps a single VEVENT component in a minimal VCALENDAR
+// so it can be stored in raw_ics and re-parsed on export.
+func serializeEvent(ev *ical.Component) string {
+	cal := ical.NewCalendar()
+	cal.Props.SetText(ical.PropProductID, "-//Calendar//Go//EN")
+	cal.Props.SetText(ical.PropVersion, "2.0")
+	cal.Children = append(cal.Children, ev)
+	var buf bytes.Buffer
+	ical.NewEncoder(&buf).Encode(cal)
+	return buf.String()
 }
