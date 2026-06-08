@@ -67,14 +67,32 @@ func extractEvents(cal *ical.Calendar) []*ical.Component {
 func componentProp(c *ical.Component, name string) string {
 	s, _ := c.Props.Text(name)
 	if s == "" {
-		// DateTime props like DTSTART/DTEND are stored differently;
-		// try raw values as fallback.
 		vals := c.Props.Values(name)
 		if len(vals) > 0 && vals[0].Value != "" {
-			return vals[0].Value
+			s = vals[0].Value
 		}
 	}
 	return s
+}
+
+// normalizeICSDate converts ICS raw datetime to ISO 8601 for storage.
+// Handles: "20240101" → "2024-01-01", "20240101T090000Z" → "2024-01-01T09:00:00Z"
+func normalizeICSDate(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if len(raw) == 8 {
+		// DATE: YYYYMMDD → YYYY-MM-DD
+		return raw[0:4] + "-" + raw[4:6] + "-" + raw[6:8]
+	}
+	if len(raw) >= 15 {
+		// DATE-TIME: YYYYMMDDTHHMMSS[Z] → YYYY-MM-DDTHH:MM:SS[Z]
+		result := raw[0:4] + "-" + raw[4:6] + "-" + raw[6:8] + "T" +
+			raw[9:11] + ":" + raw[11:13] + ":" + raw[13:15]
+		if len(raw) > 15 && raw[15] == 'Z' {
+			result += "Z"
+		}
+		return result
+	}
+	return raw
 }
 
 func handlePreview(w http.ResponseWriter, r *http.Request) {
@@ -111,8 +129,8 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 	for _, ev := range events {
 		uid := componentProp(ev, ical.PropUID)
 		title := componentProp(ev, ical.PropSummary)
-		startAt := componentProp(ev, ical.PropDateTimeStart)
-		endAt := componentProp(ev, ical.PropDateTimeEnd)
+		startAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeStart))
+		endAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeEnd))
 		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
 
 		items = append(items, PreviewItem{
@@ -184,8 +202,8 @@ func handleFetchURL(w http.ResponseWriter, r *http.Request) {
 	for _, ev := range events {
 		uid := componentProp(ev, ical.PropUID)
 		title := componentProp(ev, ical.PropSummary)
-		startAt := componentProp(ev, ical.PropDateTimeStart)
-		endAt := componentProp(ev, ical.PropDateTimeEnd)
+		startAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeStart))
+		endAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeEnd))
 		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
 
 		items = append(items, PreviewItem{
@@ -330,8 +348,8 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 
 		eventID := uuid.New().String()
 		title := componentProp(ev, ical.PropSummary)
-		startAt := componentProp(ev, ical.PropDateTimeStart)
-		endAt := componentProp(ev, ical.PropDateTimeEnd)
+		startAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeStart))
+		endAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeEnd))
 		desc := componentProp(ev, ical.PropDescription)
 		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
 		loc := componentProp(ev, ical.PropLocation)
