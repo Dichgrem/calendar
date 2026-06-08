@@ -322,8 +322,8 @@ type prop struct {
 	GetLastModified  string        `xml:"getlastmodified,omitempty"`
 
 	CurrentUserPrincipal *hrefEl       `xml:"current-user-principal,omitempty"`
-	CalendarHomeSet      *hrefEl       `xml:"calendar-home-set,omitempty"`
-	CalendarData         *calendarData `xml:"calendar-data,omitempty"`
+	CalendarHomeSet      *hrefEl       `xml:"urn:ietf:params:xml:ns:caldav calendar-home-set,omitempty"`
+	CalendarData         *calendarData `xml:"urn:ietf:params:xml:ns:caldav calendar-data,omitempty"`
 }
 type resourceType struct {
 	Collection *struct{} `xml:"collection,omitempty"`
