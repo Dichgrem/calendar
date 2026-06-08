@@ -2,6 +2,10 @@ package middleware
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -10,6 +14,8 @@ import (
 
 	"calendar/internal/apperror"
 	"calendar/internal/db"
+
+	"golang.org/x/crypto/pbkdf2"
 )
 
 type contextKey string
@@ -117,13 +123,22 @@ func writeAppError(w http.ResponseWriter, err *apperror.AppError) {
 }
 
 func extractSession(r *http.Request) string {
-	// 1. Authorization: Bearer <token>
 	authHeader := r.Header.Get("Authorization")
+
+	// 1. Bearer token
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		return authHeader[7:]
 	}
 
-	// 2. session_token cookie
+	// 2. Basic auth (for CalDAV clients like DAVx5)
+	if strings.HasPrefix(authHeader, "Basic ") {
+		userID := resolveBasicAuth(authHeader[6:])
+		if userID != "" {
+			return "u:" + userID // virtual session: prefix "u:" marks direct auth
+		}
+	}
+
+	// 3. session_token cookie
 	if cookie, err := r.Cookie("session_token"); err == nil {
 		return cookie.Value
 	}
@@ -131,9 +146,55 @@ func extractSession(r *http.Request) string {
 	return ""
 }
 
+func resolveBasicAuth(encoded string) string {
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return ""
+	}
+	parts := strings.SplitN(string(decoded), ":", 2)
+	if len(parts) != 2 {
+		return ""
+	}
+	username, password := parts[0], parts[1]
+	return verifyUserPassword(username, password)
+}
+
+func verifyUserPassword(username, password string) string {
+	var id, hash string
+	err := db.DB.QueryRow("SELECT id, password_hash FROM users WHERE username = ?", username).Scan(&id, &hash)
+	if err != nil {
+		return ""
+	}
+	if !verifyHash(password, hash) {
+		return ""
+	}
+	return id
+}
+
+func verifyHash(password, stored string) bool {
+	parts := strings.SplitN(stored, ":", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	hash, salt := parts[0], parts[1]
+	input := hex.EncodeToString(pbkdf2.Key([]byte(password), []byte(salt), 100_000, 32, sha256.New))
+	return subtle.ConstantTimeCompare([]byte(hash), []byte(input)) == 1
+}
+
 func resolveSession(sessionID string) (*PermissionContext, string) {
 	if sessionID == "" {
 		return nil, ""
+	}
+
+	// Virtual sessions from Basic Auth: prefix "u:<userID>"
+	if strings.HasPrefix(sessionID, "u:") {
+		userID := sessionID[2:]
+		roles, err := loadRoles(userID)
+		if err != nil {
+			log.Printf("Failed to load roles: %v", err)
+			return nil, ""
+		}
+		return &PermissionContext{UserID: userID, Roles: roles}, sessionID
 	}
 
 	userID := validateSession(sessionID)
