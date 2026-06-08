@@ -393,7 +393,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.DB.Query(`
 		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, raw_ics
-		FROM events WHERE calendar_id = ? AND deleted = 0 AND start_at != ''
+		FROM events WHERE calendar_id = ? AND deleted = 0
 	`, calendarID)
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
@@ -534,6 +534,14 @@ func serializeEvent(ev *ical.Component) string {
 // setDateProp sets a date/datetime property with correct VALUE parameter.
 func setDateProp(props ical.Props, name, value string) {
 	if value == "" { return }
+	// ICS raw date: YYYYMMDD
+	if len(value) == 8 {
+		t, err := time.Parse("20060102", value)
+		if err != nil { props.SetText(name, value); return }
+		props.SetDate(name, t)
+		return
+	}
+	// ISO date: YYYY-MM-DD
 	if len(value) == 10 {
 		t, _ := time.Parse("2006-01-02", value)
 		props.SetDate(name, t)
