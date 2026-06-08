@@ -24,12 +24,14 @@ func RegisterRoutes(r chiRouter) {
 }
 
 func WellKnownHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Location", fmt.Sprintf("https://%s/dav/", r.Host))
+	scheme := requestScheme(r)
+	w.Header().Set("Location", fmt.Sprintf("%s://%s/dav/", scheme, r.Host))
 	w.WriteHeader(301)
 }
 
 func RootRedirect(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Location", fmt.Sprintf("https://%s/dav/", r.Host))
+	scheme := requestScheme(r)
+	w.Header().Set("Location", fmt.Sprintf("%s://%s/dav/", scheme, r.Host))
 	w.WriteHeader(301)
 }
 

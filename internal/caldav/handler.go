@@ -16,6 +16,16 @@ import (
 	"calendar/internal/middleware"
 )
 
+func requestScheme(r *http.Request) string {
+	if r.TLS != nil {
+		return "https"
+	}
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		return "https"
+	}
+	return "http"
+}
+
 func userIDFromReq(r *http.Request) string {
 	p := middleware.GetPermission(r)
 	if p == nil {
@@ -28,10 +38,7 @@ func userIDFromReq(r *http.Request) string {
 
 func handlePropfindRoot(w http.ResponseWriter, r *http.Request) {
 	host := r.Host
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
+	scheme := requestScheme(r)
 	ms := multiStatus{Responses: []response{{
 		Href: "/dav/",
 		PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
@@ -287,8 +294,7 @@ func handleMkcalendar(w http.ResponseWriter, r *http.Request) {
 	tx.Exec(`INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?,?,?)`, id, userID, "admin")
 	if tx.Commit() != nil { http.Error(w, "Internal Server Error", 500); return }
 
-	host := r.Host; scheme := "http"
-	if r.TLS != nil { scheme = "https" }
+	host := r.Host; scheme := requestScheme(r)
 	w.Header().Set("Location", fmt.Sprintf("%s://%s/dav/calendars/%s/", scheme, host, id))
 	w.WriteHeader(201)
 }
