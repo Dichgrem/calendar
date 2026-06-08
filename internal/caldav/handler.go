@@ -356,11 +356,25 @@ func buildCal(title string, desc, rrule, loc *string, startAt, endAt, uid, dtsta
 	if desc != nil { ev.Props.SetText(ical.PropDescription, *desc) }
 	if rrule != nil { ev.Props.SetText(ical.PropRecurrenceRule, *rrule) }
 	if loc != nil { ev.Props.SetText(ical.PropLocation, *loc) }
-	ev.Props.SetText(ical.PropDateTimeStart, startAt)
-	ev.Props.SetText(ical.PropDateTimeEnd, endAt)
-	if dtstamp != "" { ev.Props.SetText(ical.PropDateTimeStamp, dtstamp) }
+	setDateProp(ev.Props, ical.PropDateTimeStart, startAt)
+	setDateProp(ev.Props, ical.PropDateTimeEnd, endAt)
+	if dtstamp != "" { setDateProp(ev.Props, ical.PropDateTimeStamp, dtstamp) }
 	cal.Children = append(cal.Children, ev.Component)
 	return cal
+}
+
+// setDateProp sets a date property, auto-detecting all-day vs datetime.
+func setDateProp(props ical.Props, name, value string) {
+	if value == "" { return }
+	if len(value) == 10 {
+		t, _ := time.Parse("2006-01-02", value)
+		props.SetDate(name, t)
+	} else {
+		t, _ := time.Parse(time.RFC3339, value)
+		if t.IsZero() { t, _ = time.Parse("2006-01-02T15:04:05Z", value) }
+		if t.IsZero() { props.SetText(name, value); return }
+		props.SetDateTime(name, t)
+	}
 }
 
 func serializeCal(cal *ical.Calendar) string {

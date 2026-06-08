@@ -434,8 +434,8 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 			evComp.Props.SetText(ical.PropUID, id+"@calendar")
 			evComp.Props.SetText(ical.PropSummary, title)
 			if desc != nil { evComp.Props.SetText(ical.PropDescription, *desc) }
-			evComp.Props.SetText(ical.PropDateTimeStart, startAt)
-			evComp.Props.SetText(ical.PropDateTimeEnd, endAt)
+			setDateProp(evComp.Props, ical.PropDateTimeStart, startAt)
+			setDateProp(evComp.Props, ical.PropDateTimeEnd, endAt)
 			if rrule != nil { evComp.Props.SetText(ical.PropRecurrenceRule, *rrule) }
 			if loc != nil { evComp.Props.SetText(ical.PropLocation, *loc) }
 			evComp.Props.SetText(ical.PropDateTimeStamp, createdAt)
@@ -529,4 +529,18 @@ func serializeEvent(ev *ical.Component) string {
 	var buf bytes.Buffer
 	ical.NewEncoder(&buf).Encode(cal)
 	return buf.String()
+}
+
+// setDateProp sets a date/datetime property with correct VALUE parameter.
+func setDateProp(props ical.Props, name, value string) {
+	if value == "" { return }
+	if len(value) == 10 {
+		t, _ := time.Parse("2006-01-02", value)
+		props.SetDate(name, t)
+	} else {
+		t, err := time.Parse(time.RFC3339, value)
+		if err != nil { t, _ = time.Parse("2006-01-02T15:04:05Z", value) }
+		if t.IsZero() { props.SetText(name, value); return }
+		props.SetDateTime(name, t)
+	}
 }
