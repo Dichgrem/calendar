@@ -20,6 +20,7 @@ import (
 
 	"calendar/internal/auth"
 	"calendar/internal/backup"
+	"calendar/internal/caldav"
 	"calendar/internal/config"
 	"calendar/internal/db"
 	cal "calendar/internal/calendar"
@@ -49,6 +50,11 @@ func main() {
 	if err := runMigrations(); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
+
+	// Register CalDAV HTTP methods for Chi
+	chi.RegisterMethod("PROPFIND")
+	chi.RegisterMethod("REPORT")
+	chi.RegisterMethod("MKCALENDAR")
 
 	// Build router
 	r := chi.NewRouter()
@@ -89,6 +95,9 @@ func main() {
 		ics.RegisterRoutes(r)
 		backup.RegisterRoutes(r)
 		sync.RegisterRoutes(r)
+
+		// CalDAV (before SPA fallback)
+		caldav.RegisterRoutes(r)
 	})
 
 	// Static file serving with SPA fallback (catch-all, matched last)
