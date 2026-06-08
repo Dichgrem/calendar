@@ -1,10 +1,17 @@
 package ics
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
+	ical "github.com/emersion/go-ical"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
@@ -21,7 +28,6 @@ func RegisterRoutes(r chi.Router) {
 	r.Get("/api/calendars/{calendarId}/ics/export", handleExport)
 }
 
-// PreviewItem is one parsed VEVENT in preview response.
 type PreviewItem struct {
 	Type     string `json:"type"`
 	UID      string `json:"uid"`
@@ -44,6 +50,25 @@ type timeSpanData struct {
 	To   string `json:"to"`
 }
 
+func parseIcsContent(content string) (*ical.Calendar, error) {
+	return ical.NewDecoder(strings.NewReader(content)).Decode()
+}
+
+func extractEvents(cal *ical.Calendar) []*ical.Component {
+	var events []*ical.Component
+	for _, c := range cal.Children {
+		if c.Name == ical.CompEvent {
+			events = append(events, c)
+		}
+	}
+	return events
+}
+
+func componentProp(c *ical.Component, name string) string {
+	s, _ := c.Props.Text(name)
+	return s
+}
+
 func handlePreview(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Content string `json:"content"`
@@ -57,41 +82,52 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := ParseIcs(req.Content)
+	icalCal, err := parseIcsContent(req.Content)
 	if err != nil {
 		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to parse ICS: "+err.Error()))
 		return
 	}
 
-	items := make([]PreviewItem, 0, len(result.Events))
-	var earliest, latest string
-	for _, e := range result.Events {
-		item := PreviewItem{
-			Type:     "event",
-			UID:      e.UID,
-			Title:    e.Title,
-			StartAt:  e.StartAt,
-			EndAt:    e.EndAt,
-			RRule:    e.RRule,
-			Selected: true,
-		}
-		items = append(items, item)
+	// Calendar name from X-WR-CALNAME or NAME
+	calName := componentProp(icalCal.Component, ical.PropName)
+	if calName == "" {
+		calName = propText(icalCal.Component, "X-WR-CALNAME")
+	}
+	if calName == "" {
+		calName = "Imported Calendar"
+	}
 
-		if e.StartAt != "" {
-			if earliest == "" || e.StartAt < earliest {
-				earliest = e.StartAt
-			}
+	events := extractEvents(icalCal)
+	items := make([]PreviewItem, 0, len(events))
+	var earliest, latest string
+	for _, ev := range events {
+		uid := componentProp(ev, ical.PropUID)
+		title := componentProp(ev, ical.PropSummary)
+		startAt := componentProp(ev, ical.PropDateTimeStart)
+		endAt := componentProp(ev, ical.PropDateTimeEnd)
+		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
+
+		items = append(items, PreviewItem{
+			Type:     "event",
+			UID:      uid,
+			Title:    title,
+			StartAt:  startAt,
+			EndAt:    endAt,
+			RRule:    rruleVal,
+			Selected: true,
+		})
+
+		if startAt != "" && (earliest == "" || startAt < earliest) {
+			earliest = startAt
 		}
-		if e.EndAt != "" {
-			if latest == "" || e.EndAt > latest {
-				latest = e.EndAt
-			}
+		if endAt != "" && (latest == "" || endAt > latest) {
+			latest = endAt
 		}
 	}
 
 	resp := previewResponse{
-		Name:       result.Name,
-		EventCount: len(result.Events),
+		Name:       calName,
+		EventCount: len(events),
 		Items:      items,
 	}
 	if earliest != "" || latest != "" {
@@ -114,41 +150,56 @@ func handleFetchURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, err := FetchIcsFromURL(req.URL)
+	content, err := fetchIcsFromURL(req.URL)
 	if err != nil {
 		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to fetch: "+err.Error()))
 		return
 	}
 
-	result, err := ParseIcs(content)
+	icalCal, err := parseIcsContent(content)
 	if err != nil {
 		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to parse ICS: "+err.Error()))
 		return
 	}
 
-	items := make([]PreviewItem, 0, len(result.Events))
+	calName := componentProp(icalCal.Component, ical.PropName)
+	if calName == "" {
+		calName = propText(icalCal.Component, "X-WR-CALNAME")
+	}
+	if calName == "" {
+		calName = "Imported Calendar"
+	}
+
+	events := extractEvents(icalCal)
+	items := make([]PreviewItem, 0, len(events))
 	var earliest, latest string
-	for _, e := range result.Events {
+	for _, ev := range events {
+		uid := componentProp(ev, ical.PropUID)
+		title := componentProp(ev, ical.PropSummary)
+		startAt := componentProp(ev, ical.PropDateTimeStart)
+		endAt := componentProp(ev, ical.PropDateTimeEnd)
+		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
+
 		items = append(items, PreviewItem{
 			Type:     "event",
-			UID:      e.UID,
-			Title:    e.Title,
-			StartAt:  e.StartAt,
-			EndAt:    e.EndAt,
-			RRule:    e.RRule,
+			UID:      uid,
+			Title:    title,
+			StartAt:  startAt,
+			EndAt:    endAt,
+			RRule:    rruleVal,
 			Selected: true,
 		})
-		if e.StartAt != "" && (earliest == "" || e.StartAt < earliest) {
-			earliest = e.StartAt
+		if startAt != "" && (earliest == "" || startAt < earliest) {
+			earliest = startAt
 		}
-		if e.EndAt != "" && (latest == "" || e.EndAt > latest) {
-			latest = e.EndAt
+		if endAt != "" && (latest == "" || endAt > latest) {
+			latest = endAt
 		}
 	}
 
 	preview := previewResponse{
-		Name:       result.Name,
-		EventCount: len(result.Events),
+		Name:       calName,
+		EventCount: len(events),
 		Items:      items,
 	}
 	if earliest != "" || latest != "" {
@@ -184,13 +235,14 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := ParseIcs(req.Content)
+	icalCal, err := parseIcsContent(req.Content)
 	if err != nil {
 		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to parse ICS"))
 		return
 	}
 
-	// Build selected set for fast lookup
+	events := extractEvents(icalCal)
+
 	selected := make(map[string]bool, len(req.SelectedUIDs))
 	for _, uid := range req.SelectedUIDs {
 		selected[uid] = true
@@ -206,17 +258,21 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	if req.CalendarID != "" {
-		// Import into existing calendar
 		if !perm.IsMember(req.CalendarID) {
 			middleware.JSONResponse(w, 403, apperror.Forbidden("Access denied"))
 			return
 		}
 		calendarID = req.CalendarID
 	} else {
-		// Create new calendar
 		name := req.CalendarName
 		if name == "" {
-			name = result.Name
+			name = componentProp(icalCal.Component, ical.PropName)
+		}
+		if name == "" {
+			name = propText(icalCal.Component, "X-WR-CALNAME")
+		}
+		if name == "" {
+			name = "Imported Calendar"
 		}
 		color := req.Color
 		if color == "" {
@@ -252,20 +308,28 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		calendarID = calID
 	}
 
-	// Import events
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()
 
-	for _, e := range result.Events {
-		if !selected[e.UID] {
+	for _, ev := range events {
+		uid := componentProp(ev, ical.PropUID)
+		if uid == "" {
+			uid = uuid.New().String()
+		}
+		if !selected[uid] {
 			continue
 		}
 
 		eventID := uuid.New().String()
+		title := componentProp(ev, ical.PropSummary)
+		startAt := componentProp(ev, ical.PropDateTimeStart)
+		endAt := componentProp(ev, ical.PropDateTimeEnd)
+		desc := componentProp(ev, ical.PropDescription)
+		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
+		loc := componentProp(ev, ical.PropLocation)
 
 		allDay := 0
-		// Detect all-day: date string length exactly 10 chars (YYYY-MM-DD)
-		if len(e.StartAt) == 10 && len(e.EndAt) == 10 {
+		if !strings.Contains(startAt, "T") && !strings.Contains(endAt, "T") {
 			allDay = 1
 		}
 
@@ -273,8 +337,8 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 			INSERT INTO events (id, calendar_id, title, description, start_at, end_at,
 			                    all_day, rrule, color, location, created_at, updated_at, last_modified, raw_ics)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`, eventID, calendarID, e.Title, strOrNil(e.Description), e.StartAt, e.EndAt,
-			allDay, strOrNil(e.RRule), nil, strOrNil(e.Location), now, now, lmod, req.Content)
+		`, eventID, calendarID, title, strOrNil(desc), startAt, endAt,
+			allDay, strOrNil(rruleVal), nil, strOrNil(loc), now, now, lmod, req.Content)
 		if err != nil {
 			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 			return
@@ -298,11 +362,9 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get calendar name
 	var calName string
 	db.DB.QueryRow("SELECT name FROM calendars WHERE id = ?", calendarID).Scan(&calName)
 
-	// Get events (non-deleted)
 	rows, err := db.DB.Query(`
 		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at
 		FROM events WHERE calendar_id = ? AND deleted = 0
@@ -313,40 +375,105 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var events []IcsEvent
+	icalCal := ical.NewCalendar()
+	icalCal.Props.SetText(ical.PropProductID, "-//Calendar//Go//EN")
+	icalCal.Props.SetText(ical.PropVersion, "2.0")
+	if calName != "" {
+		icalCal.Props.SetText(ical.PropName, calName)
+	}
+
 	for rows.Next() {
 		var id, title, startAt, endAt, createdAt, updatedAt string
 		var desc, rrule, loc *string
 		var allDay int
-		if err := rows.Scan(&id, &title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt); err != nil {
+		if rows.Scan(&id, &title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt) != nil {
 			continue
 		}
 
-		e := IcsEvent{
-			UID:     id + "@calendar",
-			Title:   title,
-			StartAt: startAt,
-			EndAt:   endAt,
-			DTStamp: createdAt,
-		}
+		ev := ical.NewEvent()
+		ev.Props.SetText(ical.PropUID, id+"@calendar")
+		ev.Props.SetText(ical.PropSummary, title)
 		if desc != nil {
-			e.Description = *desc
+			ev.Props.SetText(ical.PropDescription, *desc)
 		}
+		ev.Props.SetText(ical.PropDateTimeStart, startAt)
+		ev.Props.SetText(ical.PropDateTimeEnd, endAt)
 		if rrule != nil {
-			e.RRule = *rrule
+			ev.Props.SetText(ical.PropRecurrenceRule, *rrule)
 		}
 		if loc != nil {
-			e.Location = *loc
+			ev.Props.SetText(ical.PropLocation, *loc)
 		}
-		events = append(events, e)
+		ev.Props.SetText(ical.PropDateTimeStamp, createdAt)
+
+		icalCal.Children = append(icalCal.Children, ev.Component)
 	}
 
-	icsContent := SerializeCalendar(calName, events)
+	var buf bytes.Buffer
+	ical.NewEncoder(&buf).Encode(icalCal)
 
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("Content-Disposition", "attachment; filename=\"calendar.ics\"")
 	w.WriteHeader(200)
-	w.Write([]byte(icsContent))
+	w.Write(buf.Bytes())
+}
+
+// fetchIcsFromURL (was in serializer.go, kept with SSRF protection)
+func fetchIcsFromURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL")
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return "", fmt.Errorf("unsupported protocol")
+	}
+
+	host := u.Hostname()
+	if host == "" || host == "localhost" {
+		return "", fmt.Errorf("invalid host")
+	}
+	if ip := net.ParseIP(host); ip != nil && isPrivateIP(ip) {
+		return "", fmt.Errorf("private IP not allowed")
+	}
+	addrs, err := net.LookupIP(host)
+	if err != nil {
+		return "", fmt.Errorf("DNS lookup failed: %w", err)
+	}
+	for _, addr := range addrs {
+		if privateIP(addr) {
+			return "", fmt.Errorf("private IP not allowed")
+		}
+	}
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Get(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("fetch failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
+	if err != nil {
+		return "", fmt.Errorf("read failed: %w", err)
+	}
+	return string(body), nil
+}
+
+func isPrivateIP(ip net.IP) bool {
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
+		ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+}
+
+func privateIP(ip net.IP) bool { return isPrivateIP(ip) }
+
+// propText reads a property from a component, handling unknown property names
+func propText(c *ical.Component, name string) string {
+	s, _ := c.Props.Text(name)
+	return s
 }
 
 func strOrNil(s string) interface{} {

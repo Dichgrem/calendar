@@ -48,6 +48,13 @@ func RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
+// GetUserIDFromContext extracts the user ID from a context that has PermissionContext set.
+func GetUserIDFromContext(ctx context.Context) string {
+	if perm, ok := ctx.Value(PermissionCtxKey).(*PermissionContext); ok {
+		return perm.UserID
+	}
+	return ""
+}
 // GetPermission extracts the PermissionContext from the request context.
 func GetPermission(r *http.Request) *PermissionContext {
 	if perm, ok := r.Context().Value(PermissionCtxKey).(*PermissionContext); ok {
@@ -270,13 +277,37 @@ func CORS(next http.Handler) http.Handler {
 		if origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		}
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(204)
-			return
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS, PROPFIND, REPORT, MKCALENDAR, PUT")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Depth, Prefer")
+			// Only short-circuit for actual CORS preflight
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(204)
+				return
+			}
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+// CaldavAuth is middleware for CalDAV routes that allows unauthenticated
+// service discovery while rejecting unauthorized access with proper
+// WWW-Authenticate headers that DAV clients expect.
+func CaldavAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Try to authenticate
+		sessionID := extractSession(r)
+		if sessionID != "" {
+			perm, sid := resolveSession(sessionID)
+			if perm != nil {
+				ctx := context.WithValue(r.Context(), PermissionCtxKey, perm)
+				ctx = context.WithValue(ctx, SessionIDCtxKey, sid)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+		}
+
+		// Not authenticated — return 401 with DAV challenge
+		w.Header().Set("WWW-Authenticate", `Basic realm="Calendar"`)
+		w.WriteHeader(401)
 	})
 }
