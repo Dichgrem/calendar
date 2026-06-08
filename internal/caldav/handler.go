@@ -43,8 +43,8 @@ func handlePropfindRoot(w http.ResponseWriter, r *http.Request) {
 		Href: "/dav/",
 		PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
 			ResourceType:         &resourceType{Collection: &struct{}{}},
-			CurrentUserPrincipal: &hrefEl{Inner: "/dav/"},
-			CalendarHomeSet:      &hrefEl{Inner: fmt.Sprintf("%s://%s/dav/calendars/", scheme, host)},
+			CurrentUserPrincipal: &hrefEl{Href: "/dav/"},
+			CalendarHomeSet:      &hrefEl{Href: fmt.Sprintf("%s://%s/dav/calendars/", scheme, host)},
 		}}},
 	}}}
 	writeXML(w, ms)
@@ -330,7 +330,7 @@ type resourceType struct {
 	Calendar   *struct{} `xml:"urn:ietf:params:xml:ns:caldav calendar,omitempty"`
 }
 type hrefEl struct {
-	Inner string `xml:",chardata"`
+	Href string `xml:"DAV: href"`
 }
 type calendarData struct {
 	Content string `xml:",chardata"`
