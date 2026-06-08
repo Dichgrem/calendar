@@ -94,7 +94,7 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 
 	rows, err := db.DB.Query(`
 		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified
-		FROM events WHERE calendar_id = ? AND deleted = 0`, calendarID)
+		FROM events WHERE calendar_id = ? AND deleted = 0 AND start_at != '' AND end_at != ''`, calendarID)
 	if err != nil { http.Error(w, "Internal Server Error", 500); return }
 	defer rows.Close()
 

@@ -393,7 +393,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.DB.Query(`
 		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, raw_ics
-		FROM events WHERE calendar_id = ? AND deleted = 0
+		FROM events WHERE calendar_id = ? AND deleted = 0 AND start_at != ''
 	`, calendarID)
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
