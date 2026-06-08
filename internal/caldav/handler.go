@@ -1,22 +1,22 @@
 package caldav
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	ical "github.com/emersion/go-ical"
 	"github.com/google/uuid"
 
 	"calendar/internal/db"
-	"calendar/internal/ics"
 	"calendar/internal/middleware"
 )
 
-func getCaldavUser(r *http.Request) string {
+func userIDFromReq(r *http.Request) string {
 	p := middleware.GetPermission(r)
 	if p == nil {
 		return ""
@@ -24,227 +24,157 @@ func getCaldavUser(r *http.Request) string {
 	return p.UserID
 }
 
-// handlePropfindRoot returns principal and calendar-home-set for DAV root.
+// --- PROPFIND handlers ---
+
 func handlePropfindRoot(w http.ResponseWriter, r *http.Request) {
 	host := r.Host
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
 	}
-
-	ms := MultiStatus{
-		Responses: []Response{
-			{
-				Href: "/dav/",
-				PropStat: []PropStat{{
-					Status: "HTTP/1.1 200 OK",
-					Prop: Prop{
-						ResourceType: &ResourceType{Collection: &struct{}{}},
-						CurrentUserPrincipal: &Href{Inner: "/dav/"},
-						CalendarHomeSet:      &Href{Inner: fmt.Sprintf("%s://%s/dav/calendars/", scheme, host)},
-					},
-				}},
-			},
-		},
-	}
-
-	writeMultistatus(w, ms)
-}
-
-// handlePropfind dispatches to calendar list or event list based on path
-func handlePropfind(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
-
-	// /dav/calendars/ - list all calendars
-	if path == "/dav/calendars/" || path == "/dav/calendars" {
-		handlePropfindCalendars(w, r)
-		return
-	}
-
-	// /dav/calendars/:id/ - list events in calendar
-	calendarID, filename := parseCalPath(path)
-	if filename == "" || strings.HasSuffix(path, "/") {
-		handlePropfindEvents(w, r, calendarID)
-		return
-	}
-	// Single event
-	handlePropfindSingleEvent(w, r, calendarID, filename)
+	ms := multiStatus{Responses: []response{{
+		Href: "/dav/",
+		PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
+			ResourceType:         &resourceType{Collection: &struct{}{}},
+			CurrentUserPrincipal: &hrefEl{Inner: "/dav/"},
+			CalendarHomeSet:      &hrefEl{Inner: fmt.Sprintf("%s://%s/dav/calendars/", scheme, host)},
+		}}},
+	}}}
+	writeXML(w, ms)
 }
 
 func handlePropfindCalendars(w http.ResponseWriter, r *http.Request) {
-	userID := getCaldavUser(r)
+	userID := userIDFromReq(r)
 	if userID == "" {
 		http.Error(w, "Unauthorized", 401)
 		return
 	}
-
 	rows, err := db.DB.Query(`
-		SELECT c.id, c.name, c.color, c.created_at, c.updated_at, c.last_modified
-		FROM calendars c
-		INNER JOIN calendar_members cm ON c.id = cm.calendar_id
+		SELECT c.id, c.name, c.last_modified
+		FROM calendars c INNER JOIN calendar_members cm ON c.id = cm.calendar_id
 		WHERE cm.user_id = ? ORDER BY cm.sort_order`, userID)
 	if err != nil {
-		log.Printf("caldav list calendars: %v", err)
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
 	defer rows.Close()
 
-	var responses []Response
+	var rs []response
 	for rows.Next() {
-		var id, name, color, createdAt, updatedAt string
-		var lastModified int64
-		if rows.Scan(&id, &name, &color, &createdAt, &updatedAt, &lastModified) != nil {
-			continue
-		}
-
-		responses = append(responses, Response{
+		var id, name string
+		var lmod int64
+		if rows.Scan(&id, &name, &lmod) != nil { continue }
+		rs = append(rs, response{
 			Href: fmt.Sprintf("/dav/calendars/%s/", id),
-			PropStat: []PropStat{{
-				Status: "HTTP/1.1 200 OK",
-				Prop: Prop{
-					ResourceType: &ResourceType{
-						Collection: &struct{}{},
-						Calendar:   &struct{}{},
-					},
-					DisplayName: name,
-					GetETag:     fmt.Sprintf(`"%d"`, lastModified),
-				},
-			}},
+			PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
+				ResourceType: &resourceType{Collection: &struct{}{}, Calendar: &struct{}{}},
+				DisplayName:  name,
+				GetETag:      fmt.Sprintf(`"%d"`, lmod),
+			}}},
 		})
 	}
-
-	ms := MultiStatus{Responses: responses}
-	if ms.Responses == nil {
-		ms.Responses = []Response{}
-	}
-	writeMultistatus(w, ms)
+	if rs == nil { rs = []response{} }
+	writeXML(w, multiStatus{Responses: rs})
 }
 
-// handlePropfindEvents lists all events in a calendar (non-deleted, with ICS data).
 func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID string) {
-	userID := getCaldavUser(r)
-	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
-		return
-	}
+	userID := userIDFromReq(r)
+	if userID == "" { http.Error(w, "Unauthorized", 401); return }
 
 	var count int
-	db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id = ? AND user_id = ?",
-		calendarID, userID).Scan(&count)
-	if count == 0 {
-		http.Error(w, "Not Found", 404)
-		return
-	}
+	db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calendarID, userID).Scan(&count)
+	if count == 0 { http.Error(w, "Not Found", 404); return }
 
 	rows, err := db.DB.Query(`
-		SELECT id, title, description, start_at, end_at, all_day, rrule, location,
-		       created_at, updated_at, last_modified, deleted
+		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified
 		FROM events WHERE calendar_id = ? AND deleted = 0`, calendarID)
-	if err != nil {
-		log.Printf("caldav list events: %v", err)
-		http.Error(w, "Internal Server Error", 500)
-		return
-	}
+	if err != nil { http.Error(w, "Internal Server Error", 500); return }
 	defer rows.Close()
 
-	var responses []Response
+	var rs []response
 	for rows.Next() {
 		var id, title, startAt, endAt, createdAt, updatedAt string
 		var desc, rrule, loc *string
-		var allDay, deleted int
-		var lastModified int64
-		if rows.Scan(&id, &title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &lastModified, &deleted) != nil {
-			continue
-		}
+		var allDay int
+		var lmod int64
+		if rows.Scan(&id, &title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &lmod) != nil { continue }
 
-		ev := buildIcsEvent(id, title, desc, startAt, endAt, rrule, loc, createdAt)
-		icsContent := ics.SerializeCalendar("", []ics.IcsEvent{ev})
+		icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, id+"@calendar", createdAt)
+		icsContent := serializeCal(icalCal)
 
-		responses = append(responses, Response{
+		rs = append(rs, response{
 			Href: fmt.Sprintf("/dav/calendars/%s/%s.ics", calendarID, id),
-			PropStat: []PropStat{{
-				Status: "HTTP/1.1 200 OK",
-				Prop: Prop{
-					DisplayName:     title,
-					GetContentType:  "text/calendar; charset=utf-8",
-					GetContentLength: int64(len(icsContent)),
-					GetETag:          fmt.Sprintf(`"%d"`, lastModified),
-					GetLastModified:  updatedAt,
-					CalendarData:     &CalendarData{Content: icsContent},
-					ResourceType:     &ResourceType{},
-				},
-			}},
-		})
+			PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
+				DisplayName:     title,
+				GetContentType:  "text/calendar; charset=utf-8",
+				GetContentLength: int64(len(icsContent)),
+				GetETag:          fmt.Sprintf(`"%d"`, lmod),
+				GetLastModified:  updatedAt,
+				CalendarData:     &calendarData{Content: icsContent},
+				ResourceType:     &resourceType{},
+			}}}},
+		)
 	}
-
-	ms := MultiStatus{Responses: responses}
-	if ms.Responses == nil {
-		ms.Responses = []Response{}
-	}
-	writeMultistatus(w, ms)
+	if rs == nil { rs = []response{} }
+	writeXML(w, multiStatus{Responses: rs})
 }
 
-func handlePropfindSingleEvent(w http.ResponseWriter, r *http.Request, calendarID, filename string) {
-	userID := getCaldavUser(r)
-	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
-		return
-	}
+func handlePropfindSingle(w http.ResponseWriter, r *http.Request, calendarID, filename string) {
+	userID := userIDFromReq(r)
+	if userID == "" { http.Error(w, "Unauthorized", 401); return }
 	eventID := strings.TrimSuffix(filename, ".ics")
 
 	var title, startAt, endAt, createdAt, updatedAt string
 	var desc, rrule, loc *string
 	var allDay int
-	var lastModified int64
+	var lmod int64
 	err := db.DB.QueryRow(`
-		SELECT e.title, e.description, e.start_at, e.end_at, e.all_day, e.rrule, e.location,
-		       e.created_at, e.updated_at, e.last_modified
-		FROM events e
-		INNER JOIN calendar_members cm ON e.calendar_id = cm.calendar_id
-		WHERE e.id = ? AND cm.user_id = ? AND e.deleted = 0`,
-		eventID, userID,
-	).Scan(&title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &lastModified)
-	if err != nil {
-		writeMultistatus(w, MultiStatus{Responses: []Response{}})
+		SELECT e.title, e.description, e.start_at, e.end_at, e.all_day, e.rrule, e.location, e.created_at, e.updated_at, e.last_modified
+		FROM events e INNER JOIN calendar_members cm ON e.calendar_id = cm.calendar_id
+		WHERE e.id = ? AND cm.user_id = ? AND e.deleted = 0`, eventID, userID,
+	).Scan(&title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &lmod)
+	if err != nil { writeXML(w, multiStatus{Responses: []response{}}); return }
+
+	icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, eventID+"@calendar", createdAt)
+	icsContent := serializeCal(icalCal)
+
+	writeXML(w, multiStatus{Responses: []response{{
+		Href: fmt.Sprintf("/dav/calendars/%s/%s.ics", calendarID, eventID),
+		PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
+			DisplayName:     title,
+			GetContentType:  "text/calendar; charset=utf-8",
+			GetContentLength: int64(len(icsContent)),
+			GetETag:          fmt.Sprintf(`"%d"`, lmod),
+			CalendarData:     &calendarData{Content: icsContent},
+		}}},
+	}}})
+}
+
+func handlePropfind(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+	if path == "/dav/calendars/" || path == "/dav/calendars" {
+		handlePropfindCalendars(w, r)
 		return
 	}
-
-	ev := buildIcsEvent(eventID, title, desc, startAt, endAt, rrule, loc, createdAt)
-	icsContent := ics.SerializeCalendar("", []ics.IcsEvent{ev})
-
-	ms := MultiStatus{
-		Responses: []Response{{
-			Href: fmt.Sprintf("/dav/calendars/%s/%s.ics", calendarID, eventID),
-			PropStat: []PropStat{{
-				Status: "HTTP/1.1 200 OK",
-				Prop: Prop{
-					DisplayName:     title,
-					GetContentType:  "text/calendar; charset=utf-8",
-					GetContentLength: int64(len(icsContent)),
-					GetETag:          fmt.Sprintf(`"%d"`, lastModified),
-					CalendarData:     &CalendarData{Content: icsContent},
-				},
-			}},
-		}},
+	calID, fn := parseCalPath(path)
+	if fn == "" || strings.HasSuffix(path, "/") {
+		handlePropfindEvents(w, r, calID)
+		return
 	}
-	writeMultistatus(w, ms)
+	handlePropfindSingle(w, r, calID, fn)
 }
 
-// handleReport handles calendar-query REPORT requests.
+// --- Other DAV handlers ---
+
 func handleReport(w http.ResponseWriter, r *http.Request) {
-	calendarID, _ := parseCalPath(r.URL.Path)
-	handlePropfindEvents(w, r, calendarID)
+	calID, _ := parseCalPath(r.URL.Path)
+	handlePropfindEvents(w, r, calID)
 }
 
-// handleGetEvent returns a single event as ICS
 func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	_, filename := parseCalPath(r.URL.Path)
-	userID := getCaldavUser(r)
-	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
-		return
-	}
+	userID := userIDFromReq(r)
+	if userID == "" { http.Error(w, "Unauthorized", 401); return }
 	eventID := strings.TrimSuffix(filename, ".ics")
 
 	var title, startAt, endAt, createdAt string
@@ -252,224 +182,206 @@ func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	var allDay int
 	err := db.DB.QueryRow(`
 		SELECT e.title, e.description, e.start_at, e.end_at, e.all_day, e.rrule, e.location, e.created_at
-		FROM events e
-		INNER JOIN calendar_members cm ON e.calendar_id = cm.calendar_id
-		WHERE e.id = ? AND cm.user_id = ? AND e.deleted = 0`,
-		eventID, userID,
+		FROM events e INNER JOIN calendar_members cm ON e.calendar_id = cm.calendar_id
+		WHERE e.id = ? AND cm.user_id = ? AND e.deleted = 0`, eventID, userID,
 	).Scan(&title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt)
-	if err != nil {
-		http.Error(w, "Not Found", 404)
-		return
-	}
+	if err != nil { http.Error(w, "Not Found", 404); return }
 
-	ev := buildIcsEvent(eventID, title, desc, startAt, endAt, rrule, loc, createdAt)
-	icsContent := ics.SerializeCalendar("event", []ics.IcsEvent{ev})
+	icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, eventID+"@calendar", createdAt)
+	icsContent := serializeCal(icalCal)
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("ETag", fmt.Sprintf(`"%s-%d"`, eventID, time.Now().Unix()))
 	w.WriteHeader(200)
 	w.Write([]byte(icsContent))
 }
 
-// handlePutEvent creates or updates an event from ICS content
 func handlePutEvent(w http.ResponseWriter, r *http.Request) {
-	calendarID, filename := parseCalPath(r.URL.Path)
-	userID := getCaldavUser(r)
-	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
-		return
-	}
+	calID, filename := parseCalPath(r.URL.Path)
+	userID := userIDFromReq(r)
+	if userID == "" { http.Error(w, "Unauthorized", 401); return }
 
 	var count int
-	db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id = ? AND user_id = ?",
-		calendarID, userID).Scan(&count)
-	if count == 0 {
-		http.Error(w, "Not Found", 404)
-		return
-	}
+	db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calID, userID).Scan(&count)
+	if count == 0 { http.Error(w, "Not Found", 404); return }
 
 	body, _ := io.ReadAll(r.Body)
-	result, err := ics.ParseIcs(string(body))
-	if err != nil || len(result.Events) == 0 {
+	icalCal, err := ical.NewDecoder(bytes.NewReader(body)).Decode()
+	if err != nil || len(icalCal.Children) == 0 {
 		http.Error(w, "Bad Request: invalid ICS", 400)
 		return
 	}
 
-	event := result.Events[0]
+	events := calendarEvents(icalCal)
+	if len(events) == 0 { http.Error(w, "Bad Request: no VEVENT", 400); return }
+	ev := events[0]
+
+	evTitle := compProp(ev, ical.PropSummary)
+	evStartAt := compProp(ev, ical.PropDateTimeStart)
+	evEndAt := compProp(ev, ical.PropDateTimeEnd)
+	evUID := compProp(ev, ical.PropUID)
+	evDesc := compProp(ev, ical.PropDescription)
+	evRRule := compProp(ev, ical.PropRecurrenceRule)
+	evLoc := compProp(ev, ical.PropLocation)
+
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()
 
-	// Look up by the filename UID or the ICS UID
 	lookupID := strings.TrimSuffix(filename, ".ics")
-	if event.UID != "" {
-		lookupID = event.UID
-	}
+	if evUID != "" { lookupID = evUID }
 
 	var existingID string
-	db.DB.QueryRow("SELECT id FROM events WHERE id = ? AND calendar_id = ?", lookupID, calendarID).Scan(&existingID)
-	if existingID == "" && event.UID != "" {
-		db.DB.QueryRow("SELECT id FROM events WHERE id = ? AND calendar_id = ?", event.UID, calendarID).Scan(&existingID)
-	}
+	db.DB.QueryRow("SELECT id FROM events WHERE id=? AND calendar_id=?", lookupID, calID).Scan(&existingID)
 
 	allDay := 0
-	if len(event.StartAt) == 10 {
-		allDay = 1
-	}
+	if !strings.Contains(evStartAt, "T") { allDay = 1 }
 
 	if existingID != "" {
-		db.DB.Exec(`
-			UPDATE events SET title=?, description=?, start_at=?, end_at=?, all_day=?, rrule=?,
-			       location=?, updated_at=?, last_modified=?
-			WHERE id=?`, event.Title, strOrNil(event.Description), event.StartAt, event.EndAt,
-			allDay, strOrNil(event.RRule), strOrNil(event.Location), now, lmod, existingID)
-		w.WriteHeader(204)
+		db.DB.Exec(`UPDATE events SET title=?, description=?, start_at=?, end_at=?, all_day=?, rrule=?, location=?, updated_at=?, last_modified=? WHERE id=?`,
+			evTitle, strOrNil(evDesc), evStartAt, evEndAt, allDay, strOrNil(evRRule), strOrNil(evLoc), now, lmod, existingID)
 	} else {
 		id := uuid.New().String()
-		_, err := db.DB.Exec(`
-			INSERT INTO events (id, calendar_id, title, description, start_at, end_at, all_day, rrule,
-			                    location, created_at, updated_at, last_modified)
-			VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-			id, calendarID, event.Title, strOrNil(event.Description), event.StartAt, event.EndAt,
-			allDay, strOrNil(event.RRule), strOrNil(event.Location), now, now, lmod)
-		if err != nil {
-			log.Printf("caldav PUT create: %v", err)
-			http.Error(w, "Internal Server Error", 500)
-			return
-		}
-		w.Header().Set("ETag", fmt.Sprintf(`"%s-%d"`, id, lmod))
-		w.WriteHeader(201)
-	}
-}
-
-// handleDeleteEvent soft-deletes an event
-func handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
-	calendarID, filename := parseCalPath(r.URL.Path)
-	eventID := strings.TrimSuffix(filename, ".ics")
-
-	result, err := db.DB.Exec(`
-		UPDATE events SET deleted=1, updated_at=?, last_modified=?
-		WHERE id=? AND calendar_id=?`, time.Now().UTC().Format(time.RFC3339), time.Now().UnixMilli(),
-		eventID, calendarID)
-	if err != nil {
-		http.Error(w, "Internal Server Error", 500)
-		return
-	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
-		http.Error(w, "Not Found", 404)
-		return
+		db.DB.Exec(`INSERT INTO events (id, calendar_id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+			id, calID, evTitle, strOrNil(evDesc), evStartAt, evEndAt, allDay, strOrNil(evRRule), strOrNil(evLoc), now, now, lmod)
 	}
 	w.WriteHeader(204)
 }
 
-// handleMkcalendar creates a new calendar
+func handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
+	calID, filename := parseCalPath(r.URL.Path)
+	eventID := strings.TrimSuffix(filename, ".ics")
+	res, _ := db.DB.Exec(`UPDATE events SET deleted=1, updated_at=?, last_modified=? WHERE id=? AND calendar_id=?`,
+		time.Now().UTC().Format(time.RFC3339), time.Now().UnixMilli(), eventID, calID)
+	affected, _ := res.RowsAffected()
+	if affected == 0 { http.Error(w, "Not Found", 404); return }
+	w.WriteHeader(204)
+}
+
 func handleMkcalendar(w http.ResponseWriter, r *http.Request) {
-	userID := getCaldavUser(r)
-	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
-		return
-	}
+	userID := userIDFromReq(r)
+	if userID == "" { http.Error(w, "Unauthorized", 401); return }
 
-	calendarName := "New Calendar"
-	calendarColor := "#3b82f6"
-
-	// Try to parse XML body
+	name := "New Calendar"
+	color := "#3b82f6"
 	body, _ := io.ReadAll(r.Body)
-	type mkcalSet struct {
-		Prop struct {
-			DisplayName string `xml:"displayname"`
-			Color       string `xml:"calendar-color"`
-		} `xml:"prop"`
+	type mkcalS struct {
+		Set struct {
+			Prop struct {
+				DisplayName string `xml:"displayname"`
+				Color       string `xml:"calendar-color"`
+			} `xml:"prop"`
+		} `xml:"set"`
 	}
-	type mkcalReq struct {
-		Set mkcalSet `xml:"set"`
-	}
-	var req mkcalReq
-	if err := xml.Unmarshal(body, &req); err == nil {
-		if req.Set.Prop.DisplayName != "" {
-			calendarName = req.Set.Prop.DisplayName
-		}
-		if req.Set.Prop.Color != "" {
-			calendarColor = req.Set.Prop.Color
-		}
+	var req mkcalS
+	if xml.Unmarshal(body, &req) == nil {
+		if req.Set.Prop.DisplayName != "" { name = req.Set.Prop.DisplayName }
+		if req.Set.Prop.Color != "" { color = req.Set.Prop.Color }
 	}
 
 	id := uuid.New().String()
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()
-
 	tx, err := db.DB.Begin()
-	if err != nil {
-		http.Error(w, "Internal Server Error", 500)
-		return
-	}
+	if err != nil { http.Error(w, "Internal Server Error", 500); return }
 	defer tx.Rollback()
+	tx.Exec(`INSERT INTO calendars (id, name, color, source_type, owner_id, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?)`, id, name, color, "manual", userID, now, now, lmod)
+	tx.Exec(`INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?,?,?)`, id, userID, "admin")
+	if tx.Commit() != nil { http.Error(w, "Internal Server Error", 500); return }
 
-	tx.Exec(`INSERT INTO calendars (id, name, color, source_type, owner_id, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?)`,
-		id, calendarName, calendarColor, "manual", userID, now, now, lmod)
-	tx.Exec(`INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?,?,?)`,
-		id, userID, "admin")
-
-	if err := tx.Commit(); err != nil {
-		log.Printf("caldav MKCALENDAR: %v", err)
-		http.Error(w, "Internal Server Error", 500)
-		return
-	}
-
-	host := r.Host
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
+	host := r.Host; scheme := "http"
+	if r.TLS != nil { scheme = "https" }
 	w.Header().Set("Location", fmt.Sprintf("%s://%s/dav/calendars/%s/", scheme, host, id))
 	w.WriteHeader(201)
 }
 
-// helpers
+// --- XML types (no XMLName conflicts) ---
 
-func parseCalPath(path string) (calendarID, filename string) {
-	trimmed := strings.TrimPrefix(path, "/dav/calendars/")
-	parts := strings.SplitN(trimmed, "/", 2)
-	if len(parts) > 0 {
-		calendarID = strings.TrimSuffix(parts[0], "/")
-	}
-	if len(parts) > 1 && parts[1] != "" {
-		filename = parts[1]
-	}
+type multiStatus struct {
+	XMLName   xml.Name   `xml:"DAV: multistatus"`
+	Responses []response `xml:"response"`
+}
+type response struct {
+	Href     string     `xml:"href"`
+	PropStat []propStat `xml:"propstat"`
+}
+type propStat struct {
+	Prop   prop   `xml:"prop"`
+	Status string `xml:"status"`
+}
+type prop struct {
+	ResourceType     *resourceType `xml:"resourcetype,omitempty"`
+	DisplayName      string        `xml:"displayname,omitempty"`
+	GetContentType   string        `xml:"getcontenttype,omitempty"`
+	GetETag          string        `xml:"getetag,omitempty"`
+	GetContentLength int64         `xml:"getcontentlength,omitempty"`
+	GetLastModified  string        `xml:"getlastmodified,omitempty"`
+
+	CurrentUserPrincipal *hrefEl       `xml:"current-user-principal,omitempty"`
+	CalendarHomeSet      *hrefEl       `xml:"calendar-home-set,omitempty"`
+	CalendarData         *calendarData `xml:"calendar-data,omitempty"`
+}
+type resourceType struct {
+	Collection *struct{} `xml:"collection,omitempty"`
+	Calendar   *struct{} `xml:"urn:ietf:params:xml:ns:caldav calendar,omitempty"`
+}
+type hrefEl struct {
+	Inner string `xml:",chardata"`
+}
+type calendarData struct {
+	Content string `xml:",chardata"`
+}
+
+// --- helpers ---
+
+func parseCalPath(path string) (calID, fn string) {
+	t := strings.TrimPrefix(path, "/dav/calendars/")
+	parts := strings.SplitN(t, "/", 2)
+	if len(parts) > 0 { calID = strings.TrimSuffix(parts[0], "/") }
+	if len(parts) > 1 && parts[1] != "" { fn = parts[1] }
 	return
 }
 
-func buildIcsEvent(id, title string, desc *string, startAt, endAt string, rrule, loc *string, createdAt string) ics.IcsEvent {
-	ev := ics.IcsEvent{
-		UID:     id + "@calendar",
-		Title:   title,
-		StartAt: startAt,
-		EndAt:   endAt,
-		DTStamp: createdAt,
-	}
-	if desc != nil {
-		ev.Description = *desc
-	}
-	if rrule != nil {
-		ev.RRule = *rrule
-	}
-	if loc != nil {
-		ev.Location = *loc
-	}
-	return ev
+func buildCal(title string, desc, rrule, loc *string, startAt, endAt, uid, dtstamp string) *ical.Calendar {
+	cal := ical.NewCalendar()
+	cal.Props.SetText(ical.PropProductID, "-//Calendar//Go//EN")
+	cal.Props.SetText(ical.PropVersion, "2.0")
+	ev := ical.NewEvent()
+	ev.Props.SetText(ical.PropUID, uid)
+	ev.Props.SetText(ical.PropSummary, title)
+	if desc != nil { ev.Props.SetText(ical.PropDescription, *desc) }
+	if rrule != nil { ev.Props.SetText(ical.PropRecurrenceRule, *rrule) }
+	if loc != nil { ev.Props.SetText(ical.PropLocation, *loc) }
+	ev.Props.SetText(ical.PropDateTimeStart, startAt)
+	ev.Props.SetText(ical.PropDateTimeEnd, endAt)
+	if dtstamp != "" { ev.Props.SetText(ical.PropDateTimeStamp, dtstamp) }
+	cal.Children = append(cal.Children, ev.Component)
+	return cal
 }
 
-func writeMultistatus(w http.ResponseWriter, ms MultiStatus) {
+func serializeCal(cal *ical.Calendar) string {
+	var buf bytes.Buffer
+	ical.NewEncoder(&buf).Encode(cal)
+	return buf.String()
+}
+
+func calendarEvents(cal *ical.Calendar) []*ical.Component {
+	var evs []*ical.Component
+	for _, c := range cal.Children {
+		if c.Name == ical.CompEvent { evs = append(evs, c) }
+	}
+	return evs
+}
+
+func compProp(c *ical.Component, name string) string { s, _ := c.Props.Text(name); return s }
+
+func writeXML(w http.ResponseWriter, ms multiStatus) {
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	w.WriteHeader(207)
 	w.Write([]byte(xml.Header))
-	enc := xml.NewEncoder(w)
-	enc.Indent("", "  ")
-	enc.Encode(ms)
+	b, _ := xml.MarshalIndent(ms, "", "  ")
+	w.Write(b)
 }
 
 func strOrNil(s string) interface{} {
-	if s == "" {
-		return nil
-	}
+	if s == "" { return nil }
 	return s
 }

@@ -81,7 +81,7 @@ func main() {
 		})
 	})
 
-	// Protected routes (auth required)
+	// Protected REST routes (auth required)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAuth)
 
@@ -95,9 +95,25 @@ func main() {
 		ics.RegisterRoutes(r)
 		backup.RegisterRoutes(r)
 		sync.RegisterRoutes(r)
+	})
 
-		// CalDAV (before SPA fallback)
+	// /.well-known/caldav is public per RFC 6764 — DAVx5 fetches this
+	// without credentials before attempting authenticated PROPFIND.
+	r.Get("/.well-known/caldav", caldav.WellKnownHandler)
+	r.Method("PROPFIND", "/.well-known/caldav", http.HandlerFunc(caldav.WellKnownHandler))
+
+	// CalDAV server — RequireAuth middleware for proper authentication.
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RequireAuth)
 		caldav.RegisterRoutes(r)
+	})
+
+	// Root-level DAV probes — DAVx5 PROPFINDs the base URL with
+	// preemptive credentials. CaldavAuth returns proper WWW-Authenticate.
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.CaldavAuth)
+		r.Method("PROPFIND", "/", http.HandlerFunc(caldav.HandlePropfindRoot))
+		r.Method("OPTIONS", "/", http.HandlerFunc(caldav.HandleDavOptions))
 	})
 
 	// Static file serving with SPA fallback (catch-all, matched last)
