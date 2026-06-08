@@ -66,6 +66,14 @@ func extractEvents(cal *ical.Calendar) []*ical.Component {
 
 func componentProp(c *ical.Component, name string) string {
 	s, _ := c.Props.Text(name)
+	if s == "" {
+		// DateTime props like DTSTART/DTEND are stored differently;
+		// try raw values as fallback.
+		vals := c.Props.Values(name)
+		if len(vals) > 0 && vals[0].Value != "" {
+			return vals[0].Value
+		}
+	}
 	return s
 }
 
