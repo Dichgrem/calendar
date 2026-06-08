@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Plus } from "@phosphor-icons/react";
 import { NotePencil, Trash, Check, X, DownloadSimple, FileArrowDown, Globe } from "@phosphor-icons/react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
@@ -35,6 +36,9 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const [importing, setImporting] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newCalName, setNewCalName] = useState("");
+  const [newCalColor, setNewCalColor] = useState("#3b82f6");
   const { dragId, onDragStart, onDragOver, onDrop, onDragEnd } = useCalendarReorder(calendars?.map((c) => c.id) ?? []);
 
   const importedCommonIds = new Set(COMMON_CALENDARS.filter((cal) => calendars?.some((c) => c.sourceUrl === cal.url)).map((cal) => cal.id));
@@ -68,10 +72,22 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
     finally { setImporting((p) => { const n = new Set(p); n.delete(cal.id); return n; }); }
   };
 
+  const handleCreateCalendar = async () => {
+    if (!newCalName.trim()) return;
+    try {
+      await api.calendars.create({ name: newCalName.trim(), color: newCalColor });
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      setCreating(false); setNewCalName(""); setNewCalColor("#3b82f6");
+    } catch { setImportError(t("settings.saveError")); }
+  };
+
   return (
     <div>
       {/* Toolbar */}
       <div className="flex items-center justify-center gap-1 mb-3">
+        <Button variant="outline" size="sm" onClick={() => { setCreating(true); setNewCalName(""); setNewCalColor("#3b82f6"); }} className="h-7 text-xs gap-1">
+          <Plus className="size-3" weight="bold" />{t("settings.newCalendar")}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setCommonCalOpen(!commonCalOpen)} className="h-7 text-xs gap-1">
           <Globe className="size-3" weight="bold" />{t("settings.commonCalendars")}
         </Button>
@@ -82,6 +98,26 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
           <FileArrowDown className="size-3" weight="bold" />{t("settings.exportIcs")}
         </Button>
       </div>
+
+      {/* Create calendar form */}
+      {creating && (
+        <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
+          <div className="flex items-center gap-2">
+            <input
+              type="text" value={newCalName} onChange={(e) => setNewCalName(e.target.value)}
+              placeholder={t("settings.calNamePlaceholder")}
+              autoFocus
+              className="flex-1 text-sm border rounded-lg px-2.5 py-1.5 bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+              onKeyDown={(e) => { if (e.key === "Enter") handleCreateCalendar(); }}
+            />
+            <ColorSwatchPicker value={newCalColor} onChange={setNewCalColor} />
+          </div>
+          <div className="flex gap-1 mt-2">
+            <Button size="sm" onClick={handleCreateCalendar} className="h-7 text-xs">{t("settings.create")}</Button>
+            <Button variant="outline" size="sm" onClick={() => setCreating(false)} className="h-7 text-xs">{t("settings.cancel")}</Button>
+          </div>
+        </div>
+      )}
 
       {/* Export panel */}
       {exportOpen && (
