@@ -2,7 +2,7 @@
 
 ## 环境要求
 
-- Go 1.24+
+- Go 1.25+
 - Node.js 22+
 - pnpm 9
 - （可选）启用了 flakes 的 Nix
@@ -34,10 +34,14 @@ just dev                               # 预构建前端 + 启动后端
 ## 运行测试
 
 ```bash
-go test ./... -count=1                 # Go 单元测试
+go test ./... -count=1                 # Go 单元测试（9 包 52 测试）
 go test ./... -race -count=1           # 带竞态检测
+go test ./... -coverprofile=cover.out  # 覆盖率报告
 pnpm test                              # 前端测试
 ```
+
+覆盖范围：auth (63%), calendar (67%), event (67%), caldav (72%), ics (55%),
+logger (93%), settings (71%), sync (38%), backup (4%)。
 
 ## 代码质量
 
@@ -132,3 +136,31 @@ func handleSomething(w http.ResponseWriter, r *http.Request) {
 
 成功：`middleware.JSONResponse(w, status, data)`，
 错误：`middleware.WriteAppError(w, err)`。
+
+## 日志
+
+使用 `internal/logger` 包的统一日志接口：
+
+```go
+import "calendar/internal/logger"
+
+logger.Debug("[module] entry user=%s", userID)     // 调试入口
+logger.Info("[module] action id=%s success", id)   // 操作成功
+logger.Error("[module] action error: %v", err)      // 操作失败
+logger.Fatal("fatal reason: %v", err)               // 致命错误（退出进程）
+```
+
+日志通过 `slog.TextHandler` 同时输出到 stderr 和 2000 行环形缓冲区。
+前端设置页面可查看/过滤/导出日志，生产环境通过 `GET /api/logs` 查询。
+详细清单见 `docs/log.md`。
+
+测试文件（`*_test.go`）放入对应包目录。测试模式：
+
+```go
+func TestCaldavPutNewEvent(t *testing.T) {
+    // 1. 初始化 :memory: SQLite + chi router
+    // 2. 创建测试用户 + 日历
+    // 3. 构造 httptest.NewRequest + 发请求
+    // 4. 断言 status + DB 状态
+}
+```
