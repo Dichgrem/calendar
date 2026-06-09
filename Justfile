@@ -17,6 +17,7 @@ build-go:
 
 # build everything (frontend + go)
 build: build-web build-go
+	git add cmd/server/dist/
 
 # start dev server (builds frontend first if dist missing)
 dev:

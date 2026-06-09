@@ -4,7 +4,6 @@ import { useNav } from "../hooks/use-nav";
 import { useCalendars } from "../hooks/use-calendars";
 import { useSettings } from "../hooks/use-settings";
 import { useI18n } from "../hooks/use-i18n";
-import { useCalendarReorder } from "../hooks/use-calendar-reorder";
 import { formatCalendarDate, dateStr } from "../lib/date-format";
 
 const MONTHS_ZH = [
@@ -134,9 +133,6 @@ export function CenterControls() {
   const { t } = useI18n();
   const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
   const { visibleCalendars, toggleCalendar } = useNav();
-  const { dragId, onDragStart, onDragOver, onDrop, onDragEnd } = useCalendarReorder(
-    calendars?.map((c) => c.id) ?? []
-  );
 
   return (
     <>
@@ -145,15 +141,10 @@ export function CenterControls() {
       {calendars?.map((cal) => (
         <button
           key={cal.id}
-          draggable
-          onDragStart={(e) => onDragStart(e, cal.id)}
-          onDragOver={onDragOver}
-          onDrop={(e) => onDrop(e, cal.id)}
-          onDragEnd={onDragEnd}
           onClick={() => toggleCalendar(cal.id)}
           title={cal.name}
           aria-label={`${t("cal.toggleVisibility")}: ${cal.name}`}
-          className={`relative size-5 rounded-full border-2 transition-all shrink-0 cursor-grab active:cursor-grabbing ${dragId === cal.id ? "scale-125" : ""}`}
+          className="relative size-5 rounded-full border-2 transition-all shrink-0"
           style={{
             backgroundColor: visibleCalendars.has(cal.id) ? cal.color : "transparent",
             borderColor: cal.color,
