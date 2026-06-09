@@ -11,6 +11,7 @@ import (
 	"calendar/internal/apperror"
 	"calendar/internal/config"
 	"calendar/internal/db"
+	"calendar/internal/logger"
 	"calendar/internal/middleware"
 )
 
@@ -47,6 +48,7 @@ type registerRequest struct {
 }
 
 func handleRegister(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("[auth] POST /api/auth/register")
 	exists, err := HasUsers()
 	if err != nil {
 		middleware.WriteAppError(w, apperror.Internal("Database error"))
@@ -73,6 +75,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	user, err := Register(req.Username, req.Password)
 	if err != nil {
+		logger.Error("[auth] register user=%q error: %v", req.Username, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Registration failed"))
 		return
 	}
@@ -85,6 +88,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Info("[auth] register user=%q success", req.Username)
 	setSessionCookie(w, session.ID, cfg.SessionDuration, cfg.SecureCookies)
 	middleware.JSONResponse(w, 201, map[string]string{"userId": user.ID})
 }
@@ -95,6 +99,7 @@ type loginRequest struct {
 }
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("[auth] POST /api/auth/login")
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		middleware.JSONResponse(w, 400, apperror.BadRequest("Invalid JSON"))
@@ -112,10 +117,12 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if session == nil {
+		logger.Info("[auth] login user=%q invalid credentials", req.Username)
 		middleware.JSONResponse(w, 401, apperror.Unauthorized("Invalid credentials"))
 		return
 	}
 
+	logger.Info("[auth] login user=%q success", req.Username)
 	setSessionCookie(w, session.ID, cfg.SessionDuration, cfg.SecureCookies)
 	middleware.JSONResponse(w, 200, map[string]string{
 		"userId":    user.ID,
@@ -124,6 +131,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleLogout(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("[auth] POST /api/auth/logout")
 	sessionID := extractSessionToken(r)
 	if sessionID != "" {
 		Logout(sessionID)
@@ -171,6 +179,7 @@ type changePasswordRequest struct {
 
 func HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
+	logger.Debug("[auth] POST /api/auth/change-password user=%s", perm.UserID)
 
 	var req changePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -196,6 +205,7 @@ func HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !VerifyPassword(req.OldPassword, passwordHash) {
+		logger.Info("[auth] change-password user=%s old-password mismatch", perm.UserID)
 		middleware.JSONResponse(w, 401, apperror.Unauthorized("Invalid old password"))
 		return
 	}
@@ -208,10 +218,12 @@ func HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = db.DB.Exec("UPDATE users SET password_hash = ? WHERE id = ?", newHash, perm.UserID)
 	if err != nil {
+		logger.Error("[auth] change-password user=%s db error: %v", perm.UserID, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
 
+	logger.Info("[auth] change-password user=%s success", perm.UserID)
 	middleware.JSONResponse(w, 200, nil)
 }
 
@@ -221,6 +233,7 @@ type changeUsernameRequest struct {
 
 func HandleChangeUsername(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
+	logger.Debug("[auth] POST /api/auth/change-username user=%s", perm.UserID)
 
 	var req changeUsernameRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -243,10 +256,12 @@ func HandleChangeUsername(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ChangeUsername(perm.UserID, req.Username); err != nil {
+		logger.Error("[auth] change-username user=%s to=%q error: %v", perm.UserID, req.Username, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
 
+	logger.Info("[auth] change-username user=%s to=%q success", perm.UserID, req.Username)
 	middleware.JSONResponse(w, 200, nil)
 }
 

@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"log"
+	"calendar/internal/logger"
 	"net/http"
 	"strings"
 	"time"
@@ -97,7 +97,7 @@ func ErrorHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				log.Printf("PANIC: %v", rec)
+				logger.Info("PANIC: %v", rec)
 				writeAppError(w, apperror.Internal("Internal server error"))
 			}
 		}()
@@ -198,7 +198,7 @@ func resolveSession(sessionID string) (*PermissionContext, string) {
 		userID := sessionID[2:]
 		roles, err := loadRoles(userID)
 		if err != nil {
-			log.Printf("Failed to load roles: %v", err)
+			logger.Info("Failed to load roles: %v", err)
 			return nil, ""
 		}
 		return &PermissionContext{UserID: userID, Roles: roles}, sessionID
@@ -211,7 +211,7 @@ func resolveSession(sessionID string) (*PermissionContext, string) {
 
 	roles, err := loadRoles(userID)
 	if err != nil {
-		log.Printf("Failed to load roles: %v", err)
+		logger.Info("Failed to load roles: %v", err)
 		return nil, ""
 	}
 

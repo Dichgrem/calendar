@@ -117,6 +117,11 @@ const strings = {
   "settings.backupDone": { "zh-CN": "备份完成", en: "Backup complete" },
   "settings.backupFailed": { "zh-CN": "备份失败", en: "Backup failed" },
   "settings.exportConfigFailed": { "zh-CN": "导出配置失败", en: "Export config failed" },
+  "settings.serverLogs": { "zh-CN": "服务器日志", en: "Server Logs" },
+  "settings.logAll": { "zh-CN": "全部", en: "All" },
+  "settings.logAutoRefresh": { "zh-CN": "自动刷新", en: "Auto-refresh" },
+  "settings.logRefresh": { "zh-CN": "刷新", en: "Refresh" },
+  "settings.logExport": { "zh-CN": "导出", en: "Export" },
 
   // ImportPage
   "import.tabFile": { "zh-CN": "文件导入", en: "File" },

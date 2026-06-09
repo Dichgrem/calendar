@@ -9,6 +9,7 @@ import (
 
 	"calendar/internal/apperror"
 	"calendar/internal/db"
+	"calendar/internal/logger"
 	"calendar/internal/middleware"
 )
 
@@ -40,6 +41,7 @@ type TableChanges struct {
 }
 
 func handlePull(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("[sync] GET pull")
 	lastSeq := 0
 	if s := r.URL.Query().Get("last_pulled_seq"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil {
@@ -108,6 +110,7 @@ type pushBody struct {
 }
 
 func handlePush(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("[sync] POST push")
 	var req pushBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		middleware.JSONResponse(w, 400, apperror.BadRequest("Invalid JSON"))

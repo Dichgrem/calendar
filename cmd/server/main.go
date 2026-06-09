@@ -5,7 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	"log"
+	
 	"net/http"
 	"os"
 	"os/signal"
@@ -26,6 +26,7 @@ import (
 	cal "calendar/internal/calendar"
 	ev "calendar/internal/event"
 	"calendar/internal/ics"
+	"calendar/internal/logger"
 	"calendar/internal/middleware"
 	"calendar/internal/settings"
 	"calendar/internal/sync"
@@ -42,18 +43,18 @@ func main() {
 
 	// Open database
 	if err := db.Open(cfg.DatabaseURL); err != nil {
-		log.Fatalf("Database open failed: %v", err)
+		logger.Fatal("Database open failed: %v", err)
 	}
 	defer db.Close()
 
 	// Run embedded migrations
 	if err := runMigrations(); err != nil {
-		log.Fatalf("Migration failed: %v", err)
+		logger.Fatal("Migration failed: %v", err)
 	}
 
 	// Clean up events with empty dates (test artifacts from earlier development)
 	if _, err := db.DB.Exec("DELETE FROM events WHERE deleted = 0 AND (start_at = '' OR end_at = '')"); err != nil {
-		log.Printf("Cleanup events: %v", err)
+		logger.Info("Cleanup events: %v", err)
 	}
 
 	// Register CalDAV HTTP methods for Chi
@@ -97,6 +98,11 @@ func main() {
 		// Auth-protected endpoints
 		auth.RegisterProtectedRoutes(r)
 
+		// Logs endpoint (authenticated)
+		r.Get("/api/logs", func(w http.ResponseWriter, r *http.Request) {
+			logger.HandleLogs(w, r)
+		})
+
 		// Core resources
 		cal.RegisterRoutes(r)
 		ev.RegisterRoutes(r)
@@ -132,7 +138,7 @@ func main() {
 	// Static file serving with SPA fallback (catch-all, matched last)
 	staticFS, err := fs.Sub(distFS, "dist")
 	if err != nil {
-		log.Fatalf("Static files not embedded: %v — did you run pnpm build?", err)
+		logger.Fatal("Static files not embedded: %v — did you run pnpm build?", err)
 	}
 	fileServer := http.FileServer(http.FS(staticFS))
 
@@ -158,21 +164,21 @@ func main() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-sigCh
-		log.Printf("Received signal %v, shutting down gracefully...", sig)
+		logger.Info("Received signal %v, shutting down gracefully...", sig)
 
 		// Give in-flight requests up to 10 seconds to complete
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("Shutdown error: %v", err)
+			logger.Info("Shutdown error: %v", err)
 		}
 	}()
 
-	log.Printf("Server starting on http://localhost%s", addr)
+	logger.Info("Server starting on http://localhost%s", addr)
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatalf("Server error: %v", err)
+		logger.Fatal("Server error: %v", err)
 	}
-	log.Println("Server stopped")
+	logger.Info("Server stopped")
 }
 
 func runMigrations() error {
@@ -193,7 +199,7 @@ func runMigrations() error {
 			return fmt.Errorf("migration exec: %w\nSQL: %s", err, stmt)
 		}
 	}
-	log.Println("Migrations complete")
+	logger.Info("Migrations complete")
 	return nil
 }
 

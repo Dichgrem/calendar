@@ -11,6 +11,7 @@ import (
 
 	"calendar/internal/apperror"
 	"calendar/internal/db"
+	"calendar/internal/logger"
 	"calendar/internal/middleware"
 	"calendar/internal/validate"
 )
@@ -127,6 +128,7 @@ type createRequest struct {
 func handleCreate(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
 	calendarID := chi.URLParam(r, "calendarId")
+	logger.Debug("[event] POST cal=%s user=%s", calendarID, perm.UserID)
 
 	if !perm.IsMember(calendarID) {
 		middleware.JSONResponse(w, 403, apperror.Forbidden("Access denied"))
@@ -169,10 +171,12 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 	`, id, calendarID, req.Title, req.Description, req.StartAt, req.EndAt,
 		allDayInt, req.RRule, req.Color, req.Location, now, now, lmod)
 	if err != nil {
+		logger.Error("[event] create title=%q error: %v", req.Title, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
 
+	logger.Info("[event] create id=%s title=%q start=%s", id, req.Title, req.StartAt)
 	e, err := getEvent(id, perm.UserID)
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
@@ -196,6 +200,7 @@ type updateRequest struct {
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
 	eventID := chi.URLParam(r, "id")
+	logger.Debug("[event] PATCH id=%s user=%s", eventID, perm.UserID)
 
 	e, err := getEvent(eventID, perm.UserID)
 	if err == sql.ErrNoRows {
@@ -272,9 +277,12 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tx.Commit(); err != nil {
+		logger.Error("[event] update id=%s commit error: %v", eventID, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
+
+	logger.Info("[event] update id=%s success", eventID)
 
 	e, err = getEvent(eventID, perm.UserID)
 	if err != nil {
@@ -288,6 +296,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 func handleDelete(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
 	eventID := chi.URLParam(r, "id")
+	logger.Debug("[event] DELETE id=%s user=%s", eventID, perm.UserID)
 
 	_, err := getEvent(eventID, perm.UserID)
 	if err == sql.ErrNoRows {
@@ -307,9 +316,12 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		now, lmod, eventID,
 	)
 	if err != nil {
+		logger.Error("[event] delete id=%s error: %v", eventID, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
+
+	logger.Info("[event] delete id=%s success", eventID)
 
 	middleware.JSONResponse(w, 200, nil)
 }

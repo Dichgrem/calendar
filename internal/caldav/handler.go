@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"calendar/internal/db"
+	"calendar/internal/logger"
 	"calendar/internal/middleware"
 )
 
@@ -52,6 +53,7 @@ func handlePropfindRoot(w http.ResponseWriter, r *http.Request) {
 
 func handlePropfindCalendars(w http.ResponseWriter, r *http.Request) {
 	userID := userIDFromReq(r)
+	logger.Info("[caldav] PROPFIND calendars user=%s", userID)
 	if userID == "" {
 		http.Error(w, "Unauthorized", 401)
 		return
@@ -123,6 +125,7 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 		)
 	}
 	if rs == nil { rs = []response{} }
+	logger.Info("[caldav] PROPFIND events cal=%s count=%d", calendarID, len(rs))
 	writeXML(w, multiStatus{Responses: rs})
 }
 
@@ -175,12 +178,14 @@ func handlePropfind(w http.ResponseWriter, r *http.Request) {
 
 func handleReport(w http.ResponseWriter, r *http.Request) {
 	calID, _ := parseCalPath(r.URL.Path)
+	logger.Info("[caldav] REPORT cal=%s", calID)
 	handlePropfindEvents(w, r, calID)
 }
 
 func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	_, filename := parseCalPath(r.URL.Path)
 	userID := userIDFromReq(r)
+	logger.Info("[caldav] GET event=%s user=%s", filename, userID)
 	if userID == "" { http.Error(w, "Unauthorized", 401); return }
 	eventID := strings.TrimSuffix(filename, ".ics")
 
@@ -205,30 +210,29 @@ func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	calID, filename := parseCalPath(r.URL.Path)
 	userID := userIDFromReq(r)
+	logger.Info("[caldav] PUT %s user=%s", r.URL.Path, userID)
 	if userID == "" { http.Error(w, "Unauthorized", 401); return }
 
 	var count int
 	db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calID, userID).Scan(&count)
-	if count == 0 { http.Error(w, "Not Found", 404); return }
+	if count == 0 { logger.Error("[caldav] PUT %s: calendar not found", r.URL.Path); http.Error(w, "Not Found", 404); return }
 
 	body, _ := io.ReadAll(r.Body)
 	icalCal, err := ical.NewDecoder(bytes.NewReader(body)).Decode()
 	if err != nil || len(icalCal.Children) == 0 {
+		logger.Info("[caldav] PUT %s: invalid ICS body", r.URL.Path)
 		http.Error(w, "Bad Request: invalid ICS", 400)
 		return
 	}
 
 	events := calendarEvents(icalCal)
-	if len(events) == 0 { http.Error(w, "Bad Request: no VEVENT", 400); return }
+	if len(events) == 0 { logger.Info("[caldav] PUT %s: no VEVENT found", r.URL.Path); http.Error(w, "Bad Request: no VEVENT", 400); return }
 	ev := events[0]
 
 	evTitle := compProp(ev, ical.PropSummary)
 	evStartAt := compProp(ev, ical.PropDateTimeStart)
 	evEndAt := compProp(ev, ical.PropDateTimeEnd)
 	evUID := compProp(ev, ical.PropUID)
-	evDesc := compProp(ev, ical.PropDescription)
-	evRRule := compProp(ev, ical.PropRecurrenceRule)
-	evLoc := compProp(ev, ical.PropLocation)
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()
@@ -243,12 +247,16 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(evStartAt, "T") { allDay = 1 }
 
 	if existingID != "" {
-		db.DB.Exec(`UPDATE events SET title=?, description=?, start_at=?, end_at=?, all_day=?, rrule=?, location=?, updated_at=?, last_modified=? WHERE id=?`,
-			evTitle, strOrNil(evDesc), evStartAt, evEndAt, allDay, strOrNil(evRRule), strOrNil(evLoc), now, lmod, existingID)
+		_, err := db.DB.Exec(`UPDATE events SET title=?, description=?, start_at=?, end_at=?, all_day=?, rrule=?, location=?, updated_at=?, last_modified=? WHERE id=?`,
+			evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, lmod, existingID)
+		if err != nil { logger.Error("[caldav] PUT %s UPDATE error: %v", r.URL.Path, err); http.Error(w, "Internal Server Error", 500); return }
+		logger.Info("[caldav] PUT %s UPDATED uid=%s title=%q start=%s", r.URL.Path, existingID, evTitle, evStartAt)
 	} else {
 		id := uuid.New().String()
-		db.DB.Exec(`INSERT INTO events (id, calendar_id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-			id, calID, evTitle, strOrNil(evDesc), evStartAt, evEndAt, allDay, strOrNil(evRRule), strOrNil(evLoc), now, now, lmod)
+		_, err := db.DB.Exec(`INSERT INTO events (id, calendar_id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+			id, calID, evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, now, lmod)
+		if err != nil { logger.Error("[caldav] PUT %s INSERT error: %v", r.URL.Path, err); http.Error(w, "Internal Server Error", 500); return }
+		logger.Info("[caldav] PUT %s CREATED uid=%s title=%q start=%s", r.URL.Path, id, evTitle, evStartAt)
 	}
 	w.WriteHeader(204)
 }
@@ -256,15 +264,17 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 func handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
 	calID, filename := parseCalPath(r.URL.Path)
 	eventID := strings.TrimSuffix(filename, ".ics")
+	logger.Info("[caldav] DELETE %s cal=%s uid=%s", r.URL.Path, calID, eventID)
 	res, _ := db.DB.Exec(`UPDATE events SET deleted=1, updated_at=?, last_modified=? WHERE id=? AND calendar_id=?`,
 		time.Now().UTC().Format(time.RFC3339), time.Now().UnixMilli(), eventID, calID)
 	affected, _ := res.RowsAffected()
-	if affected == 0 { http.Error(w, "Not Found", 404); return }
+	if affected == 0 { logger.Info("[caldav] DELETE %s: not found", r.URL.Path); http.Error(w, "Not Found", 404); return }
 	w.WriteHeader(204)
 }
 
 func handleMkcalendar(w http.ResponseWriter, r *http.Request) {
 	userID := userIDFromReq(r)
+	logger.Info("[caldav] MKCALENDAR user=%s", userID)
 	if userID == "" { http.Error(w, "Unauthorized", 401); return }
 
 	name := "New Calendar"
@@ -296,6 +306,7 @@ func handleMkcalendar(w http.ResponseWriter, r *http.Request) {
 
 	host := r.Host; scheme := requestScheme(r)
 	w.Header().Set("Location", fmt.Sprintf("%s://%s/dav/calendars/%s/", scheme, host, id))
+	logger.Info("[caldav] MKCALENDAR created id=%s name=%q", id, name)
 	w.WriteHeader(201)
 }
 
