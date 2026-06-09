@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "@phosphor-icons/react";
-import { NotePencil, Trash, Check, X, DownloadSimple, FileArrowDown, Globe } from "@phosphor-icons/react";
+import { NotePencil, Trash, Check, X, DownloadSimple, FileArrowDown, Globe, CaretUp, CaretDown } from "@phosphor-icons/react";
 import { api } from "../lib/api";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendarReorder } from "../hooks/use-calendar-reorder";
@@ -39,7 +39,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const [creating, setCreating] = useState(false);
   const [newCalName, setNewCalName] = useState("");
   const [newCalColor, setNewCalColor] = useState("#3b82f6");
-  const { dragId, onDragStart, onDragOver, onDrop, onDragEnd } = useCalendarReorder(calendars?.map((c) => c.id) ?? []);
+  const { move } = useCalendarReorder(calendars?.map((c) => c.id) ?? []);
 
   const importedCommonIds = new Set(COMMON_CALENDARS.filter((cal) => calendars?.some((c) => c.sourceUrl === cal.url)).map((cal) => cal.id));
 
@@ -165,9 +165,9 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
 
       {/* Calendar list */}
       <div className="space-y-1">
-        {calendars?.map((cal) => (
-          <div key={cal.id} draggable onDragStart={(e) => onDragStart(e, cal.id)} onDragOver={onDragOver} onDrop={(e) => onDrop(e, cal.id)} onDragEnd={onDragEnd}
-            className={`flex items-center gap-2 p-2 rounded-xl border border-neutral-200 dark:border-neutral-700 transition-colors ${dragId === cal.id ? "opacity-50" : ""} ${dragId && dragId !== cal.id ? "border-blue-300 dark:border-blue-700" : "hover:bg-neutral-50 dark:hover:bg-neutral-900"}`}>
+        {calendars?.map((cal, idx) => (
+          <div key={cal.id}
+            className="flex items-center gap-2 p-2 rounded-xl border border-neutral-200 dark:border-neutral-700 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900">
             {editingCal === cal.id ? (
               <>
                 <div className="flex-1 space-y-1.5">
@@ -182,6 +182,8 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
               <>
                 <span className="size-3.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
                 <span className="flex-1 text-sm truncate dark:text-neutral-200">{cal.name}</span>
+                <button onClick={() => move(idx, idx - 1)} disabled={idx === 0} className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30" title="上移"><CaretUp className="size-3.5" weight="bold" /></button>
+                <button onClick={() => move(idx, idx + 1)} disabled={idx === calendars.length - 1} className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30" title="下移"><CaretDown className="size-3.5" weight="bold" /></button>
                 <button onClick={() => startEditCal(cal)} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400"><NotePencil className="size-3.5" weight="bold" /></button>
                 <button onClick={() => deleteCalendar(cal.id)} disabled={deleting === cal.id} className={`size-7 flex items-center justify-center rounded-lg text-neutral-400 ${deleting === cal.id ? "opacity-50" : "hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600"}`}><Trash className="size-3.5" weight="bold" /></button>
               </>
