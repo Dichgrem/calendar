@@ -154,12 +154,12 @@ export function CalendarView() {
   );
 
   const searchDropdown = searchOpen ? (
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 mt-1 w-96 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 mt-1 min-w-[24rem] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
       <div className="px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
         <input type="text" placeholder={t("cal.search")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} autoFocus
           className="w-full h-7 text-sm text-neutral-800 dark:text-neutral-200 border rounded-lg px-2.5 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-600" />
       </div>
-      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-neutral-100 dark:border-neutral-800">
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-neutral-100 dark:border-neutral-800 overflow-x-auto flex-nowrap">
         <button onClick={() => setSearchCalId(null)}
           className={`px-2 py-0.5 text-xs rounded-full transition-colors ${searchCalId === null ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900" : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"}`}>
           {t("cal.all")}
@@ -169,7 +169,7 @@ export function CalendarView() {
             className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full transition-colors ${searchCalId === cal.id ? "text-white" : ""} hover:bg-neutral-100 dark:hover:bg-neutral-800`}
             style={searchCalId === cal.id ? { backgroundColor: cal.color } : { color: cal.color }}>
             <span className="size-2 rounded-full" style={{ backgroundColor: searchCalId === cal.id ? "#fff" : cal.color }} />
-            <span>{cal.name}</span>
+            <span className="truncate max-w-[8rem]" title={cal.name}>{cal.name}</span>
           </button>
         ))}
       </div>
