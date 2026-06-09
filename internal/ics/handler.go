@@ -76,6 +76,12 @@ func componentProp(c *ical.Component, name string) string {
 	return s
 }
 
+// NormalizeICSDate converts ICS raw datetime to ISO 8601 for storage.
+// Handles: "20240101" → "2024-01-01", "20240101T090000Z" → "2024-01-01T09:00:00Z"
+func NormalizeICSDate(raw string) string {
+	return normalizeICSDate(raw)
+}
+
 // normalizeICSDate converts ICS raw datetime to ISO 8601 for storage.
 // Handles: "20240101" → "2024-01-01", "20240101T090000Z" → "2024-01-01T09:00:00Z"
 func normalizeICSDate(raw string) string {
@@ -352,6 +358,16 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		title := componentProp(ev, ical.PropSummary)
 		startAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeStart))
 		endAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeEnd))
+
+		// Normalize DTSTART/DTEND in the raw component for correct export.
+		// Without this, raw ICS dates like "20260620T100000Z" get encoded
+		// by go-ical as VALUE=TEXT, breaking DAVx5 clients.
+		ev.Props.Del(string(ical.PropDateTimeStart))
+		ev.Props.Del(string(ical.PropDateTimeEnd))
+		ev.Props.Del(string(ical.PropDateTimeStamp))
+		setDateProp(ev.Props, ical.PropDateTimeStart, startAt)
+		setDateProp(ev.Props, ical.PropDateTimeEnd, endAt)
+		setDateProp(ev.Props, ical.PropDateTimeStamp, now)
 		desc := componentProp(ev, ical.PropDescription)
 		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
 		loc := componentProp(ev, ical.PropLocation)
@@ -443,8 +459,18 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 			setDateProp(evComp.Props, ical.PropDateTimeEnd, endAt)
 			if rrule != nil { evComp.Props.SetText(ical.PropRecurrenceRule, *rrule) }
 			if loc != nil { evComp.Props.SetText(ical.PropLocation, *loc) }
-			evComp.Props.SetText(ical.PropDateTimeStamp, createdAt)
+			setDateProp(evComp.Props, ical.PropDateTimeStamp, createdAt)
 			ev = evComp.Component
+		} else {
+			// Re-set DTSTART/DTEND from DB columns to avoid VALUE=TEXT
+			// from raw ICS dates (e.g. "20260620T100000Z") that go-ical
+			// parsed as plain text. DB columns are always normalized.
+			ev.Props.Del(string(ical.PropDateTimeStart))
+			ev.Props.Del(string(ical.PropDateTimeEnd))
+			ev.Props.Del(string(ical.PropDateTimeStamp))
+			setDateProp(ev.Props, ical.PropDateTimeStart, startAt)
+			setDateProp(ev.Props, ical.PropDateTimeEnd, endAt)
+			setDateProp(ev.Props, ical.PropDateTimeStamp, updatedAt)
 		}
 
 		icalCal.Children = append(icalCal.Children, ev)
@@ -534,6 +560,12 @@ func serializeEvent(ev *ical.Component) string {
 	var buf bytes.Buffer
 	ical.NewEncoder(&buf).Encode(cal)
 	return buf.String()
+}
+
+// SetDateProp sets a date/datetime property with correct VALUE parameter.
+// Exported for testing.
+func SetDateProp(props ical.Props, name, value string) {
+	setDateProp(props, name, value)
 }
 
 // setDateProp sets a date/datetime property with correct VALUE parameter.
