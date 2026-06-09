@@ -174,7 +174,6 @@ export function CalendarView() {
         ))}
       </div>
       <div className="max-h-64 overflow-y-auto">
-        {!searchQuery && <p className="px-3 py-3 text-xs text-neutral-400 dark:text-neutral-500">{t("cal.search")}</p>}
         {searchQuery && filteredEvents.length === 0 && <p className="px-3 py-3 text-xs text-neutral-400 dark:text-neutral-500">{t("cal.noResults")}</p>}
         {searchQuery && filteredEvents.slice(0, 20).map((e, idx) => {
           const cal = calendars?.find((c) => c.id === e.calendarId);
