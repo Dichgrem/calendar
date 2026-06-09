@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 
 	"calendar/internal/apperror"
 	"calendar/internal/db"
+	"calendar/internal/logger"
 	"calendar/internal/middleware"
 )
 
@@ -36,6 +36,7 @@ type backupInfo struct {
 }
 
 func handleCreate(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("[backup] POST create")
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Cannot create backup directory"))
 		return
@@ -43,7 +44,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Force WAL checkpoint so the main db file is self-contained
 	if _, err := db.DB.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
-		log.Printf("backup checkpoint warning: %v", err)
+		logger.Error("backup checkpoint warning: %v", err)
 	}
 
 	ts := time.Now().UTC().Format("2006-01-02T150405Z")
@@ -52,7 +53,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	src, err := os.Open(db.Path)
 	if err != nil {
-		log.Printf("backup open source: %v", err)
+		logger.Error("backup open source: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Backup failed"))
 		return
 	}
@@ -60,19 +61,20 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	dst, err := os.Create(dest)
 	if err != nil {
-		log.Printf("backup create dest: %v", err)
+		logger.Error("backup create dest: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Backup failed"))
 		return
 	}
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, src); err != nil {
-		log.Printf("backup copy: %v", err)
+		logger.Error("backup copy: %v", err)
 		os.Remove(dest)
 		middleware.JSONResponse(w, 500, apperror.Internal("Backup failed"))
 		return
 	}
 
+	logger.Info("[backup] created %s", filename)
 	middleware.JSONResponse(w, 201, map[string]string{"filename": filename})
 }
 
@@ -132,6 +134,7 @@ func handleDownload(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleRestore(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("[backup] POST restore")
 	var req struct {
 		Filename string `json:"filename"`
 	}
@@ -158,7 +161,7 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 	// existing connection keeps working; new connections read the new file.
 	srcFile, err := os.Open(src)
 	if err != nil {
-		log.Printf("restore open backup: %v", err)
+		logger.Error("restore open backup: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Restore failed"))
 		return
 	}
@@ -166,18 +169,19 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 
 	dstFile, err := os.Create(db.Path)
 	if err != nil {
-		log.Printf("restore create db: %v", err)
+		logger.Error("restore create db: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Restore failed"))
 		return
 	}
 	defer dstFile.Close()
 
 	if _, err := io.Copy(dstFile, srcFile); err != nil {
-		log.Printf("restore copy: %v", err)
+		logger.Error("restore copy: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Restore failed"))
 		return
 	}
 
+	logger.Info("[backup] restore from %s success", req.Filename)
 	middleware.JSONResponse(w, 200, map[string]string{
 		"message": "Restored. The server will use the new data after restart.",
 	})

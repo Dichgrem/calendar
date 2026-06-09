@@ -47,6 +47,10 @@ export function SettingsPage() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [acctMsg, setAcctMsg] = useState("");
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [logLevel, setLogLevel] = useState("");
+  const [logCount, setLogCount] = useState(200);
+  const [logAuto, setLogAuto] = useState(false);
 
   useEffect(() => {
     api.settings.get().then((res) => {
@@ -56,6 +60,27 @@ export function SettingsPage() {
       if (res?.data?.username) setAccountUser(res.data.username);
     }).catch(() => {});
   }, []);
+
+  const fetchLogs = async () => {
+    try {
+      const res: any = await api.logs(logCount, logLevel || undefined);
+      if (res?.data?.lines) setLogLines(res.data.lines);
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchLogs();
+    if (!logAuto) return;
+    const t = setInterval(fetchLogs, 5000);
+    return () => clearInterval(t);
+  }, [logAuto, logLevel, logCount]);
+
+  const exportLogs = () => {
+    const blob = new Blob([logLines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "calendar-server.log"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (loading) return <div className="flex flex-col h-full"><p className="p-6 text-sm text-neutral-400">{t("settings.loading")}</p></div>;
   if (error) return <div className="flex flex-col h-full"><p className="p-6 text-sm text-red-500">{error}</p></div>;
@@ -215,6 +240,36 @@ export function SettingsPage() {
                   <Package className="size-3.5" weight="bold" />{t("settings.exportConfig")}
                 </Button>
               </div>
+            </div>
+          </Section>
+
+          {/* Server logs */}
+          <Section icon={Database} title={t("settings.serverLogs")}>
+            <div className="py-0.5 space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <select value={logLevel} onChange={(e) => setLogLevel(e.target.value)}
+                  className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700">
+                  <option value="">{t("settings.logAll")}</option>
+                  <option value="error">Error</option>
+                  <option value="info">Info</option>
+                  <option value="debug">Debug</option>
+                </select>
+                <select value={logCount} onChange={(e) => setLogCount(Number(e.target.value))}
+                  className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700">
+                  <option value={200}>200</option>
+                  <option value={500}>500</option>
+                  <option value={1000}>1000</option>
+                </select>
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input type="checkbox" checked={logAuto} onChange={(e) => setLogAuto(e.target.checked)} />
+                  {t("settings.logAutoRefresh")}
+                </label>
+                <div className="flex-1" />
+                <Button variant="outline" size="sm" onClick={fetchLogs} className="h-7 text-xs">{t("settings.logRefresh")}</Button>
+                <Button variant="outline" size="sm" onClick={exportLogs} className="h-7 text-xs">{t("settings.logExport")}</Button>
+              </div>
+              <textarea readOnly value={logLines.join("\n")}
+                className="w-full h-48 text-[11px] font-mono border rounded-lg p-2 bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 resize-y focus:outline-none" />
             </div>
           </Section>
 

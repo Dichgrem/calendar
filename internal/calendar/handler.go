@@ -11,6 +11,7 @@ import (
 
 	"calendar/internal/apperror"
 	"calendar/internal/db"
+	"calendar/internal/logger"
 	"calendar/internal/middleware"
 	"calendar/internal/validate"
 )
@@ -97,6 +98,7 @@ type createRequest struct {
 
 func handleCreate(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
+	logger.Debug("[calendar] POST user=%s", perm.UserID)
 
 	var req createRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -140,6 +142,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 		id, req.Name, color, sourceURL, sourceType, perm.UserID, now, now, lmod,
 	)
 	if err != nil {
+		logger.Error("[calendar] create name=%q error: %v", req.Name, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
@@ -154,10 +157,12 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tx.Commit(); err != nil {
+		logger.Error("[calendar] create name=%q commit error: %v", req.Name, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
 
+	logger.Info("[calendar] create id=%s name=%q", id, req.Name)
 	c, err := getCalendar(id, perm.UserID)
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
@@ -176,6 +181,7 @@ type updateRequest struct {
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
 	id := chi.URLParam(r, "id")
+	logger.Debug("[calendar] PATCH id=%s user=%s", id, perm.UserID)
 
 	if !perm.RequireRole(id, "editor") {
 		middleware.JSONResponse(w, 403, apperror.Forbidden("Access denied"))
@@ -222,9 +228,12 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tx.Commit(); err != nil {
+		logger.Error("[calendar] update id=%s commit error: %v", id, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
+
+	logger.Info("[calendar] update id=%s success", id)
 
 	c, err := getCalendar(id, perm.UserID)
 	if err != nil {
@@ -238,6 +247,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 func handleDelete(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
 	id := chi.URLParam(r, "id")
+	logger.Debug("[calendar] DELETE id=%s user=%s", id, perm.UserID)
 
 	if !perm.RequireRole(id, "admin") {
 		middleware.JSONResponse(w, 403, apperror.Forbidden("Access denied"))
@@ -246,16 +256,19 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 
 	res, err := db.DB.Exec("DELETE FROM calendars WHERE id = ?", id)
 	if err != nil {
+		logger.Error("[calendar] delete id=%s error: %v", id, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
 
 	affected, _ := res.RowsAffected()
 	if affected == 0 {
+		logger.Info("[calendar] delete id=%s not found", id)
 		middleware.JSONResponse(w, 404, apperror.NotFound("Calendar not found"))
 		return
 	}
 
+	logger.Info("[calendar] delete id=%s success", id)
 	middleware.JSONResponse(w, 200, nil)
 }
 

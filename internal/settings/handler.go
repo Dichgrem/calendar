@@ -9,6 +9,7 @@ import (
 	"calendar/internal/apperror"
 	"calendar/internal/config"
 	"calendar/internal/db"
+	"calendar/internal/logger"
 	"calendar/internal/middleware"
 )
 
@@ -49,6 +50,7 @@ type updateRequest struct {
 
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
+	logger.Debug("[settings] PATCH /api/settings user=%s", perm.UserID)
 
 	var req updateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -93,15 +95,18 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 			show_lunar_calendar = excluded.show_lunar_calendar
 	`, perm.UserID, lang, fdow, boolToInt(showTime), df, boolToInt(showLunar))
 	if err != nil {
+		logger.Error("[settings] update user=%s error: %v", perm.UserID, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
 
 	settings, err := getSettings(perm.UserID)
 	if err != nil {
+		logger.Error("[settings] get after update user=%s error: %v", perm.UserID, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
+	logger.Info("[settings] update user=%s success", perm.UserID)
 	middleware.JSONResponse(w, 200, settings)
 }
 

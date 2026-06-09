@@ -111,4 +111,7 @@ export const api = {
       a.click();
     },
   },
+
+  logs: (n?: number, level?: string) =>
+    request<ApiResponse<{ lines: string[] }>>(`/logs?n=${n ?? 500}${level ? `&level=${level}` : ""}`),
 };

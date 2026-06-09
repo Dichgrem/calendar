@@ -17,6 +17,7 @@ import (
 
 	"calendar/internal/apperror"
 	"calendar/internal/db"
+	"calendar/internal/logger"
 	"calendar/internal/middleware"
 )
 
@@ -250,6 +251,7 @@ type importRequest struct {
 
 func handleImport(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
+	logger.Debug("[ics] POST import user=%s", perm.UserID)
 
 	var req importRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -372,16 +374,19 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tx.Commit(); err != nil {
+		logger.Error("[ics] import commit error: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
 
+	logger.Info("[ics] import cal=%s events=%d", calendarID, len(events))
 	middleware.JSONResponse(w, 201, map[string]string{"calendarId": calendarID})
 }
 
 func handleExport(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
 	calendarID := chi.URLParam(r, "calendarId")
+	logger.Debug("[ics] GET export cal=%s user=%s", calendarID, perm.UserID)
 
 	if !perm.IsMember(calendarID) {
 		middleware.JSONResponse(w, 403, apperror.Forbidden("Access denied"))
