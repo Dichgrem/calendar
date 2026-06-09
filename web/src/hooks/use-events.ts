@@ -1,20 +1,22 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import type { Event } from "../types";
 
 export function useEvents(calendarIds: string[], start: string, end: string) {
-  return useQueries({
-    queries: calendarIds.map((id) => ({
-      queryKey: ["events", id, start, end],
-      queryFn: async () => {
-        const res = await api.events.list(id, start, end);
-        return res.data;
-      },
-      enabled: !!start && !!end,
-    })),
-    combine: (results) => ({
-      data: results.flatMap((r) => r.data ?? []),
-      isLoading: results.some((r) => r.isLoading),
-      isError: results.some((r) => r.isError),
-    }),
+  const enabled = calendarIds.length > 0 && !!start && !!end;
+  // Sort IDs in the key so toggling visibility doesn't invalidate the cache
+  // just because the array order changed.
+  const sorted = [...calendarIds].sort();
+
+  return useQuery({
+    queryKey: ["events", sorted, start, end],
+    queryFn: async () => {
+      const results = await Promise.all(
+        calendarIds.map((id) => api.events.list(id, start, end))
+      );
+      return results.flatMap((r) => (r as { data: Event[] | null }).data ?? []);
+    },
+    enabled,
+    placeholderData: keepPreviousData,
   });
 }

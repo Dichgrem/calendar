@@ -58,8 +58,14 @@ export function CalendarView() {
     }
   }, [settings?.language, settings?.firstDayOfWeek, settings?.showEventTime]);
 
+  const datesTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  useEffect(() => () => { if (datesTimer.current) clearTimeout(datesTimer.current); }, []);
+
   const handleDatesSet = useCallback((arg: DatesSetArg) => {
-    setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
+    if (datesTimer.current) clearTimeout(datesTimer.current);
+    datesTimer.current = setTimeout(() => {
+      setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
+    }, 200);
     setTimeout(applyHighlight, 60);
   }, [applyHighlight]);
 
@@ -153,6 +159,25 @@ export function CalendarView() {
     [filteredEvents, calendarColorMap],
   );
 
+  const lunarCellContent = useMemo(() => {
+    if (!settings?.showLunarCalendar) return undefined;
+    const cache = new Map<string, string>();
+    return (arg: { date: Date; dayNumberText: string }) => {
+      const key = dateStr(arg.date);
+      let lunar = cache.get(key);
+      if (lunar === undefined) {
+        lunar = getLunarText(arg.date);
+        cache.set(key, lunar);
+      }
+      return (
+        <div className="flex items-baseline gap-1">
+          <span className="text-xs text-neutral-400 dark:text-neutral-500 min-w-[2em] text-right">{lunar}</span>
+          <span>{arg.dayNumberText}</span>
+        </div>
+      );
+    };
+  }, [settings?.showLunarCalendar]);
+
   const searchDropdown = searchOpen ? (
     <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 mt-1 min-w-[24rem] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
       <div className="px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
@@ -213,12 +238,7 @@ export function CalendarView() {
           ref={calRef} plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth"
           events={fcEvents} datesSet={handleDatesSet} eventClick={handleEventClick}
           dateClick={(arg) => { setHighlightDate(dateStr(arg.date)); }}
-          dayCellContent={settings?.showLunarCalendar ? (arg: { date: Date; dayNumberText: string }) => (
-            <div className="flex items-baseline gap-1">
-              <span className="text-xs text-neutral-400 dark:text-neutral-500 min-w-[2em] text-right">{getLunarText(arg.date)}</span>
-              <span>{arg.dayNumberText}</span>
-            </div>
-          ) : undefined}
+          dayCellContent={lunarCellContent}
           height="100%" locale={lang === "en" ? "en" : "zh-cn"}
           firstDay={settings?.firstDayOfWeek ?? 1}
           displayEventTime={settings?.showEventTime ?? false}
