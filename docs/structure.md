@@ -33,11 +33,13 @@ calendar/
 │   ├── apperror/            # 统一错误类型
 │   ├── auth/                # 认证 + 会话 + PBKDF2
 │   ├── backup/              # 数据库备份/恢复
+│   ├── caldav/              # CalDAV 协议 (PROPFIND/PUT/DELETE/REPORT/MKCALENDAR)
 │   ├── calendar/            # 日历 CRUD
 │   ├── config/              # 环境变量读取
 │   ├── db/                  # SQLite 连接
 │   ├── event/               # 事件 CRUD + override
 │   ├── ics/                 # ICS 解析/序列化/路由
+│   ├── logger/              # 结构化日志系统（slog + 环形缓冲区）
 │   ├── middleware/           # 认证、错误、安全头
 │   ├── settings/            # 用户设置
 │   ├── sync/                # 同步 pull/push
@@ -243,9 +245,29 @@ HTTP 请求
 | 包 | 用途 |
 |---|---|
 | `github.com/go-chi/chi/v5` | HTTP 路由（标准 `http.Handler` 接口） |
+| `github.com/emersion/go-ical` | ICS 解析/序列化（CalDAV + 导入导出） |
 | `modernc.org/sqlite` | 纯 Go SQLite 驱动 |
 | `github.com/google/uuid` | UUIDv4 生成 |
 | `golang.org/x/crypto` | PBKDF2 密码哈希 |
+
+### CalDAV 同步
+
+服务端实现 RFC 4791 CalDAV 协议子集，支持 DAVx5 Android 客户端双向同步。
+PROPFIND/REPORT/GET/PUT/DELETE/MKCALENDAR 等 HTTP 方法由 `internal/caldav/`
+处理，`middleware.CaldavAuth` 校验 Basic 认证。
+
+CalDAV 路由注册在 `/dav/` 前缀下，REST API 在 `/api/` 下，二者独立工作。
+事件 ID 由 ICS UID 或 URL 文件名决定（不含随机 UUID），确保 PUT/DELETE
+与 PROPFIND 返回的 href 一致。
+
+### 日志系统
+
+全局结构化日志由 `internal/logger/` 提供：`slog.TextHandler` 输出到 stderr，
+同时写入 2000 行环形缓冲区。三级 API：`logger.Info()`、`logger.Error()`、
+`logger.Debug()`。`GET /api/logs?n=500&level=error` 返回 JSON 格式日志，
+前端设置页面提供查看、过滤、导出功能。
+
+所有 handler 入口均打 DEBUG，成功打 INFO，失败打 ERROR。详情见 `docs/log.md`。
 
 ## 迁移系统
 

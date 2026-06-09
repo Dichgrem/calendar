@@ -479,3 +479,17 @@ GET /api/health
 
 → 200 { "status": "ok" }
 ```
+
+### 服务器日志
+
+```
+GET /api/logs?n=500&level=error
+
+需要登录。返回环形缓冲区中的最近日志行。
+
+参数：
+- n：返回行数（默认 500，上限 2000）
+- level：过滤级别（debug/info/error），留空返回全部
+
+→ 200 { "ok": true, "data": { "lines": ["time=... level=INFO msg=..."], "total": 2000 } }
+```

@@ -97,6 +97,7 @@
 | 农历 | 在公历旁显示农历日期 |
 | 修改用户名 | 新用户名需唯一 |
 | 修改密码 | 输入旧密码和新密码 |
+| 服务器日志 | 查看实时日志，按级别过滤，自动刷新，导出 .log 文件 |
 
 ## 备份
 
@@ -105,11 +106,25 @@
 
 ## 移动端（Android）
 
+### Web 访问
 1. 打开应用
 2. 输入服务端地址（如 `https://calendar.example.com`）
 3. 登录
 
 显示与 Web 端一致的日历界面，变更通过 REST API 同步。
+
+### CalDAV 同步（DAVx5）
+
+通过 DAVx5 实现原生 Android 日历同步：
+
+1. 安装 [DAVx5](https://www.davx5.com/)（F-Droid / Google Play）
+2. 新建账户 → CalDAV
+3. 服务器 URL：`https://calendar.example.com/dav/`
+4. 用户名和密码与 Web 登录相同
+5. DAVx5 自动发现并同步所有日历
+
+支持双向同步：创建、编辑、删除事件在两端即时同步。
+CalDAV 路由与 REST API 各自独立工作（`/dav/` vs `/api/`）。
 
 ## 常见问题
 
@@ -120,3 +135,4 @@
 | ICS 导入 0 个事件 | 文件可能不含 VEVENT，或格式不标准 |
 | 日志显示 Database error | 检查磁盘空间和 db 目录权限 |
 | 服务无法启动 | 检查 PORT 占用和 DATABASE_URL 目录权限 |
+| CalDAV 同步失败 | 检查 DAVx5 日志（设置→调试信息→分享），关注 "Missing DTSTART" 或 "VALUE=TEXT"；确认服务器版本支持完整 CalDAV 协议 |
