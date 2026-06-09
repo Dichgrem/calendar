@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"calendar/internal/db"
+	"calendar/internal/ics"
 	"calendar/internal/logger"
 	"calendar/internal/middleware"
 )
@@ -108,7 +109,7 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 		var lmod int64
 		if rows.Scan(&id, &title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &lmod) != nil { continue }
 
-		icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, id+"@calendar", createdAt)
+		icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, id, createdAt)
 		icsContent := serializeCal(icalCal)
 
 		rs = append(rs, response{
@@ -145,7 +146,7 @@ func handlePropfindSingle(w http.ResponseWriter, r *http.Request, calendarID, fi
 	).Scan(&title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &lmod)
 	if err != nil { writeXML(w, multiStatus{Responses: []response{}}); return }
 
-	icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, eventID+"@calendar", createdAt)
+	icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, eventID, createdAt)
 	icsContent := serializeCal(icalCal)
 
 	writeXML(w, multiStatus{Responses: []response{{
@@ -199,7 +200,7 @@ func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	).Scan(&title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt)
 	if err != nil { http.Error(w, "Not Found", 404); return }
 
-	icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, eventID+"@calendar", createdAt)
+	icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, eventID, createdAt)
 	icsContent := serializeCal(icalCal)
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("ETag", fmt.Sprintf(`"%s-%d"`, eventID, time.Now().Unix()))
@@ -230,15 +231,18 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	ev := events[0]
 
 	evTitle := compProp(ev, ical.PropSummary)
-	evStartAt := compProp(ev, ical.PropDateTimeStart)
-	evEndAt := compProp(ev, ical.PropDateTimeEnd)
+	evStartAt := ics.NormalizeICSDate(compProp(ev, ical.PropDateTimeStart))
+	evEndAt := ics.NormalizeICSDate(compProp(ev, ical.PropDateTimeEnd))
 	evUID := compProp(ev, ical.PropUID)
-
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()
 
 	lookupID := strings.TrimSuffix(filename, ".ics")
 	if evUID != "" { lookupID = evUID }
+	// DAVx5 may have cached old ICS with "@calendar" UID suffix.
+	// Strip it so the lookup matches the DB id (a clean UUID).
+	lookupID = strings.TrimSuffix(lookupID, "@calendar")
+	lookupID = strings.TrimSuffix(lookupID, "@calendar@calendar")
 
 	var existingID string
 	db.DB.QueryRow("SELECT id FROM events WHERE id=? AND calendar_id=?", lookupID, calID).Scan(&existingID)
@@ -252,11 +256,10 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 		if err != nil { logger.Error("[caldav] PUT %s UPDATE error: %v", r.URL.Path, err); http.Error(w, "Internal Server Error", 500); return }
 		logger.Info("[caldav] PUT %s UPDATED uid=%s title=%q start=%s", r.URL.Path, existingID, evTitle, evStartAt)
 	} else {
-		id := uuid.New().String()
 		_, err := db.DB.Exec(`INSERT INTO events (id, calendar_id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-			id, calID, evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, now, lmod)
+			lookupID, calID, evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, now, lmod)
 		if err != nil { logger.Error("[caldav] PUT %s INSERT error: %v", r.URL.Path, err); http.Error(w, "Internal Server Error", 500); return }
-		logger.Info("[caldav] PUT %s CREATED uid=%s title=%q start=%s", r.URL.Path, id, evTitle, evStartAt)
+		logger.Info("[caldav] PUT %s CREATED uid=%s title=%q start=%s", r.URL.Path, lookupID, evTitle, evStartAt)
 	}
 	w.WriteHeader(204)
 }

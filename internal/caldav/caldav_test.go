@@ -173,16 +173,20 @@ END:VCALENDAR`
 		t.Errorf("expected 204 got %d: %s", w.Code, w.Body.String())
 	}
 
-	// Verify event exists in DB (event is stored with a generated UUID, not the ICS UID)
-	var count int
-	db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id=?", "cal-1").Scan(&count)
-	if count == 0 {
-		t.Fatal("event not in DB")
-	}
+	// Verify event exists in DB with the ICS UID as its ID — not a random UUID.
 	var title string
-	db.DB.QueryRow("SELECT title FROM events WHERE calendar_id=?", "cal-1").Scan(&title)
+	db.DB.QueryRow("SELECT title FROM events WHERE id=? AND calendar_id=?", "test-uid-001", "cal-1").Scan(&title)
 	if title != "New Event" {
-		t.Errorf("title=%q want 'New Event'", title)
+		t.Errorf("title=%q want 'New Event' (event id may not match UID)", title)
+	}
+
+	// Verify DAVx5 can GET and DELETE using the same URL
+	req2 := httptest.NewRequest("GET", "/dav/calendars/cal-1/test-uid-001.ics", nil)
+	req2.Header.Set("Authorization", basicAuth("testuser", "testpass"))
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+	if w2.Code != 200 {
+		t.Errorf("GET after PUT returned %d — DAVx5 would lose track of this event", w2.Code)
 	}
 }
 
@@ -214,6 +218,52 @@ END:VCALENDAR`
 	db.DB.QueryRow("SELECT title FROM events WHERE id='evt-update'").Scan(&title)
 	if title != "Updated Title" {
 		t.Errorf("title=%q want 'Updated Title'", title)
+	}
+
+	// Verify no duplicate events
+	var count int
+	db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id='cal-1' AND deleted=0").Scan(&count)
+	if count != 1 {
+		t.Errorf("expected 1 event, got %d — UPDATE should not create duplicate", count)
+	}
+}
+
+// TestCaldavPutWithAtCalendarUID verifies that DAVx5 clients
+// with cached ICS containing "UID:xxx@calendar" are handled correctly.
+func TestCaldavPutWithAtCalendarUID(t *testing.T) {
+	r := setupCalDAV(t)
+	db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
+		VALUES ('clean-uid', 'cal-1', 'Original', '2026-06-09T10:00:00Z', '2026-06-09T11:00:00Z',
+		'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)`)
+
+	// DAVx5 cached old ICS with UID:clean-uid@calendar suffix
+	ics := `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:clean-uid@calendar
+DTSTART:20260620T120000Z
+DTEND:20260620T130000Z
+SUMMARY:Modified By DAVx5
+END:VEVENT
+END:VCALENDAR`
+	req := httptest.NewRequest("PUT", "/dav/calendars/cal-1/clean-uid.ics", strings.NewReader(ics))
+	req.Header.Set("Authorization", basicAuth("testuser", "testpass"))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != 204 {
+		t.Errorf("expected 204 (update) got %d: %s", w.Code, w.Body.String())
+	}
+
+	var title string
+	db.DB.QueryRow("SELECT title FROM events WHERE id='clean-uid'").Scan(&title)
+	if title != "Modified By DAVx5" {
+		t.Errorf("title=%q want 'Modified By DAVx5'", title)
+	}
+
+	var count int
+	db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id='cal-1' AND deleted=0").Scan(&count)
+	if count != 1 {
+		t.Errorf("expected 1 event, got %d — @calendar suffix caused duplicate", count)
 	}
 }
 
