@@ -1,4 +1,4 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, useState, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,9 +8,12 @@ import { ServerUrlDialog } from "./components/ServerUrlDialog";
 import { isNative } from "./lib/capacitor";
 import { CalendarView } from "./components/CalendarView";
 import { ImportPage } from "./pages/ImportPage";
-import { SettingsPage } from "./pages/SettingsPage";
 import { LoginPage } from "./pages/LoginPage";
 import "./index.css";
+
+const SettingsPage = lazy(() =>
+  import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage }))
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,7 +37,7 @@ function App() {
                 <Route index element={<Navigate to="/calendar" replace />} />
                 <Route path="/calendar" element={<CalendarView />} />
                 <Route path="/import" element={<ImportPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings" element={<Suspense fallback={<div className="p-6 text-sm text-neutral-400">Loading...</div>}><SettingsPage /></Suspense>} />
               </Route>
             </Route>
           </Routes>
