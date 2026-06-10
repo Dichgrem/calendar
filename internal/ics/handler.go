@@ -83,7 +83,7 @@ func NormalizeICSDate(raw string) string {
 }
 
 // normalizeICSDate converts ICS raw datetime to ISO 8601 for storage.
-// Handles: "20240101" → "2024-01-01", "20240101T090000Z" → "2024-01-01T09:00:00Z"
+// All timed values are stored with Z suffix (UTC) per CalDAV best practice.
 func normalizeICSDate(raw string) string {
 	raw = strings.TrimSpace(raw)
 	if len(raw) == 8 {
@@ -91,11 +91,13 @@ func normalizeICSDate(raw string) string {
 		return raw[0:4] + "-" + raw[4:6] + "-" + raw[6:8]
 	}
 	if len(raw) >= 15 {
-		// DATE-TIME: YYYYMMDDTHHMMSS[Z] → YYYY-MM-DDTHH:MM:SS[Z]
+		// DATE-TIME: YYYYMMDDTHHMMSS[Z] → YYYY-MM-DDTHH:MM:SSZ
 		result := raw[0:4] + "-" + raw[4:6] + "-" + raw[6:8] + "T" +
 			raw[9:11] + ":" + raw[11:13] + ":" + raw[13:15]
-		if len(raw) > 15 && raw[15] == 'Z' {
+		if len(raw) == 16 && raw[15] == 'Z' {
 			result += "Z"
+		} else {
+			result += "Z" // floating time → UTC
 		}
 		return result
 	}
@@ -595,7 +597,8 @@ func setDateProp(props ical.Props, name, value string) {
 		props.SetDate(name, t)
 	} else {
 		t, err := time.Parse(time.RFC3339, value)
-		if err != nil { t, _ = time.Parse("2006-01-02T15:04:05Z", value) }
+		if err != nil { t, err = time.Parse("2006-01-02T15:04:05Z", value) }
+		if err != nil { t, _ = time.Parse("2006-01-02T15:04:05", value) }
 		if t.IsZero() { props.SetText(name, value); return }
 		props.SetDateTime(name, t)
 	}

@@ -406,8 +406,9 @@ func setDateProp(props ical.Props, name, value string) {
 		t, _ := time.Parse("2006-01-02", value)
 		props.SetDate(name, t)
 	} else {
-		t, _ := time.Parse(time.RFC3339, value)
-		if t.IsZero() { t, _ = time.Parse("2006-01-02T15:04:05Z", value) }
+		t, err := time.Parse(time.RFC3339, value)
+		if err != nil { t, err = time.Parse("2006-01-02T15:04:05Z", value) }
+		if err != nil { t, _ = time.Parse("2006-01-02T15:04:05", value) }
 		if t.IsZero() { props.SetText(name, value); return }
 		props.SetDateTime(name, t)
 	}
