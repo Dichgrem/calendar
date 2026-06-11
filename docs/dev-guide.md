@@ -4,7 +4,7 @@
 
 - Go 1.25+
 - Node.js 22+
-- pnpm 9
+- pnpm 11
 - （可选）启用了 flakes 的 Nix
 
 ## 初始化
@@ -42,6 +42,7 @@ pnpm test                              # 前端测试
 
 覆盖范围：auth (63%), calendar (67%), event (67%), caldav (72%), ics (55%),
 logger (93%), settings (71%), sync (38%), backup (4%)。
+主 bundle ~423KB（无 FullCalendar）。
 
 ## 代码质量
 
@@ -99,7 +100,6 @@ HTTPS 环境下设置 `SECURE_COOKIES=true`。
 | `USER_DEFAULT_LANGUAGE` | `zh-CN` | 默认语言 |
 | `USER_DEFAULT_FIRST_DAY_OF_WEEK` | `1` | 0=周日 |
 | `USER_DEFAULT_DATE_FORMAT` | `zh` | 日期格式 |
-| `USER_DEFAULT_SHOW_EVENT_TIME` | `false` | 显示事件时间 |
 | `USER_DEFAULT_SHOW_LUNAR_CALENDAR` | `true` | 启用农历 |
 
 ## 添加迁移

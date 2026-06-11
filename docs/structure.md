@@ -45,6 +45,15 @@ calendar/
 │   ├── sync/                # 同步 pull/push
 │   └── validate/            # 共享校验
 ├── web/                     # React SPA（pnpm workspace）
+│   ├── src/
+│   │   ├── components/       # 前端组件
+│   │   │   ├── MonthGrid.tsx  # 自建月视图（CSS Grid）
+│   │   │   ├── CalendarView.tsx # 日历页
+│   │   │   ├── CalendarManagement.tsx # 设置页日历管理
+│   │   │   └── ...
+│   │   ├── hooks/            # React hooks
+│   │   ├── lib/              # 工具函数（日期格式、农历）
+│   │   └── pages/            # 页面组件
 ├── go.mod / go.sum
 ├── Justfile                 # 任务运行器
 ├── Dockerfile               # 三阶段构建（node + go → alpine）
@@ -119,6 +128,17 @@ HTTP 请求
 ### 软删除
 
 事件 `deleted = 1` 标记。仍可通过 ID 访问，但不列入列表查询。日历硬删除并级联事件。
+
+### ICS 存储
+
+导入 ICS 文件时，每个 VEVENT 的原始文本完整保存在 `events.raw_ics` 中
+（通过 `extractVEventsByUID` 从原始 ICS 按 UID 提取）。DB 的 `start_at`/`end_at`
+列通过 `normalizeICSDate` 规范化为 ISO 8601 格式用于查询。
+
+导出时，有 `raw_ics` 的事件直接输出原始 VEVENT 文本（保真导出）——
+不经过 go-ical 重新序列化，避免丢失 `VALARM`、`X-FOSSIFY-*` 等属性。
+CalDAV PROPFIND 同样使用 `raw_ics` 原文返回，确保 DAVx5 客户端
+接收到与原始导入时完全一致的 ICS 数据。无 `raw_ics` 的事件从 DB 列重建。
 
 ## 数据库表设计
 
@@ -214,8 +234,6 @@ HTTP 请求
 | user_id | TEXT PK FK→users | 级联删除 |
 | language | TEXT | `zh-CN` 或 `en`，默认 `zh-CN` |
 | first_day_of_week | INTEGER | 0-6，默认 1（周一） |
-| show_event_time | INTEGER | 0/1 |
-| date_format | TEXT | `zh` 或 `en` |
 | show_lunar_calendar | INTEGER | 0/1 |
 
 ### `sync_sequence`
@@ -249,6 +267,17 @@ HTTP 请求
 | `modernc.org/sqlite` | 纯 Go SQLite 驱动 |
 | `github.com/google/uuid` | UUIDv4 生成 |
 | `golang.org/x/crypto` | PBKDF2 密码哈希 |
+| `@tanstack/react-query` | 前端数据获取与缓存 |
+| `@phosphor-icons/react` | 图标库 |
+| `Tailwind CSS` | 样式工具 |
+
+### 前端
+
+前端采用 React 19 + Vite 6，**不使用 FullCalendar**。
+月视图通过 `MonthGrid.tsx` 组件实现（CSS Grid 7×6 格），
+支持农历显示、事件渲染、跨天事件展开、搜索跳转、暗色模式。
+与 CalDAV / REST API 分别交互，切换月中仅重新获取数据，
+无 FullCalendar 内部开销。
 
 ### CalDAV 同步
 
