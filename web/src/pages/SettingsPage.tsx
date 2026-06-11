@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Database, Package, PencilSimple, Wrench, User, CalendarDots, FloppyDisk } from "@phosphor-icons/react";
+import { Database, Package, PencilSimple, Wrench, User, CalendarDots, FloppyDisk, CaretDown } from "@phosphor-icons/react";
 import { api } from "../lib/api";
 import { isNative } from "../lib/capacitor";
 import { useI18n } from "../hooks/use-i18n";
@@ -13,14 +13,22 @@ import { SettingsForm } from "../components/SettingsForm";
 import { CalendarManagement } from "../components/CalendarManagement";
 import type { UserSettings } from "../types";
 
-function Section({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
+function Section({ icon: Icon, title, children, collapsible, defaultOpen = false }: { icon: any; title: string; children: React.ReactNode; collapsible?: boolean; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+
   return (
     <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-1.5 border-b border-neutral-100 dark:border-neutral-800">
+      <div className={`flex items-center gap-2 px-4 py-1.5 border-b border-neutral-100 dark:border-neutral-800 ${collapsible ? "cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900" : ""}`}
+        onClick={() => collapsible && setOpen(!open)}>
         <Icon className="size-3.5 text-neutral-400" weight="bold" />
         <h2 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">{title}</h2>
+        {collapsible && (
+          <span className="ml-auto text-neutral-400 transition-transform" style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}>
+            <CaretDown className="size-3" weight="bold" />
+          </span>
+        )}
       </div>
-      <div className="px-4 py-1.5">{children}</div>
+      {(!collapsible || open) && <div className="px-4 py-1.5">{children}</div>}
     </div>
   );
 }
@@ -162,7 +170,7 @@ export function SettingsPage() {
                     <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder={accountUser}
                       className="border rounded-lg px-2 py-0.5 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400 w-40" />
                   ) : (
-                    <p className="text-sm truncate dark:text-neutral-200">{accountUser}</p>
+                    <p className="text-sm truncate text-neutral-800 dark:text-neutral-200">{accountUser}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -244,7 +252,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Server logs */}
-          <Section icon={Database} title={t("settings.serverLogs")}>
+          <Section icon={Database} title={t("settings.serverLogs")} collapsible>
             <div className="py-0.5 space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
                 <select value={logLevel} onChange={(e) => setLogLevel(e.target.value)}
@@ -260,8 +268,11 @@ export function SettingsPage() {
                   <option value={500}>500</option>
                   <option value={1000}>1000</option>
                 </select>
-                <label className="flex items-center gap-1 text-xs cursor-pointer dark:text-neutral-300">
-                  <input type="checkbox" checked={logAuto} onChange={(e) => setLogAuto(e.target.checked)} className="dark:accent-neutral-400" />
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer dark:text-neutral-300">
+                  <input type="checkbox" checked={logAuto} onChange={(e) => setLogAuto(e.target.checked)} className="peer sr-only" />
+                  <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors">
+                    <svg className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  </span>
                   {t("settings.logAutoRefresh")}
                 </label>
                 <div className="flex-1" />

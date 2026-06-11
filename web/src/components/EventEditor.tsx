@@ -250,9 +250,12 @@ export function EventEditor(props: EventEditorProps) {
             type="checkbox"
             checked={allDay}
             onChange={(e) => setAllDay(e.target.checked)}
-            className="accent-neutral-900 dark:accent-white"
+            className="peer sr-only"
           />
-          <span className="text-sm dark:text-neutral-200">{t("event.allDay")}</span>
+          <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors">
+            <svg className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          </span>
+          <span className="text-sm text-neutral-800 dark:text-neutral-200">{t("event.allDay")}</span>
         </label>
 
         <label className="block">

@@ -61,6 +61,9 @@ export function CalendarView() {
     setDark(next);
     localStorage.setItem("darkMode", next ? "1" : "0");
     document.documentElement.className = next ? "dark" : "light";
+    document.body.className = next
+      ? "bg-background text-neutral-800 dark:text-neutral-200 antialiased dark"
+      : "bg-background text-neutral-800 dark:text-neutral-200 antialiased light";
   };
 
   const calendarColorMap = useMemo(() => new Map(calendars?.map((c) => [c.id, c.color]) ?? []), [calendars]);
@@ -126,7 +129,6 @@ export function CalendarView() {
           const d = new Date(ev.startAt);
           setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
           setHighlightDate(dateStr(d));
-          setTimeout(() => setHighlightDate(null), 2000);
         }
         setSearchQuery(""); setSearchCalId(null);
       }
@@ -168,13 +170,12 @@ export function CalendarView() {
                   const d = new Date(e.startAt);
                   setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
                   setHighlightDate(dateStr(d));
-                  setTimeout(() => setHighlightDate(null), 2000);
                 }
                 setSearchOpen(false); setSearchQuery(""); setSearchCalId(null);
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${idx === highlightedIndex ? "bg-blue-50 dark:bg-blue-950" : "hover:bg-neutral-50 dark:hover:bg-neutral-800"}`}>
               <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cal?.color }} />
-              <span className="text-sm truncate dark:text-neutral-200">{e.title}</span>
+              <span className="text-sm truncate text-neutral-800 dark:text-neutral-200">{e.title}</span>
               <span className="ml-auto text-xs text-neutral-400 dark:text-neutral-500 shrink-0">{e.startAt ? new Date(e.startAt).toLocaleDateString() : ""}</span>
             </button>
           );
