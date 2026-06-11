@@ -162,7 +162,7 @@ export function SettingsPage() {
                     <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder={accountUser}
                       className="border rounded-lg px-2 py-0.5 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400 w-40" />
                   ) : (
-                    <p className="text-sm truncate">{accountUser}</p>
+                    <p className="text-sm truncate dark:text-neutral-200">{accountUser}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -260,8 +260,8 @@ export function SettingsPage() {
                   <option value={500}>500</option>
                   <option value={1000}>1000</option>
                 </select>
-                <label className="flex items-center gap-1 text-xs cursor-pointer">
-                  <input type="checkbox" checked={logAuto} onChange={(e) => setLogAuto(e.target.checked)} />
+                <label className="flex items-center gap-1 text-xs cursor-pointer dark:text-neutral-300">
+                  <input type="checkbox" checked={logAuto} onChange={(e) => setLogAuto(e.target.checked)} className="dark:accent-neutral-400" />
                   {t("settings.logAutoRefresh")}
                 </label>
                 <div className="flex-1" />
