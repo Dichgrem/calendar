@@ -1,0 +1,36 @@
+name: Release Binary
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.0)'
+        required: true
+permissions:
+  contents: write
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          V="v${{ inputs.version }}"
+          if git rev-parse "$V" >/dev/null 2>&1; then echo "tag exists"; else git config user.name ci; git config user.email ci@ci; git tag -a "$V" -m "$V"; git push origin "$V"; fi
+      - run: git fetch --tags origin  # ensure local tag is visible
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

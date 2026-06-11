@@ -1,0 +1,44 @@
+# goreleaser config for calendar
+# Builds: Go binary (linux/amd64, arm64) → GitHub Release
+# Docker image is handled separately
+
+version: 2
+
+before:
+  hooks:
+    - pnpm install --frozen-lockfile
+    - pnpm --filter @calendar/web build
+    - rm -rf cmd/server/dist
+    - cp -r web/dist cmd/server/dist
+
+builds:
+  - main: ./cmd/server/
+    binary: calendar
+    goos: [linux]
+    goarch: [amd64, arm64]
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+
+archives:
+  - format: tar.gz
+    name_template: "calendar_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-dev"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^build:'

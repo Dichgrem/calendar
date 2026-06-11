@@ -1,0 +1,110 @@
+name: Release All
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.0)'
+        required: true
+permissions:
+  contents: write
+  packages: write
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          V="v${{ inputs.version }}"
+          if git rev-parse "$V" >/dev/null 2>&1; then echo "tag exists"; else git config user.name ci; git config user.email ci@ci; git tag -a "$V" -m "$V"; git push origin "$V"; fi
+  binary:
+    needs: [tag]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git fetch --tags origin  # tag job pushed it after checkout
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  docker:
+    needs: [tag]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git fetch --tags origin  # tag job pushed it after checkout
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @calendar/web build
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: brantcoat/calendar
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  apk:
+    needs: [binary]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platforms;android-34 build-tools;34.0.0
+      - run: pnpm --filter @calendar/web build
+      - run: |
+          cd web
+          npx cap sync
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          mkdir -p ~/.android
+          keytool -genkeypair -v -keystore ~/.android/debug.keystore -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          cd android && ./gradlew assembleDebug --no-daemon
+      - run: cp web/android/app/build/outputs/apk/debug/app-debug.apk calendar-v${{ inputs.version }}-debug.apk
+      - run: gh release upload v${{ inputs.version }} calendar-v${{ inputs.version }}-debug.apk --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
