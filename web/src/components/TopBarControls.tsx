@@ -17,12 +17,11 @@ const MONTHS_EN = [
 ];
 
 interface TopBarControlsProps {
-  calRef?: { current: { getApi: () => any } | null };
   highlightDate?: string | null;
   setHighlightDate?: (d: string | null) => void;
 }
 
-export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBarControlsProps) {
+export function LeftControls({ highlightDate, setHighlightDate }: TopBarControlsProps) {
   const { t, lang } = useI18n();
   const { data: settings } = useSettings();
   const { displayMonth, setDisplayMonth, labelOverride } = useNav();
@@ -36,63 +35,32 @@ export function LeftControls({ calRef, highlightDate, setHighlightDate }: TopBar
   const displayDate = highlightDateObj ?? new Date(displayMonth.year, displayMonth.month, 1);
   const dateLabel = labelOverride ?? formatCalendarDate(displayDate, dateFormat, lang);
 
-  const calApi = () => calRef?.current?.getApi();
-
-  const gotoDate = (dateOrYear: Date | number, month?: number) => {
-    const date = dateOrYear instanceof Date ? dateOrYear : new Date(dateOrYear, month!, 1);
-    if (date.getFullYear() < 1970) date.setFullYear(1970);
-    calApi()?.gotoDate(date);
-    setPickerOpen(false);
-  };
-
   const gotoMonth = (year: number, month: number) => {
     const d = new Date(year, month, 1);
     setDisplayMonth({ year, month });
-    calApi()?.gotoDate(d);
-    if (setHighlightDate) {
-      setHighlightDate(dateStr(d));
-    }
+    if (setHighlightDate) setHighlightDate(dateStr(d));
   };
 
   const goToday = () => {
     const d = new Date();
     setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
-    calApi()?.today();
     setPickerOpen(false);
-    if (setHighlightDate) {
-      setHighlightDate(dateStr(new Date(d.getFullYear(), d.getMonth(), 1)));
-    }
+    if (setHighlightDate) setHighlightDate(dateStr(new Date(d.getFullYear(), d.getMonth(), 1)));
   };
 
   const goPrev = () => {
-    const a = calApi();
-    if (a) {
-      a.prev();
-      if (a.view.currentStart.getFullYear() < 1970) a.gotoDate(new Date(1970, 0, 1));
-      const d = a.getDate();
-      setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
-      if (setHighlightDate) setHighlightDate(dateStr(new Date(d.getFullYear(), d.getMonth(), 1)));
-    } else {
-      const nm = displayMonth.month - 1;
-      const next = nm < 0 ? { year: displayMonth.year - 1, month: 11 } : { year: displayMonth.year, month: nm };
-      setDisplayMonth(next);
-      if (setHighlightDate) setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
-    }
+    const nm = displayMonth.month - 1;
+    const next = nm < 0 ? { year: displayMonth.year - 1, month: 11 } : { year: displayMonth.year, month: nm };
+    if (next.year < 1970) return;
+    setDisplayMonth(next);
+    if (setHighlightDate) setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
   };
 
   const goNext = () => {
-    const a = calApi();
-    if (a) {
-      a.next();
-      const d = a.getDate();
-      setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
-      if (setHighlightDate) setHighlightDate(dateStr(new Date(d.getFullYear(), d.getMonth(), 1)));
-    } else {
-      const nm = displayMonth.month + 1;
-      const next = nm > 11 ? { year: displayMonth.year + 1, month: 0 } : { year: displayMonth.year, month: nm };
-      setDisplayMonth(next);
-      if (setHighlightDate) setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
-    }
+    const nm = displayMonth.month + 1;
+    const next = nm > 11 ? { year: displayMonth.year + 1, month: 0 } : { year: displayMonth.year, month: nm };
+    setDisplayMonth(next);
+    if (setHighlightDate) setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
   };
 
   return (
