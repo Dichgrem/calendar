@@ -360,7 +360,6 @@ GET /api/settings
   "userId": "<uuid>",
   "language": "zh-CN|en",
   "firstDayOfWeek": 0-6,
-  "showEventTime": false,
   "dateFormat": "zh",
   "showLunarCalendar": true
 }
@@ -373,7 +372,6 @@ PATCH /api/settings
 {
   "language"?: "zh-CN|en",
   "firstDayOfWeek"?: 0-6,
-  "showEventTime"?: false,
   "dateFormat"?: "string",
   "showLunarCalendar"?: true
 }
