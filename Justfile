@@ -67,3 +67,10 @@ docker-down:
 # view Docker logs
 docker-logs:
     docker compose logs -f
+
+# smoke test before tagging a release
+pre-release:
+    go test ./... -count=1
+    pnpm --filter @calendar/web build
+    go build -o /dev/null ./cmd/server/
+    @echo "All checks passed — ready to publish"
