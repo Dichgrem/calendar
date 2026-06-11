@@ -69,7 +69,7 @@ export function Layout() {
     <TopBarCtx.Provider value={{ left: leftEl, center: centerEl, right: rightEl, searchDropdown: dropdownEl }}>
       <SearchCtx.Provider value={{ searchQuery, setSearchQuery, searchCalId, setSearchCalId, searchOpen, setSearchOpen }}>
       <div className="flex flex-col h-screen bg-neutral-50 dark:bg-neutral-950">
-        <nav className="grid grid-cols-[1fr_auto_1fr] items-center px-2 py-1 border-b border-border">
+        <nav className="grid grid-cols-[1fr_auto_1fr] items-center px-2 py-1 border-b border-neutral-300 dark:border-neutral-600">
           <div ref={leftRef} className="flex items-center gap-1" />
           <div ref={centerRef} className="flex items-center justify-center gap-1" />
           <div className="flex items-center gap-1 justify-end">

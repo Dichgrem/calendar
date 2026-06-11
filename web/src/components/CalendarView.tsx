@@ -1,9 +1,5 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import type { EventClickArg, DatesSetArg } from "@fullcalendar/core";
 import { Plus, Sun, Moon } from "@phosphor-icons/react";
 import { useEvents } from "../hooks/use-events";
 import { useCalendars } from "../hooks/use-calendars";
@@ -13,17 +9,15 @@ import { useNav } from "../hooks/use-nav";
 import { useTopBar, useSearch } from "./Layout";
 import { EventEditor } from "./EventEditor";
 import { LeftControls, CenterControls } from "./TopBarControls";
+import { MonthGrid, getOrderedWeekdays } from "./MonthGrid";
 import { dateStr } from "../lib/date-format";
-import { getLunarText } from "../lib/lunar";
 import type { Event } from "../types";
 
 export function CalendarView() {
-  const calRef = useRef<FullCalendar>(null);
   const topBar = useTopBar();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { searchQuery, setSearchQuery, searchCalId, setSearchCalId, searchOpen, setSearchOpen } = useSearch();
-  const { visibleCalendars, setDisplayMonth } = useNav();
-  const [dateRange, setDateRange] = useState({ start: new Date().toISOString(), end: new Date().toISOString() });
+  const { visibleCalendars, displayMonth, setDisplayMonth } = useNav();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [creating, setCreating] = useState(false);
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
@@ -32,49 +26,23 @@ export function CalendarView() {
 
   const { data: calendars } = useCalendars();
   const { data: settings } = useSettings();
-
-  const highlightRef = useRef<string | null>(null);
-  const filteredEventsRef = useRef<Event[]>([]);
-  const highlightedIndexRef = useRef(-1);
-
-  useEffect(() => { highlightedIndexRef.current = highlightedIndex; }, [highlightedIndex]);
-
-  const applyHighlight = useCallback(() => {
-    const cur = highlightRef.current;
-    document.querySelectorAll<HTMLElement>(`td[data-date]`).forEach((el) => el.classList.remove("fc-highlight-search"));
-    if (cur) {
-      document.querySelectorAll<HTMLElement>(`td[data-date="${cur}"]`).forEach((el) => el.classList.add("fc-highlight-search"));
-    }
-  }, []);
-
-  useEffect(() => { highlightRef.current = highlightDate; setTimeout(applyHighlight, 50); }, [highlightDate, applyHighlight]);
-
-  useEffect(() => {
-    const api = calRef.current?.getApi();
-    if (api && settings) {
-      api.setOption("locale", settings.language === "en" ? "en" : "zh-cn");
-      api.setOption("firstDay", settings.firstDayOfWeek ?? 1);
-      api.setOption("displayEventTime", settings.showEventTime ?? false);
-    }
-  }, [settings?.language, settings?.firstDayOfWeek, settings?.showEventTime]);
-
-  const datesTimer = useRef<ReturnType<typeof setTimeout>>(null);
-  useEffect(() => () => { if (datesTimer.current) clearTimeout(datesTimer.current); }, []);
-
-  const handleDatesSet = useCallback((arg: DatesSetArg) => {
-    if (datesTimer.current) clearTimeout(datesTimer.current);
-    datesTimer.current = setTimeout(() => {
-      setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
-    }, 200);
-    setTimeout(applyHighlight, 60);
-  }, [applyHighlight]);
-
   const allCalIds = useMemo(() => calendars?.map((c) => c.id) ?? [], [calendars]);
 
+  const firstDayOfWeek = settings?.firstDayOfWeek ?? 1;
+  const orderedWeekdays = useMemo(() => getOrderedWeekdays(settings?.language ?? "zh-CN", firstDayOfWeek), [settings?.language, firstDayOfWeek]);
+
+  // Month range for event queries — must cover full 42-cell grid,
+  // not just the calendar month, to show events from adjacent months.
+  // Both boundaries use local date strings to avoid UTC drift.
+  const gridStart = new Date(displayMonth.year, displayMonth.month, 1);
+  gridStart.setDate(gridStart.getDate() - ((gridStart.getDay() - firstDayOfWeek + 7) % 7));
+  const gridEnd = new Date(gridStart);
+  gridEnd.setDate(gridEnd.getDate() + 41);
+
   const { data: events, isLoading: evLoading, isError: evError } = useEvents(
-    searchQuery ? [] : [...visibleCalendars],
-    searchQuery ? "" : dateRange.start,
-    searchQuery ? "" : dateRange.end,
+    searchQuery ? [] : allCalIds.filter(id => visibleCalendars.has(id)),
+    searchQuery ? "" : dateStr(gridStart) + "T00:00:00.000Z",
+    searchQuery ? "" : dateStr(gridEnd) + "T23:59:59.999Z",
   );
   const { data: allEvents } = useEvents(
     searchQuery ? allCalIds : [],
@@ -94,13 +62,27 @@ export function CalendarView() {
   const calendarColorMap = useMemo(() => new Map(calendars?.map((c) => [c.id, c.color]) ?? []), [calendars]);
 
   const filteredEvents = useMemo(
-    () => (searchableEvents ?? []).filter(
-      (e) => (!searchCalId || e.calendarId === searchCalId) && (!searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase())),
-    ),
-    [searchableEvents, searchCalId, searchQuery],
+    () => {
+      // Build a stable calendar order from the full calendar list (not just visible ones).
+      // This prevents event ordering from shifting when toggling visibility.
+      const calOrder = new Map(allCalIds.map((id, i) => [id, i]));
+      return (searchableEvents ?? []).filter(
+        (e) => (!searchCalId || e.calendarId === searchCalId) && (!searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase())),
+      ).sort((a, b) => {
+        const ai = calOrder.get(a.calendarId) ?? 99;
+        const bi = calOrder.get(b.calendarId) ?? 99;
+        if (ai !== bi) return ai - bi;
+        // Within same calendar, sort by start time
+        return (a.startAt || "").localeCompare(b.startAt || "");
+      });
+    },
+    [searchableEvents, searchCalId, searchQuery, allCalIds],
   );
 
+  const filteredEventsRef = useRef<Event[]>([]);
+  const highlightedIndexRef = useRef(-1);
   useEffect(() => { filteredEventsRef.current = filteredEvents; }, [filteredEvents]);
+  useEffect(() => { highlightedIndexRef.current = highlightedIndex; }, [highlightedIndex]);
   useEffect(() => { if (!searchQuery) setSearchCalId(null); setHighlightedIndex(-1); }, [searchQuery, setSearchCalId]);
   useEffect(() => { setHighlightedIndex(-1); }, [searchOpen]);
   useEffect(() => {
@@ -135,7 +117,6 @@ export function CalendarView() {
         if (ev?.startAt) {
           const d = new Date(ev.startAt);
           setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
-          calRef.current?.getApi()?.gotoDate(d);
           setHighlightDate(dateStr(d));
           setTimeout(() => setHighlightDate(null), 2000);
         }
@@ -146,37 +127,7 @@ export function CalendarView() {
     return () => window.removeEventListener("keydown", handler);
   }, [searchOpen, allCalIds, searchCalId, setDisplayMonth, setSearchQuery, setSearchCalId, setSearchOpen]);
 
-  const handleEventClick = useCallback((arg: EventClickArg) => {
-    const ev = filteredEvents.find((e) => e.id === arg.event.id);
-    if (ev) setSelectedEvent(ev);
-  }, [filteredEvents]);
-
-  const fcEvents = useMemo(
-    () => filteredEvents.map((e) => ({
-      id: e.id, title: e.title, start: e.startAt, end: e.endAt, allDay: e.allDay,
-      color: e.color ?? calendarColorMap.get(e.calendarId),
-    })),
-    [filteredEvents, calendarColorMap],
-  );
-
-  const lunarCellContent = useMemo(() => {
-    if (!settings?.showLunarCalendar) return undefined;
-    const cache = new Map<string, string>();
-    return (arg: { date: Date; dayNumberText: string }) => {
-      const key = dateStr(arg.date);
-      let lunar = cache.get(key);
-      if (lunar === undefined) {
-        lunar = getLunarText(arg.date);
-        cache.set(key, lunar);
-      }
-      return (
-        <div className="flex items-baseline gap-1">
-          <span className="text-xs text-neutral-400 dark:text-neutral-500 min-w-[2em] text-right">{lunar}</span>
-          <span>{arg.dayNumberText}</span>
-        </div>
-      );
-    };
-  }, [settings?.showLunarCalendar]);
+  const handleEventClick = (ev: Event) => setSelectedEvent(ev);
 
   const searchDropdown = searchOpen ? (
     <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 mt-1 min-w-[24rem] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
@@ -208,7 +159,6 @@ export function CalendarView() {
                 if (e.startAt) {
                   const d = new Date(e.startAt);
                   setDisplayMonth({ year: d.getFullYear(), month: d.getMonth() });
-                  calRef.current?.getApi()?.gotoDate(d);
                   setHighlightDate(dateStr(d));
                   setTimeout(() => setHighlightDate(null), 2000);
                 }
@@ -227,22 +177,31 @@ export function CalendarView() {
 
   return (
     <div className="flex flex-col h-full">
-      {topBar?.left && createPortal(<LeftControls calRef={calRef as any} highlightDate={highlightDate} setHighlightDate={setHighlightDate} />, topBar.left)}
+      {topBar?.left && createPortal(<LeftControls highlightDate={highlightDate} setHighlightDate={setHighlightDate} />, topBar.left)}
       {topBar?.center && createPortal(<CenterControls />, topBar.center)}
       {topBar?.searchDropdown && searchDropdown && createPortal(searchDropdown, topBar.searchDropdown)}
 
-      <div className="flex-1 relative">
-        {evLoading && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
-        {evError && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
-        <FullCalendar
-          ref={calRef} plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth"
-          events={fcEvents} datesSet={handleDatesSet} eventClick={handleEventClick}
-          dateClick={(arg) => { setHighlightDate(dateStr(arg.date)); }}
-          dayCellContent={lunarCellContent}
-          height="100%" locale={lang === "en" ? "en" : "zh-cn"}
-          firstDay={settings?.firstDayOfWeek ?? 1}
-          displayEventTime={settings?.showEventTime ?? false}
-          headerToolbar={false}
+      {evLoading && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
+      {evError && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
+      {/* Weekday header — fixed, not scrolling with grid */}
+      <div className="grid grid-cols-7 text-center border-b border-neutral-300 dark:border-neutral-600 shrink-0 border-l border-r">
+        {orderedWeekdays.map((w) => (
+          <span key={w} className="py-0.5 text-base font-bold text-neutral-800 dark:text-neutral-200 border-r border-neutral-300 dark:border-neutral-600 last:border-r-0">
+            {w}
+          </span>
+        ))}
+      </div>
+      {/* Scrollable grid */}
+      <div className="flex-1 relative overflow-y-auto border-l border-r border-neutral-300 dark:border-neutral-600">
+        <MonthGrid
+          year={displayMonth.year}
+          month={displayMonth.month}
+          firstDayOfWeek={firstDayOfWeek}
+          events={filteredEvents}
+          calendarColorMap={calendarColorMap}
+          highlightDate={highlightDate}
+          onDateClick={(d) => setHighlightDate(dateStr(d))}
+          onEventClick={handleEventClick}
         />
       </div>
 
