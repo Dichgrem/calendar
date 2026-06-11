@@ -85,7 +85,7 @@ export function SettingsPage() {
   if (loading) return <div className="flex flex-col h-full"><p className="p-6 text-sm text-neutral-400">{t("settings.loading")}</p></div>;
   if (error) return <div className="flex flex-col h-full"><p className="p-6 text-sm text-red-500">{error}</p></div>;
 
-  const s = settings ?? { userId: "", language: "zh-CN", firstDayOfWeek: 1, showEventTime: false, dateFormat: "zh", showLunarCalendar: true } as UserSettings;
+  const s = settings ?? { userId: "", language: "zh-CN", firstDayOfWeek: 1, dateFormat: "zh", showLunarCalendar: true } as UserSettings;
 
   const updateSettings = (next: UserSettings) => {
     setSettings(next);

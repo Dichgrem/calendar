@@ -41,8 +41,8 @@ export function CalendarView() {
 
   const { data: events, isLoading: evLoading, isError: evError } = useEvents(
     searchQuery ? [] : allCalIds.filter(id => visibleCalendars.has(id)),
-    searchQuery ? "" : dateStr(gridStart) + "T00:00:00.000Z",
-    searchQuery ? "" : dateStr(gridEnd) + "T23:59:59.999Z",
+    searchQuery ? "" : dateStr(new Date(gridStart.getTime() - 86400000)) + "T00:00:00",
+    searchQuery ? "" : dateStr(new Date(gridEnd.getTime() + 86400000)) + "T23:59:59",
   );
   const { data: allEvents } = useEvents(
     searchQuery ? allCalIds : [],
@@ -60,6 +60,10 @@ export function CalendarView() {
   };
 
   const calendarColorMap = useMemo(() => new Map(calendars?.map((c) => [c.id, c.color]) ?? []), [calendars]);
+  const dotCalendarIds = useMemo(
+    () => new Set(calendars?.filter((c) => c.sourceType === "ics_import").map((c) => c.id) ?? []),
+    [calendars],
+  );
 
   const filteredEvents = useMemo(
     () => {
@@ -199,6 +203,7 @@ export function CalendarView() {
           firstDayOfWeek={firstDayOfWeek}
           events={filteredEvents}
           calendarColorMap={calendarColorMap}
+          dotCalendarIds={dotCalendarIds}
           highlightDate={highlightDate}
           onDateClick={(d) => setHighlightDate(dateStr(d))}
           onEventClick={handleEventClick}
