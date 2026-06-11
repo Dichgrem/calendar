@@ -152,6 +152,10 @@ END:VCALENDAR`
 	if !strings.Contains(bodyStr, "Integration Event") {
 		t.Errorf("export missing event")
 	}
+	// Regression: DAVx5 rejects events with VALUE=TEXT — must NOT appear.
+	if strings.Contains(bodyStr, "VALUE=TEXT") {
+		t.Errorf("export contains VALUE=TEXT — DAVx5 will reject these events")
+	}
 	if !strings.Contains(bodyStr, "BEGIN:VCALENDAR") {
 		t.Errorf("not valid ICS")
 	}

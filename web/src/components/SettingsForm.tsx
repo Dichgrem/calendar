@@ -66,10 +66,6 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
         </div>
       </Row>
 
-      <Row label={t("settings.showEventTime")}>
-        <Toggle checked={s.showEventTime} onChange={(v) => onUpdate({ ...s, showEventTime: v })} />
-      </Row>
-
       <Row label={t("settings.showLunarCalendar")}>
         <Toggle checked={s.showLunarCalendar} onChange={(v) => onUpdate({ ...s, showLunarCalendar: v })} />
       </Row>

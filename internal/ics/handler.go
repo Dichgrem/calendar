@@ -347,6 +347,11 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()
 
+	// Pre-extract raw VEVENT blocks from the ICS content, keyed by UID.
+	// This preserves all original properties (VALARM, X-FOSSIFY-*, etc.)
+	// for faithful re-export.
+	rawVEvents := extractVEventsByUID(req.Content)
+
 	for _, ev := range events {
 		uid := componentProp(ev, ical.PropUID)
 		if uid == "" {
@@ -361,15 +366,11 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		startAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeStart))
 		endAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeEnd))
 
-		// Normalize DTSTART/DTEND in the raw component for correct export.
-		// Without this, raw ICS dates like "20260620T100000Z" get encoded
-		// by go-ical as VALUE=TEXT, breaking DAVx5 clients.
-		ev.Props.Del(string(ical.PropDateTimeStart))
-		ev.Props.Del(string(ical.PropDateTimeEnd))
-		ev.Props.Del(string(ical.PropDateTimeStamp))
-		setDateProp(ev.Props, ical.PropDateTimeStart, startAt)
-		setDateProp(ev.Props, ical.PropDateTimeEnd, endAt)
-		setDateProp(ev.Props, ical.PropDateTimeStamp, now)
+		rawICS := rawVEvents[uid]
+		if rawICS == "" {
+			rawICS = serializeEvent(ev)
+		}
+
 		desc := componentProp(ev, ical.PropDescription)
 		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
 		loc := componentProp(ev, ical.PropLocation)
@@ -384,7 +385,7 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 			                    all_day, rrule, color, location, created_at, updated_at, last_modified, raw_ics)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`, eventID, calendarID, title, strOrNil(desc), startAt, endAt,
-			allDay, strOrNil(rruleVal), nil, strOrNil(loc), now, now, lmod, serializeEvent(ev))
+			allDay, strOrNil(rruleVal), nil, strOrNil(loc), now, now, lmod, rawICS)
 		if err != nil {
 			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 			return
@@ -431,6 +432,9 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 		icalCal.Props.SetText(ical.PropName, calName)
 	}
 
+	var rawBlocks []string       // verbatim VEVENT strings from raw_ics
+	var goCalEvents []*ical.Component // DB-reconstructed VEVENTs
+
 	for rows.Next() {
 		var id, title, startAt, endAt, createdAt, updatedAt string
 		var desc, rrule, loc, rawIcs *string
@@ -439,22 +443,14 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Try to parse raw_ics to preserve original properties (VALARM etc).
-		// Falls back to DB columns if raw_ics is missing or unparseable.
-		var ev *ical.Component
 		if rawIcs != nil && *rawIcs != "" {
-			if parsed, err := ical.NewDecoder(bytes.NewReader([]byte(*rawIcs))).Decode(); err == nil {
-				for _, c := range parsed.Children {
-					if c.Name == ical.CompEvent {
-						ev = c
-						break
-					}
-				}
+			block := extractVEventText(*rawIcs)
+			if block != "" {
+				rawBlocks = append(rawBlocks, block)
 			}
-		}
-		if ev == nil {
+		} else {
 			evComp := ical.NewEvent()
-			evComp.Props.SetText(ical.PropUID, id+"@calendar")
+			evComp.Props.SetText(ical.PropUID, id)
 			evComp.Props.SetText(ical.PropSummary, title)
 			if desc != nil { evComp.Props.SetText(ical.PropDescription, *desc) }
 			setDateProp(evComp.Props, ical.PropDateTimeStart, startAt)
@@ -462,29 +458,80 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 			if rrule != nil { evComp.Props.SetText(ical.PropRecurrenceRule, *rrule) }
 			if loc != nil { evComp.Props.SetText(ical.PropLocation, *loc) }
 			setDateProp(evComp.Props, ical.PropDateTimeStamp, createdAt)
-			ev = evComp.Component
-		} else {
-			// Re-set DTSTART/DTEND from DB columns to avoid VALUE=TEXT
-			// from raw ICS dates (e.g. "20260620T100000Z") that go-ical
-			// parsed as plain text. DB columns are always normalized.
-			ev.Props.Del(string(ical.PropDateTimeStart))
-			ev.Props.Del(string(ical.PropDateTimeEnd))
-			ev.Props.Del(string(ical.PropDateTimeStamp))
-			setDateProp(ev.Props, ical.PropDateTimeStart, startAt)
-			setDateProp(ev.Props, ical.PropDateTimeEnd, endAt)
-			setDateProp(ev.Props, ical.PropDateTimeStamp, updatedAt)
+			goCalEvents = append(goCalEvents, evComp.Component)
 		}
+	}
 
-		icalCal.Children = append(icalCal.Children, ev)
+	// Hybrid output: verbatim blocks + go-ical encoded components
+	for _, c := range goCalEvents {
+		icalCal.Children = append(icalCal.Children, c)
 	}
 
 	var buf bytes.Buffer
-	ical.NewEncoder(&buf).Encode(icalCal)
+	buf.WriteString("BEGIN:VCALENDAR\r\n")
+	buf.WriteString("PRODID:-//Calendar//Go//EN\r\n")
+	buf.WriteString("VERSION:2.0\r\n")
+	if calName != "" {
+		buf.WriteString("NAME:" + calName + "\r\n")
+	}
+	// Verbatim raw_ics blocks
+	for _, block := range rawBlocks {
+		buf.WriteString(block + "\r\n")
+	}
+	// go-ical encoded events
+	if len(goCalEvents) > 0 {
+		var eb bytes.Buffer
+		ical.NewEncoder(&eb).Encode(icalCal)
+		// Strip VCALENDAR wrapper, keep only VEVENTs
+		enc := eb.String()
+		if first := strings.Index(enc, "BEGIN:VEVENT"); first >= 0 {
+			if last := strings.LastIndex(enc, "END:VEVENT"); last >= 0 {
+				buf.WriteString(enc[first : last+len("END:VEVENT")])
+				buf.WriteString("\r\n")
+			}
+		}
+	}
+	buf.WriteString("END:VCALENDAR\r\n")
 
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("Content-Disposition", "attachment; filename=\"calendar.ics\"")
 	w.WriteHeader(200)
 	w.Write(buf.Bytes())
+}
+
+// extractVEventsByUID returns a map of UID → raw VEVENT block from ICS content.
+func extractVEventsByUID(content string) map[string]string {
+	result := make(map[string]string)
+	// Split by VEVENT boundaries.
+	parts := strings.Split(content, "BEGIN:VEVENT")
+	for _, part := range parts[1:] {
+		endIdx := strings.Index(part, "END:VEVENT")
+		if endIdx < 0 { continue }
+		block := "BEGIN:VEVENT" + part[:endIdx+len("END:VEVENT")]
+		// Extract UID from the block.
+		uidStart := strings.Index(block, "UID:")
+		if uidStart < 0 { continue }
+		uidEnd := strings.Index(block[uidStart:], "\r")
+		if uidEnd < 0 {
+			uidEnd = strings.Index(block[uidStart:], "\n")
+		}
+		if uidEnd < 0 { continue }
+		uid := strings.TrimSpace(block[uidStart+4 : uidStart+uidEnd])
+		if uid != "" {
+			result[uid] = block
+		}
+	}
+	return result
+}
+
+// extractVEventText returns the raw VEVENT block from a raw_ics string.
+func extractVEventText(raw string) string {
+	start := strings.Index(raw, "BEGIN:VEVENT")
+	end := strings.LastIndex(raw, "END:VEVENT")
+	if start < 0 || end < 0 {
+		return ""
+	}
+	return raw[start : end+len("END:VEVENT")]
 }
 
 // fetchIcsFromURL (was in serializer.go, kept with SSRF protection)
@@ -552,8 +599,9 @@ func strOrNil(s string) interface{} {
 	return s
 }
 
-// serializeEvent wraps a single VEVENT component in a minimal VCALENDAR
-// so it can be stored in raw_ics and re-parsed on export.
+// serializeEvent wraps a single VEVENT component in a minimal VCALENDAR.
+// raw_ics is stored verbatim for CalDAV PROPFIND (faithful ICS re-delivery),
+// not for export — export uses DB columns.
 func serializeEvent(ev *ical.Component) string {
 	cal := ical.NewCalendar()
 	cal.Props.SetText(ical.PropProductID, "-//Calendar//Go//EN")

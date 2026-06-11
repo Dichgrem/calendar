@@ -38,12 +38,13 @@ interface MonthGridProps {
   firstDayOfWeek: number;
   events: Event[];
   calendarColorMap: Map<string, string>;
+  dotCalendarIds: Set<string>; // calendars whose events show as dots (ics_import)
   highlightDate: string | null;
   onDateClick: (date: Date) => void;
   onEventClick: (event: Event) => void;
 }
 
-export function MonthGrid({ year, month, firstDayOfWeek, events, calendarColorMap, highlightDate, onDateClick, onEventClick }: MonthGridProps) {
+export function MonthGrid({ year, month, firstDayOfWeek, events, calendarColorMap, dotCalendarIds, highlightDate, onDateClick, onEventClick }: MonthGridProps) {
   const { data: settings } = useSettings();
   const showLunar = settings?.showLunarCalendar ?? false;
   const showEventTime = settings?.showEventTime ?? false;
@@ -54,19 +55,21 @@ export function MonthGrid({ year, month, firstDayOfWeek, events, calendarColorMa
     const map = new Map<string, Event[]>();
     for (const ev of events ?? []) {
       if (!ev.startAt) continue;
-      const key = ev.startAt.slice(0, 10);
+      // Convert UTC stored time to local date string for grid display.
+      const localDate = new Date(ev.startAt);
+      const key = dateStr(localDate);
       const list = map.get(key);
       if (list) list.push(ev);
       else map.set(key, [ev]);
 
       if (ev.endAt && ev.startAt !== ev.endAt) {
-        const startKey = ev.startAt.slice(0, 10);
-        const endKey = ev.endAt.slice(0, 10);
+        const startDate = new Date(ev.startAt);
+        const endDate = new Date(ev.endAt);
+        const startKey = dateStr(startDate);
+        const endKey = dateStr(endDate);
         if (endKey > startKey) {
-          const start = new Date(startKey);
-          const end = new Date(endKey);
           const isTimed = ev.startAt.length > 10;
-          for (let d = new Date(start); isTimed ? d <= end : d < end; d.setDate(d.getDate() + 1)) {
+          for (let d = new Date(startDate); isTimed ? d <= endDate : d < endDate; d.setDate(d.getDate() + 1)) {
             const midKey = dateStr(d);
             if (midKey === key) continue;
             const midList = map.get(midKey);
@@ -135,19 +138,23 @@ export function MonthGrid({ year, month, firstDayOfWeek, events, calendarColorMa
             <div className="space-y-[2px] px-1.5 pb-1.5 pt-1">
               {dayEvents.map((ev) => {
                 const color = ev.color ?? calendarColorMap.get(ev.calendarId) ?? "#3b82f6";
+                const isDot = dotCalendarIds.has(ev.calendarId);
                 return (
                   <div
                     key={ev.id}
                     onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
-                    className="text-[.82rem] truncate rounded px-1.5 py-[3px] leading-snug cursor-pointer hover:brightness-90"
-                    style={{ backgroundColor: color, color: "#fff" }}
+                    className={
+                      isDot
+                        ? "text-[.82rem] truncate leading-snug cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded px-1 flex items-center gap-1"
+                        : "text-[.82rem] truncate rounded px-1.5 py-[3px] leading-snug cursor-pointer hover:brightness-90"
+                    }
+                    style={isDot ? {} : { backgroundColor: color, color: "#fff" }}
                   >
-                    {showEventTime && !ev.allDay && ev.startAt && (
-                      <span className="opacity-80 mr-0.5">
-                        {ev.startAt.slice(11, 16)}
-                      </span>
+                    {isDot && <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />}
+                    {!isDot && showEventTime && !ev.allDay && ev.startAt && (
+                      <span className="opacity-80 mr-0.5">{ev.startAt.slice(11, 16)}</span>
                     )}
-                    {ev.title}
+                    <span className={isDot ? "font-semibold" : ""}>{ev.title}</span>
                   </div>
                 );
               })}
