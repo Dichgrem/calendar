@@ -78,7 +78,7 @@ export function LoginPage() {
         )}
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-neutral-200">{t("login.username")}</span>
+          <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{t("login.username")}</span>
           <input
             type="text"
             value={username}
@@ -90,7 +90,7 @@ export function LoginPage() {
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-neutral-200">{t("login.password")}</span>
+          <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{t("login.password")}</span>
           <input
             type="password"
             value={password}

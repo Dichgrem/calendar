@@ -7,8 +7,8 @@ import { useI18n } from "../hooks/use-i18n";
 import { useCalendarReorder } from "../hooks/use-calendar-reorder";
 import { Button } from "../components/ui/button";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
+import { ImportForm } from "../components/ImportForm";
 import type { Calendar } from "../types";
-import { useNavigate } from "react-router";
 
 interface CommonCalendar {
   id: string; name: string; nameEn: string; description: string;
@@ -24,7 +24,6 @@ const COMMON_CALENDARS: CommonCalendar[] = [
 interface CalendarManagementProps { calendars: Calendar[] | undefined; }
 
 export function CalendarManagement({ calendars }: CalendarManagementProps) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t, lang } = useI18n();
   const [editingCal, setEditingCal] = useState<string | null>(null);
@@ -33,6 +32,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
   const [commonCalOpen, setCommonCalOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [importing, setImporting] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -91,7 +91,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
         <Button variant="outline" size="sm" onClick={() => setCommonCalOpen(!commonCalOpen)} className="h-7 text-xs gap-1">
           <Globe className="size-3" weight="bold" />{t("settings.commonCalendars")}
         </Button>
-        <Button variant="outline" size="sm" onClick={() => navigate("/import")} className="h-7 text-xs gap-1">
+        <Button variant="outline" size="sm" onClick={() => setImportOpen(!importOpen)} className="h-7 text-xs gap-1">
           <DownloadSimple className="size-3" weight="bold" />{t("settings.importIcs")}
         </Button>
         <Button variant="outline" size="sm" onClick={() => { setExportSelected(new Set(calendars?.map((c) => c.id) ?? [])); setExportOpen(true); }} className="h-7 text-xs gap-1">
@@ -131,9 +131,12 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
           <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
             {calendars?.map((cal) => (
               <label key={cal.id} className="flex items-center gap-1.5 cursor-pointer text-sm">
-                <input type="checkbox" checked={exportSelected.has(cal.id)} onChange={() => toggleExportCal(cal.id)} className="accent-neutral-900 dark:accent-white" />
+                <input type="checkbox" checked={exportSelected.has(cal.id)} onChange={() => toggleExportCal(cal.id)} className="peer sr-only" />
+                <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors shrink-0">
+                  <svg className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                </span>
                 <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                <span className="dark:text-neutral-200">{cal.name}</span>
+                <span className="text-neutral-800 dark:text-neutral-200">{cal.name}</span>
               </label>
             ))}
           </div>
@@ -163,6 +166,13 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
         </div>
       )}
 
+      {/* ICS import form */}
+      {importOpen && (
+        <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
+          <ImportForm />
+        </div>
+      )}
+
       {/* Calendar list */}
       <div className="space-y-1">
         {calendars?.map((cal, idx) => (
@@ -181,7 +191,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
             ) : (
               <>
                 <span className="size-3.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                <span className="flex-1 text-sm truncate dark:text-neutral-200">{cal.name}</span>
+                <span className="flex-1 text-sm truncate text-neutral-800 dark:text-neutral-200">{cal.name}</span>
                 <button onClick={() => move(idx, idx - 1)} disabled={idx === 0} className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30" title="上移"><CaretUp className="size-3.5" weight="bold" /></button>
                 <button onClick={() => move(idx, idx + 1)} disabled={idx === calendars.length - 1} className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30" title="下移"><CaretDown className="size-3.5" weight="bold" /></button>
                 <button onClick={() => startEditCal(cal)} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400"><NotePencil className="size-3.5" weight="bold" /></button>

@@ -7,7 +7,6 @@ import { Layout } from "./components/Layout";
 import { ServerUrlDialog } from "./components/ServerUrlDialog";
 import { isNative } from "./lib/capacitor";
 import { CalendarView } from "./components/CalendarView";
-import { ImportPage } from "./pages/ImportPage";
 import { LoginPage } from "./pages/LoginPage";
 import "./index.css";
 
@@ -36,8 +35,7 @@ function App() {
               <Route element={<Layout />}>
                 <Route index element={<Navigate to="/calendar" replace />} />
                 <Route path="/calendar" element={<CalendarView />} />
-                <Route path="/import" element={<ImportPage />} />
-                <Route path="/settings" element={<Suspense fallback={<div className="p-6 text-sm text-neutral-400">Loading...</div>}><SettingsPage /></Suspense>} />
+                <Route path="/settings" element={<Suspense fallback={<div className="p-6 text-sm text-neutral-400">请稍候...</div>}><SettingsPage /></Suspense>} />
               </Route>
             </Route>
           </Routes>

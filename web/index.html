@@ -6,10 +6,13 @@
     <meta name="color-scheme" content="light dark" />
     <title>Calendar</title>
     <script>
-      if (localStorage.getItem("darkMode") === "1") document.documentElement.className = "dark";
+      if (localStorage.getItem("darkMode") === "1") {
+        document.documentElement.className = "dark";
+        document.body.className = "bg-background text-neutral-800 dark:text-neutral-200 antialiased dark";
+      }
     </script>
   </head>
-  <body class="bg-background text-foreground antialiased">
+  <body class="bg-background text-neutral-800 dark:text-neutral-200 antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
