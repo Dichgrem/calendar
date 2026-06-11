@@ -77,8 +77,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   return (
     <button type="button" role="switch" aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? "bg-neutral-900 dark:bg-white" : "bg-neutral-200 dark:bg-neutral-700"}`}>
-      <span className={`inline-block size-4 rounded-full bg-white dark:bg-neutral-300 shadow-sm transition-transform mt-0.5 ${checked ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? "bg-neutral-900 dark:bg-neutral-300" : "bg-neutral-200 dark:bg-neutral-600"}`}>
+      <span className={`inline-block size-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${checked ? "translate-x-[18px]" : "translate-x-0.5"}`} />
     </button>
   );
 }

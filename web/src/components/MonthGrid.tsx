@@ -145,7 +145,7 @@ export function MonthGrid({ year, month, firstDayOfWeek, events, calendarColorMa
                     onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
                     className={
                       isDot
-                        ? "text-[.82rem] truncate leading-snug cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded px-1 flex items-center gap-1"
+                        ? "text-[.82rem] truncate leading-snug cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded px-1 flex items-center gap-1 text-neutral-800 dark:text-neutral-200"
                         : "text-[.82rem] truncate rounded px-1.5 py-[3px] leading-snug cursor-pointer hover:brightness-90"
                     }
                     style={isDot ? {} : { backgroundColor: color, color: "#fff" }}

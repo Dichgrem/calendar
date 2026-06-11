@@ -21,7 +21,11 @@ export function CalendarView() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [creating, setCreating] = useState(false);
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
-  const [dark, setDark] = useState(() => localStorage.getItem("darkMode") === "1");
+  const [dark, setDark] = useState(() => {
+    const saved = localStorage.getItem("darkMode") === "1";
+    document.documentElement.className = saved ? "dark" : "light";
+    return saved;
+  });
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const { data: calendars } = useCalendars();
