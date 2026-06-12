@@ -50,7 +50,17 @@ export function NavProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <NavCtx.Provider value={{ displayMonth, setDisplayMonth, visibleCalendars, setVisibleCalendars, toggleCalendar, labelOverride, setLabelOverride }}>
+    <NavCtx.Provider
+      value={{
+        displayMonth,
+        setDisplayMonth,
+        visibleCalendars,
+        setVisibleCalendars,
+        toggleCalendar,
+        labelOverride,
+        setLabelOverride,
+      }}
+    >
       {children}
     </NavCtx.Provider>
   );

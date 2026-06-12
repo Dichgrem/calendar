@@ -10,9 +10,7 @@ describe("common calendar import detection", () => {
     commons: { id: string; url: string }[],
     existing: { sourceUrl: string | null }[],
   ): Set<string> {
-    return new Set(
-      commons.filter((cal) => existing.some((c) => c.sourceUrl === cal.url)).map((cal) => cal.id),
-    );
+    return new Set(commons.filter((cal) => existing.some((c) => c.sourceUrl === cal.url)).map((cal) => cal.id));
   }
 
   it("detects already-imported calendar by sourceUrl", () => {

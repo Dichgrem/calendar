@@ -23,9 +23,12 @@ const SearchCtx = createContext<{
   searchOpen: boolean;
   setSearchOpen: (v: boolean) => void;
 }>({
-  searchQuery: "", setSearchQuery: () => {},
-  searchCalId: null, setSearchCalId: () => {},
-  searchOpen: false, setSearchOpen: () => {},
+  searchQuery: "",
+  setSearchQuery: () => {},
+  searchCalId: null,
+  setSearchCalId: () => {},
+  searchOpen: false,
+  setSearchOpen: () => {},
 });
 
 export function useTopBar() {
@@ -66,56 +69,69 @@ export function Layout() {
 
   return (
     <NavProvider>
-    <TopBarCtx.Provider value={{ left: leftEl, center: centerEl, right: rightEl, searchDropdown: dropdownEl }}>
-      <SearchCtx.Provider value={{ searchQuery, setSearchQuery, searchCalId, setSearchCalId, searchOpen, setSearchOpen }}>
-      <div className="flex flex-col h-screen bg-neutral-50 dark:bg-neutral-950">
-        <nav className="grid grid-cols-[1fr_auto_1fr] items-center px-2 py-1 border-b border-neutral-300 dark:border-neutral-600">
-          <div ref={leftRef} className="flex items-center gap-1" />
-          <div ref={centerRef} className="flex items-center justify-center gap-1" />
-          <div className="flex items-center gap-1 justify-end">
-            <button
-              onClick={() => { setSearchOpen((v) => !v); setSearchQuery(""); setSearchCalId(null); }}
-              aria-label={t("cal.search")}
-              className="size-8 flex items-center justify-center rounded-full transition-colors text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800"
-              title={t("cal.search")}
-            >
-              <MagnifyingGlass className="size-4" weight="bold" />
-            </button>
-            <div ref={rightRef} className="flex items-center gap-1" />
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                aria-label={item.label}
-                className={({ isActive }) =>
-                  cn(
-                    "size-8 flex items-center justify-center rounded-full text-sm transition-colors",
-                    isActive
-                      ? "text-neutral-900 bg-neutral-200 dark:text-white dark:bg-neutral-800"
-                      : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800",
-                  )
-                }
-              >
-                <item.icon className="size-4" weight="bold" />
-              </NavLink>
-            ))}
-            <button
-              onClick={handleLogout}
-              aria-label={t("nav.logout")}
-              className="size-8 flex items-center justify-center rounded-full text-sm text-neutral-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              title={t("nav.logout")}
-            >
-              <SignOut className="size-4" weight="bold" />
-            </button>
+      <TopBarCtx.Provider value={{ left: leftEl, center: centerEl, right: rightEl, searchDropdown: dropdownEl }}>
+        <SearchCtx.Provider
+          value={{
+            searchQuery,
+            setSearchQuery,
+            searchCalId,
+            setSearchCalId,
+            searchOpen,
+            setSearchOpen,
+          }}
+        >
+          <div className="flex flex-col h-screen bg-neutral-50 dark:bg-neutral-950">
+            <nav className="grid grid-cols-[1fr_auto_1fr] items-center px-2 py-1 border-b border-neutral-300 dark:border-neutral-600">
+              <div ref={leftRef} className="flex items-center gap-1" />
+              <div ref={centerRef} className="flex items-center justify-center gap-1" />
+              <div className="flex items-center gap-1 justify-end">
+                <button
+                  onClick={() => {
+                    setSearchOpen((v) => !v);
+                    setSearchQuery("");
+                    setSearchCalId(null);
+                  }}
+                  aria-label={t("cal.search")}
+                  className="size-8 flex items-center justify-center rounded-full transition-colors text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800"
+                  title={t("cal.search")}
+                >
+                  <MagnifyingGlass className="size-4" weight="bold" />
+                </button>
+                <div ref={rightRef} className="flex items-center gap-1" />
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    aria-label={item.label}
+                    className={({ isActive }) =>
+                      cn(
+                        "size-8 flex items-center justify-center rounded-full text-sm transition-colors",
+                        isActive
+                          ? "text-neutral-900 bg-neutral-200 dark:text-white dark:bg-neutral-800"
+                          : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800",
+                      )
+                    }
+                  >
+                    <item.icon className="size-4" weight="bold" />
+                  </NavLink>
+                ))}
+                <button
+                  onClick={handleLogout}
+                  aria-label={t("nav.logout")}
+                  className="size-8 flex items-center justify-center rounded-full text-sm text-neutral-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  title={t("nav.logout")}
+                >
+                  <SignOut className="size-4" weight="bold" />
+                </button>
+              </div>
+            </nav>
+            <div ref={dropdownRef} className="relative" />
+            <main className="flex-1 overflow-hidden">
+              <Outlet />
+            </main>
           </div>
-        </nav>
-        <div ref={dropdownRef} className="relative" />
-        <main className="flex-1 overflow-hidden">
-          <Outlet />
-        </main>
-      </div>
-      </SearchCtx.Provider>
-    </TopBarCtx.Provider>
+        </SearchCtx.Provider>
+      </TopBarCtx.Provider>
     </NavProvider>
   );
 }

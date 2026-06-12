@@ -7,11 +7,11 @@ import (
 )
 
 type Config struct {
-	Port              int
-	DatabaseURL       string
-	SessionDuration   time.Duration
-	SecureCookies     bool
-	UserDefaults      UserDefaults
+	Port            int
+	DatabaseURL     string
+	SessionDuration time.Duration
+	SecureCookies   bool
+	UserDefaults    UserDefaults
 }
 
 type UserDefaults struct {

@@ -10,9 +10,7 @@ export function useCalendarReorder(calendarIds: string[]) {
     const ordered = [...calendarIds];
     ordered.splice(fromIdx, 1);
     ordered.splice(toIdx, 0, calendarIds[fromIdx]);
-    api.calendars.reorder(ordered).then(() =>
-      queryClient.invalidateQueries({ queryKey: ["calendars"] })
-    );
+    api.calendars.reorder(ordered).then(() => queryClient.invalidateQueries({ queryKey: ["calendars"] }));
   }
 
   return { move };

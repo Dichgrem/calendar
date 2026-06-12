@@ -28,38 +28,62 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("LoginPage", () => {
   it("shows username and password fields", async () => {
-    render(<Wrapper><LoginPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <LoginPage />
+      </Wrapper>,
+    );
     await waitFor(() => expect(screen.getByText("用户名")).toBeInTheDocument());
     expect(screen.getByText("密码")).toBeInTheDocument();
   });
 
   it("shows login title when user exists", async () => {
     (api.auth.status as any).mockResolvedValue({ ok: true, data: { registered: true } });
-    render(<Wrapper><LoginPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <LoginPage />
+      </Wrapper>,
+    );
     await waitFor(() => expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument());
   });
 
   it("shows create account title for first user", async () => {
     (api.auth.status as any).mockResolvedValue({ ok: true, data: { registered: false } });
-    render(<Wrapper><LoginPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <LoginPage />
+      </Wrapper>,
+    );
     await waitFor(() => expect(screen.getByRole("heading", { name: "创建账户" })).toBeInTheDocument());
   });
 
   it("shows hint text for first-time users", async () => {
     (api.auth.status as any).mockResolvedValue({ ok: true, data: { registered: false } });
-    render(<Wrapper><LoginPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <LoginPage />
+      </Wrapper>,
+    );
     await waitFor(() => expect(screen.getByText("首次使用，请设置用户名和密码。")).toBeInTheDocument());
   });
 
   it("shows loading state during auth check", () => {
     (api.auth.status as any).mockReturnValue(new Promise(() => {}));
-    render(<Wrapper><LoginPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <LoginPage />
+      </Wrapper>,
+    );
     expect(screen.getByText("加载...")).toBeInTheDocument();
   });
 
   it("submits login form", async () => {
     (api.auth.status as any).mockResolvedValue({ ok: true, data: { registered: true } });
-    render(<Wrapper><LoginPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <LoginPage />
+      </Wrapper>,
+    );
     await waitFor(() => expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument());
     await userEvent.type(screen.getByText("用户名").nextElementSibling as HTMLElement, "admin");
     await userEvent.type(screen.getByText("密码").nextElementSibling as HTMLElement, "pass");
@@ -69,7 +93,11 @@ describe("LoginPage", () => {
 
   it("submits registration form", async () => {
     (api.auth.status as any).mockResolvedValue({ ok: true, data: { registered: false } });
-    render(<Wrapper><LoginPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <LoginPage />
+      </Wrapper>,
+    );
     await waitFor(() => expect(screen.getByRole("heading", { name: "创建账户" })).toBeInTheDocument());
     await userEvent.type(screen.getByText("用户名").nextElementSibling as HTMLElement, "newuser");
     await userEvent.type(screen.getByText("密码").nextElementSibling as HTMLElement, "newpass");

@@ -20,12 +20,12 @@ func RegisterRoutes(r chi.Router) {
 }
 
 type UserSettings struct {
-	UserID           string `json:"userId"`
-	Language         string `json:"language"`
-	FirstDayOfWeek   int    `json:"firstDayOfWeek"`
-	ShowEventTime    bool   `json:"showEventTime"`
-	DateFormat       string `json:"dateFormat"`
-	ShowLunarCalendar bool  `json:"showLunarCalendar"`
+	UserID            string `json:"userId"`
+	Language          string `json:"language"`
+	FirstDayOfWeek    int    `json:"firstDayOfWeek"`
+	ShowEventTime     bool   `json:"showEventTime"`
+	DateFormat        string `json:"dateFormat"`
+	ShowLunarCalendar bool   `json:"showLunarCalendar"`
 }
 
 func handleGet(w http.ResponseWriter, r *http.Request) {
@@ -41,11 +41,11 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateRequest struct {
-	Language         *string `json:"language,omitempty"`
-	FirstDayOfWeek   *int    `json:"firstDayOfWeek,omitempty"`
-	ShowEventTime    *bool   `json:"showEventTime,omitempty"`
-	DateFormat       *string `json:"dateFormat,omitempty"`
-	ShowLunarCalendar *bool  `json:"showLunarCalendar,omitempty"`
+	Language          *string `json:"language,omitempty"`
+	FirstDayOfWeek    *int    `json:"firstDayOfWeek,omitempty"`
+	ShowEventTime     *bool   `json:"showEventTime,omitempty"`
+	DateFormat        *string `json:"dateFormat,omitempty"`
+	ShowLunarCalendar *bool   `json:"showLunarCalendar,omitempty"`
 }
 
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -74,15 +74,25 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Load()
 
 	lang := cfg.UserDefaults.Language
-	if req.Language != nil { lang = *req.Language }
+	if req.Language != nil {
+		lang = *req.Language
+	}
 	fdow := cfg.UserDefaults.FirstDayOfWeek
-	if req.FirstDayOfWeek != nil { fdow = *req.FirstDayOfWeek }
+	if req.FirstDayOfWeek != nil {
+		fdow = *req.FirstDayOfWeek
+	}
 	showTime := cfg.UserDefaults.ShowEventTime
-	if req.ShowEventTime != nil { showTime = *req.ShowEventTime }
+	if req.ShowEventTime != nil {
+		showTime = *req.ShowEventTime
+	}
 	df := cfg.UserDefaults.DateFormat
-	if req.DateFormat != nil { df = *req.DateFormat }
+	if req.DateFormat != nil {
+		df = *req.DateFormat
+	}
 	showLunar := cfg.UserDefaults.ShowLunarCalendar
-	if req.ShowLunarCalendar != nil { showLunar = *req.ShowLunarCalendar }
+	if req.ShowLunarCalendar != nil {
+		showLunar = *req.ShowLunarCalendar
+	}
 
 	_, err := db.DB.Exec(`
 		INSERT INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar)
@@ -126,6 +136,8 @@ func getSettings(userID string) (*UserSettings, error) {
 }
 
 func boolToInt(v bool) int {
-	if v { return 1 }
+	if v {
+		return 1
+	}
 	return 0
 }

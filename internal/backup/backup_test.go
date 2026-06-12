@@ -68,9 +68,13 @@ func TestBackupPathTraversalBlocked(t *testing.T) {
 	r.ServeHTTP(w1, req1)
 	var sid string
 	for _, c := range w1.Result().Cookies() {
-		if c.Name == "session_token" { sid = c.Value }
+		if c.Name == "session_token" {
+			sid = c.Value
+		}
 	}
-	if sid == "" { t.Fatal("login failed") }
+	if sid == "" {
+		t.Fatal("login failed")
+	}
 
 	req2 := httptest.NewRequest("GET", "/api/backup/download/../../../etc/passwd", nil)
 	req2.AddCookie(&http.Cookie{Name: "session_token", Value: sid})

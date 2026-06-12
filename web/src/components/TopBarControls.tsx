@@ -6,15 +6,9 @@ import { useSettings } from "../hooks/use-settings";
 import { useI18n } from "../hooks/use-i18n";
 import { formatCalendarDate, dateStr } from "../lib/date-format";
 
-const MONTHS_ZH = [
-  "1月", "2月", "3月", "4月", "5月", "6月",
-  "7月", "8月", "9月", "10月", "11月", "12月",
-];
+const MONTHS_ZH = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
 
-const MONTHS_EN = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 interface TopBarControlsProps {
   highlightDate?: string | null;
@@ -65,29 +59,69 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
 
   return (
     <div className="flex items-center gap-0.5">
-      <button onClick={() => { setPickerOpen((v) => !v); if (!pickerOpen) setPickerYear(displayMonth.year); }}
-        className="px-3 py-1.5 text-base font-semibold rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-white tabular-nums">
+      <button
+        onClick={() => {
+          setPickerOpen((v) => !v);
+          if (!pickerOpen) setPickerYear(displayMonth.year);
+        }}
+        className="px-3 py-1.5 text-base font-semibold rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-white tabular-nums"
+      >
         {dateLabel}
       </button>
-      <button onClick={goPrev} aria-label={t("cal.prev")} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretLeft className="size-4" weight="bold" /></button>
-      <button onClick={goToday} aria-label={t("cal.today")} className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors" title={t("cal.today")}><Circle className="size-4" weight="bold" /></button>
-      <button onClick={goNext} aria-label={t("cal.next")} className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"><CaretRight className="size-4" weight="bold" /></button>
+      <button
+        onClick={goPrev}
+        aria-label={t("cal.prev")}
+        className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
+      >
+        <CaretLeft className="size-4" weight="bold" />
+      </button>
+      <button
+        onClick={goToday}
+        aria-label={t("cal.today")}
+        className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        title={t("cal.today")}
+      >
+        <Circle className="size-4" weight="bold" />
+      </button>
+      <button
+        onClick={goNext}
+        aria-label={t("cal.next")}
+        className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
+      >
+        <CaretRight className="size-4" weight="bold" />
+      </button>
       {pickerOpen && (
         <div className="absolute top-10 left-4 z-50 w-56 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-lg p-3">
           <div className="flex items-center justify-center gap-1 mb-3">
-            <button onClick={() => setPickerYear((y) => y - 1)} aria-label={t("cal.yearPrev")}
-              className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">{`<`}</button>
-            <input type="number" value={pickerYear} onChange={(e) => setPickerYear(Number(e.target.value))} min={1970}
-              className="w-16 text-center text-sm font-semibold border-0 bg-transparent text-neutral-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-            <button onClick={() => setPickerYear((y) => y + 1)} aria-label={t("cal.yearNext")}
-              className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400">{`>`}</button>
+            <button
+              onClick={() => setPickerYear((y) => y - 1)}
+              aria-label={t("cal.yearPrev")}
+              className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"
+            >{`<`}</button>
+            <input
+              type="number"
+              value={pickerYear}
+              onChange={(e) => setPickerYear(Number(e.target.value))}
+              min={1970}
+              className="w-16 text-center text-sm font-semibold border-0 bg-transparent text-neutral-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+            <button
+              onClick={() => setPickerYear((y) => y + 1)}
+              aria-label={t("cal.yearNext")}
+              className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"
+            >{`>`}</button>
           </div>
           <div className="grid grid-cols-3 gap-1">
             {months.map((m, i) => {
               const isCurrent = i === displayMonth.month && pickerYear === displayMonth.year;
               return (
-                <button key={m} onClick={() => gotoMonth(pickerYear, i)}
-                  className={`px-2 py-1.5 text-sm rounded-full transition-colors dark:text-neutral-300 ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}>{m}</button>
+                <button
+                  key={m}
+                  onClick={() => gotoMonth(pickerYear, i)}
+                  className={`px-2 py-1.5 text-sm rounded-full transition-colors dark:text-neutral-300 ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                >
+                  {m}
+                </button>
               );
             })}
           </div>

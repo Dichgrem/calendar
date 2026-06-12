@@ -38,29 +38,32 @@ export function ImportForm() {
   const [overwrite, setOverwrite] = useState(false);
   const [imported, setImported] = useState(false);
 
-  const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setFile(f);
-    setLoading(true);
-    setError("");
-    setPreview(null);
+  const handleFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      setFile(f);
+      setLoading(true);
+      setError("");
+      setPreview(null);
 
-    try {
-      const text = await f.text();
-      setIcsContent(text);
-      const res = await api.ics.preview(text);
-      const data = (res as { ok: boolean; data: IcsPreviewData }).data;
-      setPreview(data);
-      setCalendarName(data.name);
-      setSelectedUids(new Set(data.items.map((i) => i.uid)));
-      setCalendarColor(pickDistinctColor([]));
-    } catch {
-      setError(t("import.parseError"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+      try {
+        const text = await f.text();
+        setIcsContent(text);
+        const res = await api.ics.preview(text);
+        const data = (res as { ok: boolean; data: IcsPreviewData }).data;
+        setPreview(data);
+        setCalendarName(data.name);
+        setSelectedUids(new Set(data.items.map((i) => i.uid)));
+        setCalendarColor(pickDistinctColor([]));
+      } catch {
+        setError(t("import.parseError"));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [t],
+  );
 
   const handleFetchUrl = useCallback(async () => {
     if (!url.trim()) return;
@@ -70,7 +73,9 @@ export function ImportForm() {
 
     try {
       const res = await api.ics.fetchUrl(url.trim());
-      const { preview: previewData, content } = (res as { ok: boolean; data: { preview: IcsPreviewData; content: string } }).data;
+      const { preview: previewData, content } = (
+        res as { ok: boolean; data: { preview: IcsPreviewData; content: string } }
+      ).data;
       setIcsContent(content);
       setPreview(previewData);
       setCalendarName(previewData.name);
@@ -128,27 +133,32 @@ export function ImportForm() {
         <>
           <div className="flex border-b border-neutral-200 dark:border-neutral-800 mb-3">
             <button
-              onClick={() => { setMode("file"); setError(""); }}
+              onClick={() => {
+                setMode("file");
+                setError("");
+              }}
               className={`flex-1 pb-1.5 text-sm font-medium transition-colors ${mode === "file" ? "border-b-2 border-neutral-900 dark:border-white text-neutral-900 dark:text-white" : "text-neutral-400 hover:text-neutral-600"}`}
             >
-              <UploadSimple className="size-3.5 inline mr-1" weight="bold" />{t("import.tabFile")}
+              <UploadSimple className="size-3.5 inline mr-1" weight="bold" />
+              {t("import.tabFile")}
             </button>
             <button
-              onClick={() => { setMode("url"); setError(""); }}
+              onClick={() => {
+                setMode("url");
+                setError("");
+              }}
               className={`flex-1 pb-1.5 text-sm font-medium transition-colors ${mode === "url" ? "border-b-2 border-neutral-900 dark:border-white text-neutral-900 dark:text-white" : "text-neutral-400 hover:text-neutral-600"}`}
             >
-              <Globe className="size-3.5 inline mr-1" weight="bold" />{t("import.tabUrl")}
+              <Globe className="size-3.5 inline mr-1" weight="bold" />
+              {t("import.tabUrl")}
             </button>
           </div>
 
           {mode === "file" && (
             <label className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl cursor-pointer hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors">
               <UploadSimple className="size-5 text-neutral-400" weight="bold" />
-              <span className="text-sm text-neutral-500">
-                {file ? file.name : t("import.selectFile")}
-              </span>
-              <input type="file" accept=".ics,.ical,.ifb,.icalendar" onChange={handleFile}
-                className="hidden" />
+              <span className="text-sm text-neutral-500">{file ? file.name : t("import.selectFile")}</span>
+              <input type="file" accept=".ics,.ical,.ifb,.icalendar" onChange={handleFile} className="hidden" />
             </label>
           )}
 
@@ -158,16 +168,13 @@ export function ImportForm() {
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleFetchUrl(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleFetchUrl();
+                }}
                 placeholder={t("import.urlPlaceholder")}
                 className="w-full text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-neutral-900 dark:border-neutral-700 outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
               />
-              <Button
-                className="w-full text-sm"
-                size="sm"
-                onClick={handleFetchUrl}
-                disabled={loading || !url.trim()}
-              >
+              <Button className="w-full text-sm" size="sm" onClick={handleFetchUrl} disabled={loading || !url.trim()}>
                 {loading ? t("import.fetching") : t("import.fetchBtn")}
               </Button>
             </div>
@@ -179,16 +186,15 @@ export function ImportForm() {
             </p>
           )}
 
-          {loading && !error && (
-            <p className="mt-2 text-sm text-neutral-400 text-center">{t("import.parsing")}</p>
-          )}
+          {loading && !error && <p className="mt-2 text-sm text-neutral-400 text-center">{t("import.parsing")}</p>}
         </>
       )}
 
       {preview && (
         <div className="mt-3 p-3 border border-neutral-200 dark:border-neutral-800 rounded-xl">
           <h2 className="font-semibold flex items-center gap-1.5 text-sm">
-            <FileText className="size-3.5" weight="bold" />{preview.name}
+            <FileText className="size-3.5" weight="bold" />
+            {preview.name}
           </h2>
           <p className="text-xs text-neutral-500 mt-0.5">
             {preview.eventCount} {t("import.events")}
@@ -197,14 +203,30 @@ export function ImportForm() {
 
           <div className="mt-2 space-y-1.5">
             <div className="flex items-center gap-2">
-              <input type="text" value={calendarName} onChange={(e) => setCalendarName(e.target.value)}
+              <input
+                type="text"
+                value={calendarName}
+                onChange={(e) => setCalendarName(e.target.value)}
                 className="text-sm border rounded px-2 py-1 bg-white dark:bg-neutral-900 dark:border-neutral-700 flex-1 min-w-0"
-                placeholder={t("import.calName")} />
+                placeholder={t("import.calName")}
+              />
               <label className="flex items-center gap-1.5 text-xs cursor-pointer shrink-0">
-                <input type="checkbox" checked={overwrite}
-                  onChange={(e) => setOverwrite(e.target.checked)} className="peer sr-only" />
+                <input
+                  type="checkbox"
+                  checked={overwrite}
+                  onChange={(e) => setOverwrite(e.target.checked)}
+                  className="peer sr-only"
+                />
                 <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors">
-                  <svg className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  <svg
+                    className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
                 </span>
                 {t("import.overwrite")}
               </label>
@@ -217,19 +239,33 @@ export function ImportForm() {
 
           {overwrite && (
             <p className="mt-1.5 text-xs text-amber-600 flex items-center gap-1">
-              <Warning className="size-3" weight="bold" />{t("import.overwriteWarn")}
+              <Warning className="size-3" weight="bold" />
+              {t("import.overwriteWarn")}
             </p>
           )}
 
           <div className="mt-2 max-h-40 overflow-auto text-sm">
             {preview.items.map((item) => (
-              <label key={item.uid}
-                className="flex items-center gap-1.5 py-0.5 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50 rounded px-1">
-                <input type="checkbox" checked={selectedUids.has(item.uid)}
+              <label
+                key={item.uid}
+                className="flex items-center gap-1.5 py-0.5 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50 rounded px-1"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedUids.has(item.uid)}
                   onChange={() => toggleItem(item.uid)}
-                  className="peer sr-only" />
+                  className="peer sr-only"
+                />
                 <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors shrink-0">
-                  <svg className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  <svg
+                    className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
                 </span>
                 <span className="text-xs px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 shrink-0">
                   {t("import.event")}
@@ -243,8 +279,7 @@ export function ImportForm() {
             ))}
           </div>
 
-          <Button className="mt-2 w-full text-sm" size="sm" onClick={handleImport}
-            disabled={loading}>
+          <Button className="mt-2 w-full text-sm" size="sm" onClick={handleImport} disabled={loading}>
             {loading ? t("import.parsing") : `${t("import.importBtn")} ${selectedUids.size} ${t("import.items")}`}
           </Button>
 

@@ -5,7 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	
+
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,9 +21,9 @@ import (
 	"calendar/internal/auth"
 	"calendar/internal/backup"
 	"calendar/internal/caldav"
+	cal "calendar/internal/calendar"
 	"calendar/internal/config"
 	"calendar/internal/db"
-	cal "calendar/internal/calendar"
 	ev "calendar/internal/event"
 	"calendar/internal/ics"
 	"calendar/internal/logger"

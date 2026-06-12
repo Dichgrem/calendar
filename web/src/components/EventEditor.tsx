@@ -130,10 +130,8 @@ export function EventEditor(props: EventEditorProps) {
     }
   };
 
-  const busy =
-    createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
-  const hasError =
-    createMutation.isError || updateMutation.isError || deleteMutation.isError;
+  const busy = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+  const hasError = createMutation.isError || updateMutation.isError || deleteMutation.isError;
   const isCreate = props.mode === "create";
   const showCalendarSelect = isCreate && props.calendars.length > 1;
   const noCalendars = isCreate && props.calendars.length === 0;
@@ -146,21 +144,11 @@ export function EventEditor(props: EventEditorProps) {
       footer={
         <>
           {!isCreate && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => deleteMutation.mutate()}
-              disabled={busy}
-            >
+            <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate()} disabled={busy}>
               {t("event.delete")}
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClose}
-            disabled={busy}
-          >
+          <Button variant="outline" size="sm" onClick={onClose} disabled={busy}>
             {t("event.cancel")}
           </Button>
           <Button size="sm" onClick={handleSave} disabled={busy}>
@@ -253,7 +241,15 @@ export function EventEditor(props: EventEditorProps) {
             className="peer sr-only"
           />
           <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors">
-            <svg className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+            <svg
+              className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
           </span>
           <span className="text-sm text-neutral-800 dark:text-neutral-200">{t("event.allDay")}</span>
         </label>
@@ -278,9 +274,7 @@ export function EventEditor(props: EventEditorProps) {
           />
         </label>
 
-        {hasError && (
-          <p className="text-xs text-red-500">{t("event.error")}</p>
-        )}
+        {hasError && <p className="text-xs text-red-500">{t("event.error")}</p>}
       </div>
     </Modal>
   );

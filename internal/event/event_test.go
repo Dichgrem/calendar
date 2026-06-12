@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	ev "calendar/internal/event"
 	"calendar/internal/db"
+	ev "calendar/internal/event"
 	"calendar/internal/middleware"
 )
 

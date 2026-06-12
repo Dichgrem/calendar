@@ -152,10 +152,14 @@ func detectLineLevel(line string) slog.Level {
 			for j, c := range rest {
 				if c == ' ' {
 					switch rest[:j] {
-					case "ERROR": return slog.LevelError
-					case "WARN": return slog.LevelWarn
-					case "INFO": return slog.LevelInfo
-					case "DEBUG": return slog.LevelDebug
+					case "ERROR":
+						return slog.LevelError
+					case "WARN":
+						return slog.LevelWarn
+					case "INFO":
+						return slog.LevelInfo
+					case "DEBUG":
+						return slog.LevelDebug
 					}
 					break
 				}
