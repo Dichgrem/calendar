@@ -44,7 +44,17 @@ interface MonthGridProps {
   onEventClick: (event: Event) => void;
 }
 
-export function MonthGrid({ year, month, firstDayOfWeek, events, calendarColorMap, dotCalendarIds, highlightDate, onDateClick, onEventClick }: MonthGridProps) {
+export function MonthGrid({
+  year,
+  month,
+  firstDayOfWeek,
+  events,
+  calendarColorMap,
+  dotCalendarIds,
+  highlightDate,
+  onDateClick,
+  onEventClick,
+}: MonthGridProps) {
   const { data: settings } = useSettings();
   const showLunar = settings?.showLunarCalendar ?? false;
   const showEventTime = settings?.showEventTime ?? false;
@@ -74,7 +84,7 @@ export function MonthGrid({ year, month, firstDayOfWeek, events, calendarColorMa
             if (midKey === key) continue;
             const midList = map.get(midKey);
             if (midList) {
-              if (!midList.some(e => e.id === ev.id)) midList.push(ev);
+              if (!midList.some((e) => e.id === ev.id)) midList.push(ev);
             } else {
               map.set(midKey, [ev]);
             }
@@ -109,7 +119,7 @@ export function MonthGrid({ year, month, firstDayOfWeek, events, calendarColorMa
             onClick={() => onDateClick(d)}
             className={`relative border-r border-neutral-300 dark:border-neutral-600
               ${!isLastRow ? "border-b" : ""}
-              ${isToday ? "bg-[rgba(255,220,40,0.15)] dark:bg-[rgba(255,220,40,0.1)]" : (isCurrentMonth ? "bg-neutral-50 dark:bg-neutral-900" : "bg-neutral-100 dark:bg-neutral-950")}
+              ${isToday ? "bg-[rgba(255,220,40,0.15)] dark:bg-[rgba(255,220,40,0.1)]" : isCurrentMonth ? "bg-neutral-50 dark:bg-neutral-900" : "bg-neutral-100 dark:bg-neutral-950"}
               ${isHighlighted ? "fc-highlight-search" : ""}
             `}
           >
@@ -142,7 +152,10 @@ export function MonthGrid({ year, month, firstDayOfWeek, events, calendarColorMa
                 return (
                   <div
                     key={ev.id}
-                    onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick(ev);
+                    }}
                     className={
                       isDot
                         ? "text-[.82rem] truncate leading-snug cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded px-1 flex items-center gap-1 text-neutral-800 dark:text-neutral-200"

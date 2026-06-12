@@ -31,7 +31,9 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="absolute inset-0 bg-black/40 pointer-events-none" />
       <div className="relative bg-white dark:bg-surface rounded-2xl shadow-2xl w-[28rem] max-h-[85vh] flex flex-col border border-border overflow-hidden">

@@ -134,8 +134,8 @@ func fetchRecord(table string, id string) map[string]interface{} {
 	case "calendars":
 		var r struct {
 			ID, Name, Color, SourceType, OwnerID, CreatedAt, UpdatedAt string
-			SourceURL                                                    *string
-			LastModified                                                 int64
+			SourceURL                                                  *string
+			LastModified                                               int64
 		}
 		err := db.DB.QueryRow(
 			`SELECT id, name, color, source_url, source_type, owner_id, created_at, updated_at, last_modified FROM calendars WHERE id=?`, id,
@@ -153,8 +153,8 @@ func fetchRecord(table string, id string) map[string]interface{} {
 		var r struct {
 			ID, CalendarID, Title, StartAt, EndAt, CreatedAt, UpdatedAt string
 			Description, RRule, Color, Location, ParentID, OriginalDate *string
-			AllDay, Deleted                                              int
-			LastModified                                                 int64
+			AllDay, Deleted                                             int
+			LastModified                                                int64
 		}
 		err := db.DB.QueryRow(
 			`SELECT id, calendar_id, title, description, start_at, end_at, all_day, rrule,
@@ -176,10 +176,10 @@ func fetchRecord(table string, id string) map[string]interface{} {
 		}
 	case "event_overrides":
 		var r struct {
-			ID, ParentID, OriginalDate                                  string
-			OverrideStart, OverrideEnd, OverrideTitle                   *string
-			Deleted                                                      int
-			LastModified                                                 int64
+			ID, ParentID, OriginalDate                string
+			OverrideStart, OverrideEnd, OverrideTitle *string
+			Deleted                                   int
+			LastModified                              int64
 		}
 		err := db.DB.QueryRow(
 			`SELECT id, parent_id, original_date, override_start, override_end, override_title, deleted, last_modified FROM event_overrides WHERE id=?`, id,

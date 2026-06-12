@@ -6,7 +6,9 @@ import { MemoryRouter } from "react-router";
 import { EventEditor } from "./EventEditor";
 
 function Wrapper({ children }: { children: React.ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return (
     <QueryClientProvider client={qc}>
       <MemoryRouter>{children}</MemoryRouter>

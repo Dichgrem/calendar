@@ -127,15 +127,21 @@ END:VCALENDAR`
 	if w.Code != 201 {
 		t.Fatalf("import returned %d: %s", w.Code, w.Body.String())
 	}
-	var resp struct{ Data struct{ CalendarID string } `json:"data"` }
+	var resp struct {
+		Data struct{ CalendarID string } `json:"data"`
+	}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	calID := resp.Data.CalendarID
-	if calID == "" { t.Fatal("no calendarId") }
+	if calID == "" {
+		t.Fatal("no calendarId")
+	}
 
 	// Verify event
 	var count int
 	db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id=?", calID).Scan(&count)
-	if count != 1 { t.Errorf("expected 1 event, got %d", count) }
+	if count != 1 {
+		t.Errorf("expected 1 event, got %d", count)
+	}
 	var startAt string
 	db.DB.QueryRow("SELECT start_at FROM events WHERE calendar_id=?", calID).Scan(&startAt)
 	if startAt != "2026-06-20T10:00:00Z" {
@@ -147,7 +153,9 @@ END:VCALENDAR`
 	req2.AddCookie(&http.Cookie{Name: "session_token", Value: sid})
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
-	if w2.Code != 200 { t.Fatalf("export returned %d", w2.Code) }
+	if w2.Code != 200 {
+		t.Fatalf("export returned %d", w2.Code)
+	}
 	bodyStr := w2.Body.String()
 	if !strings.Contains(bodyStr, "Integration Event") {
 		t.Errorf("export missing event")
@@ -190,14 +198,20 @@ END:VCALENDAR`
 	req.AddCookie(&http.Cookie{Name: "session_token", Value: sid})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
-	if w.Code != 201 { t.Fatalf("import returned %d: %s", w.Code, w.Body.String()) }
+	if w.Code != 201 {
+		t.Fatalf("import returned %d: %s", w.Code, w.Body.String())
+	}
 
-	var resp struct{ Data struct{ CalendarID string } `json:"data"` }
+	var resp struct {
+		Data struct{ CalendarID string } `json:"data"`
+	}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
 	var allDay int
 	db.DB.QueryRow("SELECT all_day FROM events WHERE calendar_id=?", resp.Data.CalendarID).Scan(&allDay)
-	if allDay != 1 { t.Errorf("all_day=%d want 1 (all-day event not detected)", allDay) }
+	if allDay != 1 {
+		t.Errorf("all_day=%d want 1 (all-day event not detected)", allDay)
+	}
 }
 
 func TestICSPreview(t *testing.T) {
@@ -221,7 +235,9 @@ END:VCALENDAR`,
 	req.AddCookie(&http.Cookie{Name: "session_token", Value: sid})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
-	if w.Code != 200 { t.Fatalf("preview returned %d: %s", w.Code, w.Body.String()) }
+	if w.Code != 200 {
+		t.Fatalf("preview returned %d: %s", w.Code, w.Body.String())
+	}
 
 	var resp struct {
 		Data struct {
@@ -230,6 +246,10 @@ END:VCALENDAR`,
 		} `json:"data"`
 	}
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	if resp.Data.Name != "Preview Cal" { t.Errorf("name=%q", resp.Data.Name) }
-	if resp.Data.EventCount != 1 { t.Errorf("eventCount=%d", resp.Data.EventCount) }
+	if resp.Data.Name != "Preview Cal" {
+		t.Errorf("name=%q", resp.Data.Name)
+	}
+	if resp.Data.EventCount != 1 {
+		t.Errorf("eventCount=%d", resp.Data.EventCount)
+	}
 }

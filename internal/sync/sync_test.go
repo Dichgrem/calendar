@@ -52,7 +52,9 @@ func setupSync(t *testing.T) (chi.Router, string) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	for _, c := range w.Result().Cookies() {
-		if c.Name == "session_token" { return r, c.Value }
+		if c.Name == "session_token" {
+			return r, c.Value
+		}
 	}
 	t.Fatal("login failed")
 	return r, ""

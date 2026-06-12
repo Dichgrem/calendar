@@ -73,7 +73,9 @@ func handlePropfindCalendars(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id, name string
 		var lmod int64
-		if rows.Scan(&id, &name, &lmod) != nil { continue }
+		if rows.Scan(&id, &name, &lmod) != nil {
+			continue
+		}
 		rs = append(rs, response{
 			Href: fmt.Sprintf("/dav/calendars/%s/", id),
 			PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
@@ -83,22 +85,33 @@ func handlePropfindCalendars(w http.ResponseWriter, r *http.Request) {
 			}}},
 		})
 	}
-	if rs == nil { rs = []response{} }
+	if rs == nil {
+		rs = []response{}
+	}
 	writeXML(w, multiStatus{Responses: rs})
 }
 
 func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID string) {
 	userID := userIDFromReq(r)
-	if userID == "" { http.Error(w, "Unauthorized", 401); return }
+	if userID == "" {
+		http.Error(w, "Unauthorized", 401)
+		return
+	}
 
 	var count int
 	db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calendarID, userID).Scan(&count)
-	if count == 0 { http.Error(w, "Not Found", 404); return }
+	if count == 0 {
+		http.Error(w, "Not Found", 404)
+		return
+	}
 
 	rows, err := db.DB.Query(`
 		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified
 		FROM events WHERE calendar_id = ? AND deleted = 0`, calendarID)
-	if err != nil { http.Error(w, "Internal Server Error", 500); return }
+	if err != nil {
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
 	defer rows.Close()
 
 	var rs []response
@@ -107,7 +120,9 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 		var desc, rrule, loc *string
 		var allDay int
 		var lmod int64
-		if rows.Scan(&id, &title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &lmod) != nil { continue }
+		if rows.Scan(&id, &title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &lmod) != nil {
+			continue
+		}
 
 		icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, id, createdAt)
 		icsContent := serializeCal(icalCal)
@@ -115,8 +130,8 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 		rs = append(rs, response{
 			Href: fmt.Sprintf("/dav/calendars/%s/%s.ics", calendarID, id),
 			PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
-				DisplayName:     title,
-				GetContentType:  "text/calendar; charset=utf-8",
+				DisplayName:      title,
+				GetContentType:   "text/calendar; charset=utf-8",
 				GetContentLength: int64(len(icsContent)),
 				GetETag:          fmt.Sprintf(`"%d"`, lmod),
 				GetLastModified:  updatedAt,
@@ -125,14 +140,19 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 			}}}},
 		)
 	}
-	if rs == nil { rs = []response{} }
+	if rs == nil {
+		rs = []response{}
+	}
 	logger.Info("[caldav] PROPFIND events cal=%s count=%d", calendarID, len(rs))
 	writeXML(w, multiStatus{Responses: rs})
 }
 
 func handlePropfindSingle(w http.ResponseWriter, r *http.Request, calendarID, filename string) {
 	userID := userIDFromReq(r)
-	if userID == "" { http.Error(w, "Unauthorized", 401); return }
+	if userID == "" {
+		http.Error(w, "Unauthorized", 401)
+		return
+	}
 	eventID := strings.TrimSuffix(filename, ".ics")
 
 	var title, startAt, endAt, createdAt, updatedAt string
@@ -144,7 +164,10 @@ func handlePropfindSingle(w http.ResponseWriter, r *http.Request, calendarID, fi
 		FROM events e INNER JOIN calendar_members cm ON e.calendar_id = cm.calendar_id
 		WHERE e.id = ? AND cm.user_id = ? AND e.deleted = 0`, eventID, userID,
 	).Scan(&title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt, &updatedAt, &lmod)
-	if err != nil { writeXML(w, multiStatus{Responses: []response{}}); return }
+	if err != nil {
+		writeXML(w, multiStatus{Responses: []response{}})
+		return
+	}
 
 	icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, eventID, createdAt)
 	icsContent := serializeCal(icalCal)
@@ -152,8 +175,8 @@ func handlePropfindSingle(w http.ResponseWriter, r *http.Request, calendarID, fi
 	writeXML(w, multiStatus{Responses: []response{{
 		Href: fmt.Sprintf("/dav/calendars/%s/%s.ics", calendarID, eventID),
 		PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
-			DisplayName:     title,
-			GetContentType:  "text/calendar; charset=utf-8",
+			DisplayName:      title,
+			GetContentType:   "text/calendar; charset=utf-8",
 			GetContentLength: int64(len(icsContent)),
 			GetETag:          fmt.Sprintf(`"%d"`, lmod),
 			CalendarData:     &calendarData{Content: icsContent},
@@ -187,7 +210,10 @@ func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	_, filename := parseCalPath(r.URL.Path)
 	userID := userIDFromReq(r)
 	logger.Info("[caldav] GET event=%s user=%s", filename, userID)
-	if userID == "" { http.Error(w, "Unauthorized", 401); return }
+	if userID == "" {
+		http.Error(w, "Unauthorized", 401)
+		return
+	}
 	eventID := strings.TrimSuffix(filename, ".ics")
 
 	var title, startAt, endAt, createdAt string
@@ -198,7 +224,10 @@ func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 		FROM events e INNER JOIN calendar_members cm ON e.calendar_id = cm.calendar_id
 		WHERE e.id = ? AND cm.user_id = ? AND e.deleted = 0`, eventID, userID,
 	).Scan(&title, &desc, &startAt, &endAt, &allDay, &rrule, &loc, &createdAt)
-	if err != nil { http.Error(w, "Not Found", 404); return }
+	if err != nil {
+		http.Error(w, "Not Found", 404)
+		return
+	}
 
 	icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, eventID, createdAt)
 	icsContent := serializeCal(icalCal)
@@ -212,11 +241,18 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	calID, filename := parseCalPath(r.URL.Path)
 	userID := userIDFromReq(r)
 	logger.Info("[caldav] PUT %s user=%s", r.URL.Path, userID)
-	if userID == "" { http.Error(w, "Unauthorized", 401); return }
+	if userID == "" {
+		http.Error(w, "Unauthorized", 401)
+		return
+	}
 
 	var count int
 	db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calID, userID).Scan(&count)
-	if count == 0 { logger.Error("[caldav] PUT %s: calendar not found", r.URL.Path); http.Error(w, "Not Found", 404); return }
+	if count == 0 {
+		logger.Error("[caldav] PUT %s: calendar not found", r.URL.Path)
+		http.Error(w, "Not Found", 404)
+		return
+	}
 
 	body, _ := io.ReadAll(r.Body)
 	icalCal, err := ical.NewDecoder(bytes.NewReader(body)).Decode()
@@ -227,7 +263,11 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	events := calendarEvents(icalCal)
-	if len(events) == 0 { logger.Info("[caldav] PUT %s: no VEVENT found", r.URL.Path); http.Error(w, "Bad Request: no VEVENT", 400); return }
+	if len(events) == 0 {
+		logger.Info("[caldav] PUT %s: no VEVENT found", r.URL.Path)
+		http.Error(w, "Bad Request: no VEVENT", 400)
+		return
+	}
 	ev := events[0]
 
 	evTitle := compProp(ev, ical.PropSummary)
@@ -238,7 +278,9 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	lmod := time.Now().UnixMilli()
 
 	lookupID := strings.TrimSuffix(filename, ".ics")
-	if evUID != "" { lookupID = evUID }
+	if evUID != "" {
+		lookupID = evUID
+	}
 	// DAVx5 may have cached old ICS with "@calendar" UID suffix.
 	// Strip it so the lookup matches the DB id (a clean UUID).
 	lookupID = strings.TrimSuffix(lookupID, "@calendar")
@@ -248,17 +290,27 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	db.DB.QueryRow("SELECT id FROM events WHERE id=? AND calendar_id=?", lookupID, calID).Scan(&existingID)
 
 	allDay := 0
-	if !strings.Contains(evStartAt, "T") { allDay = 1 }
+	if !strings.Contains(evStartAt, "T") {
+		allDay = 1
+	}
 
 	if existingID != "" {
 		_, err := db.DB.Exec(`UPDATE events SET title=?, description=?, start_at=?, end_at=?, all_day=?, rrule=?, location=?, updated_at=?, last_modified=? WHERE id=?`,
 			evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, lmod, existingID)
-		if err != nil { logger.Error("[caldav] PUT %s UPDATE error: %v", r.URL.Path, err); http.Error(w, "Internal Server Error", 500); return }
+		if err != nil {
+			logger.Error("[caldav] PUT %s UPDATE error: %v", r.URL.Path, err)
+			http.Error(w, "Internal Server Error", 500)
+			return
+		}
 		logger.Info("[caldav] PUT %s UPDATED uid=%s title=%q start=%s", r.URL.Path, existingID, evTitle, evStartAt)
 	} else {
 		_, err := db.DB.Exec(`INSERT INTO events (id, calendar_id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
 			lookupID, calID, evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, now, lmod)
-		if err != nil { logger.Error("[caldav] PUT %s INSERT error: %v", r.URL.Path, err); http.Error(w, "Internal Server Error", 500); return }
+		if err != nil {
+			logger.Error("[caldav] PUT %s INSERT error: %v", r.URL.Path, err)
+			http.Error(w, "Internal Server Error", 500)
+			return
+		}
 		logger.Info("[caldav] PUT %s CREATED uid=%s title=%q start=%s", r.URL.Path, lookupID, evTitle, evStartAt)
 	}
 	w.WriteHeader(204)
@@ -271,14 +323,21 @@ func handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
 	res, _ := db.DB.Exec(`UPDATE events SET deleted=1, updated_at=?, last_modified=? WHERE id=? AND calendar_id=?`,
 		time.Now().UTC().Format(time.RFC3339), time.Now().UnixMilli(), eventID, calID)
 	affected, _ := res.RowsAffected()
-	if affected == 0 { logger.Info("[caldav] DELETE %s: not found", r.URL.Path); http.Error(w, "Not Found", 404); return }
+	if affected == 0 {
+		logger.Info("[caldav] DELETE %s: not found", r.URL.Path)
+		http.Error(w, "Not Found", 404)
+		return
+	}
 	w.WriteHeader(204)
 }
 
 func handleMkcalendar(w http.ResponseWriter, r *http.Request) {
 	userID := userIDFromReq(r)
 	logger.Info("[caldav] MKCALENDAR user=%s", userID)
-	if userID == "" { http.Error(w, "Unauthorized", 401); return }
+	if userID == "" {
+		http.Error(w, "Unauthorized", 401)
+		return
+	}
 
 	name := "New Calendar"
 	color := "#3b82f6"
@@ -293,21 +352,32 @@ func handleMkcalendar(w http.ResponseWriter, r *http.Request) {
 	}
 	var req mkcalS
 	if xml.Unmarshal(body, &req) == nil {
-		if req.Set.Prop.DisplayName != "" { name = req.Set.Prop.DisplayName }
-		if req.Set.Prop.Color != "" { color = req.Set.Prop.Color }
+		if req.Set.Prop.DisplayName != "" {
+			name = req.Set.Prop.DisplayName
+		}
+		if req.Set.Prop.Color != "" {
+			color = req.Set.Prop.Color
+		}
 	}
 
 	id := uuid.New().String()
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()
 	tx, err := db.DB.Begin()
-	if err != nil { http.Error(w, "Internal Server Error", 500); return }
+	if err != nil {
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
 	defer tx.Rollback()
 	tx.Exec(`INSERT INTO calendars (id, name, color, source_type, owner_id, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?)`, id, name, color, "manual", userID, now, now, lmod)
 	tx.Exec(`INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?,?,?)`, id, userID, "admin")
-	if tx.Commit() != nil { http.Error(w, "Internal Server Error", 500); return }
+	if tx.Commit() != nil {
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
 
-	host := r.Host; scheme := requestScheme(r)
+	host := r.Host
+	scheme := requestScheme(r)
 	w.Header().Set("Location", fmt.Sprintf("%s://%s/dav/calendars/%s/", scheme, host, id))
 	logger.Info("[caldav] MKCALENDAR created id=%s name=%q", id, name)
 	w.WriteHeader(201)
@@ -355,8 +425,12 @@ type calendarData struct {
 func parseCalPath(path string) (calID, fn string) {
 	t := strings.TrimPrefix(path, "/dav/calendars/")
 	parts := strings.SplitN(t, "/", 2)
-	if len(parts) > 0 { calID = strings.TrimSuffix(parts[0], "/") }
-	if len(parts) > 1 && parts[1] != "" { fn = parts[1] }
+	if len(parts) > 0 {
+		calID = strings.TrimSuffix(parts[0], "/")
+	}
+	if len(parts) > 1 && parts[1] != "" {
+		fn = parts[1]
+	}
 	return
 }
 
@@ -367,23 +441,36 @@ func buildCal(title string, desc, rrule, loc *string, startAt, endAt, uid, dtsta
 	ev := ical.NewEvent()
 	ev.Props.SetText(ical.PropUID, uid)
 	ev.Props.SetText(ical.PropSummary, title)
-	if desc != nil { ev.Props.SetText(ical.PropDescription, *desc) }
-	if rrule != nil { ev.Props.SetText(ical.PropRecurrenceRule, *rrule) }
-	if loc != nil { ev.Props.SetText(ical.PropLocation, *loc) }
+	if desc != nil {
+		ev.Props.SetText(ical.PropDescription, *desc)
+	}
+	if rrule != nil {
+		ev.Props.SetText(ical.PropRecurrenceRule, *rrule)
+	}
+	if loc != nil {
+		ev.Props.SetText(ical.PropLocation, *loc)
+	}
 	setDateProp(ev.Props, ical.PropDateTimeStart, startAt)
 	setDateProp(ev.Props, ical.PropDateTimeEnd, endAt)
-	if dtstamp != "" { setDateProp(ev.Props, ical.PropDateTimeStamp, dtstamp) }
+	if dtstamp != "" {
+		setDateProp(ev.Props, ical.PropDateTimeStamp, dtstamp)
+	}
 	cal.Children = append(cal.Children, ev.Component)
 	return cal
 }
 
 // setDateProp sets a date property, auto-detecting all-day vs datetime.
 func setDateProp(props ical.Props, name, value string) {
-	if value == "" { return }
+	if value == "" {
+		return
+	}
 	// ICS raw date: YYYYMMDD
 	if len(value) == 8 {
 		t, err := time.Parse("20060102", value)
-		if err != nil { props.SetText(name, value); return }
+		if err != nil {
+			props.SetText(name, value)
+			return
+		}
 		props.SetDate(name, t)
 		return
 	}
@@ -391,13 +478,18 @@ func setDateProp(props ical.Props, name, value string) {
 	if len(value) == 15 || len(value) == 16 {
 		s := value[0:4] + "-" + value[4:6] + "-" + value[6:8] + "T" +
 			value[9:11] + ":" + value[11:13] + ":" + value[13:15]
-		if len(value) == 16 && value[15] == 'Z' { s += "Z" }
+		if len(value) == 16 && value[15] == 'Z' {
+			s += "Z"
+		}
 		// Try with Z first, then without
 		t, err := time.Parse(time.RFC3339, s+"Z")
 		if err != nil {
 			t, err = time.Parse("2006-01-02T15:04:05", s)
 		}
-		if err != nil { props.SetText(name, value); return }
+		if err != nil {
+			props.SetText(name, value)
+			return
+		}
 		props.SetDateTime(name, t)
 		return
 	}
@@ -407,9 +499,16 @@ func setDateProp(props ical.Props, name, value string) {
 		props.SetDate(name, t)
 	} else {
 		t, err := time.Parse(time.RFC3339, value)
-		if err != nil { t, err = time.Parse("2006-01-02T15:04:05Z", value) }
-		if err != nil { t, _ = time.Parse("2006-01-02T15:04:05", value) }
-		if t.IsZero() { props.SetText(name, value); return }
+		if err != nil {
+			t, err = time.Parse("2006-01-02T15:04:05Z", value)
+		}
+		if err != nil {
+			t, _ = time.Parse("2006-01-02T15:04:05", value)
+		}
+		if t.IsZero() {
+			props.SetText(name, value)
+			return
+		}
 		props.SetDateTime(name, t)
 	}
 }
@@ -423,7 +522,9 @@ func serializeCal(cal *ical.Calendar) string {
 func calendarEvents(cal *ical.Calendar) []*ical.Component {
 	var evs []*ical.Component
 	for _, c := range cal.Children {
-		if c.Name == ical.CompEvent { evs = append(evs, c) }
+		if c.Name == ical.CompEvent {
+			evs = append(evs, c)
+		}
 	}
 	return evs
 }
@@ -448,6 +549,8 @@ func writeXML(w http.ResponseWriter, ms multiStatus) {
 }
 
 func strOrNil(s string) interface{} {
-	if s == "" { return nil }
+	if s == "" {
+		return nil
+	}
 	return s
 }

@@ -39,10 +39,13 @@ bench:
 # vet
 lint:
     go vet ./...
+    @pnpm exec biome check web
+    @pnpm --filter @calendar/web exec tsc --noEmit
 
-# format Go
+# format Go + web
 format:
     go fmt ./...
+    @pnpm exec biome format --write web
 
 # clean build artifacts
 clean:

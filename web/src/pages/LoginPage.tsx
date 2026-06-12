@@ -41,7 +41,7 @@ export function LoginPage() {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       navigate("/calendar");
     } catch (e) {
-      setError(e instanceof Error ? e.message : (isFirstUser ? t("login.registerFailed") : t("login.loginFailed")));
+      setError(e instanceof Error ? e.message : isFirstUser ? t("login.registerFailed") : t("login.loginFailed"));
     } finally {
       setLoading(false);
     }
@@ -65,17 +65,9 @@ export function LoginPage() {
           {isFirstUser ? t("login.createAccount") : t("login.login")}
         </h1>
 
-        {isFirstUser && (
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            {t("login.firstUseHint")}
-          </p>
-        )}
+        {isFirstUser && <p className="text-sm text-neutral-500 dark:text-neutral-400">{t("login.firstUseHint")}</p>}
 
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded px-3 py-2">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded px-3 py-2">{error}</p>}
 
         <label className="block">
           <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{t("login.username")}</span>
@@ -103,8 +95,12 @@ export function LoginPage() {
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading
-            ? (isFirstUser ? t("login.creating") : t("login.loggingIn"))
-            : (isFirstUser ? t("login.create") : t("login.loginBtn"))}
+            ? isFirstUser
+              ? t("login.creating")
+              : t("login.loggingIn")
+            : isFirstUser
+              ? t("login.create")
+              : t("login.loginBtn")}
         </Button>
       </form>
     </div>

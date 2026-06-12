@@ -432,7 +432,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 		icalCal.Props.SetText(ical.PropName, calName)
 	}
 
-	var rawBlocks []string       // verbatim VEVENT strings from raw_ics
+	var rawBlocks []string            // verbatim VEVENT strings from raw_ics
 	var goCalEvents []*ical.Component // DB-reconstructed VEVENTs
 
 	for rows.Next() {
@@ -452,11 +452,17 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 			evComp := ical.NewEvent()
 			evComp.Props.SetText(ical.PropUID, id)
 			evComp.Props.SetText(ical.PropSummary, title)
-			if desc != nil { evComp.Props.SetText(ical.PropDescription, *desc) }
+			if desc != nil {
+				evComp.Props.SetText(ical.PropDescription, *desc)
+			}
 			setDateProp(evComp.Props, ical.PropDateTimeStart, startAt)
 			setDateProp(evComp.Props, ical.PropDateTimeEnd, endAt)
-			if rrule != nil { evComp.Props.SetText(ical.PropRecurrenceRule, *rrule) }
-			if loc != nil { evComp.Props.SetText(ical.PropLocation, *loc) }
+			if rrule != nil {
+				evComp.Props.SetText(ical.PropRecurrenceRule, *rrule)
+			}
+			if loc != nil {
+				evComp.Props.SetText(ical.PropLocation, *loc)
+			}
 			setDateProp(evComp.Props, ical.PropDateTimeStamp, createdAt)
 			goCalEvents = append(goCalEvents, evComp.Component)
 		}
@@ -506,16 +512,22 @@ func extractVEventsByUID(content string) map[string]string {
 	parts := strings.Split(content, "BEGIN:VEVENT")
 	for _, part := range parts[1:] {
 		endIdx := strings.Index(part, "END:VEVENT")
-		if endIdx < 0 { continue }
+		if endIdx < 0 {
+			continue
+		}
 		block := "BEGIN:VEVENT" + part[:endIdx+len("END:VEVENT")]
 		// Extract UID from the block.
 		uidStart := strings.Index(block, "UID:")
-		if uidStart < 0 { continue }
+		if uidStart < 0 {
+			continue
+		}
 		uidEnd := strings.Index(block[uidStart:], "\r")
 		if uidEnd < 0 {
 			uidEnd = strings.Index(block[uidStart:], "\n")
 		}
-		if uidEnd < 0 { continue }
+		if uidEnd < 0 {
+			continue
+		}
 		uid := strings.TrimSpace(block[uidStart+4 : uidStart+uidEnd])
 		if uid != "" {
 			result[uid] = block
@@ -620,11 +632,16 @@ func SetDateProp(props ical.Props, name, value string) {
 
 // setDateProp sets a date/datetime property with correct VALUE parameter.
 func setDateProp(props ical.Props, name, value string) {
-	if value == "" { return }
+	if value == "" {
+		return
+	}
 	// ICS raw date: YYYYMMDD
 	if len(value) == 8 {
 		t, err := time.Parse("20060102", value)
-		if err != nil { props.SetText(name, value); return }
+		if err != nil {
+			props.SetText(name, value)
+			return
+		}
 		props.SetDate(name, t)
 		return
 	}
@@ -632,10 +649,17 @@ func setDateProp(props ical.Props, name, value string) {
 	if len(value) == 15 || len(value) == 16 {
 		s := value[0:4] + "-" + value[4:6] + "-" + value[6:8] + "T" +
 			value[9:11] + ":" + value[11:13] + ":" + value[13:15]
-		if len(value) == 16 && value[15] == 'Z' { s += "Z" }
+		if len(value) == 16 && value[15] == 'Z' {
+			s += "Z"
+		}
 		t, err := time.Parse(time.RFC3339, s+"Z")
-		if err != nil { t, err = time.Parse("2006-01-02T15:04:05", s) }
-		if err != nil { props.SetText(name, value); return }
+		if err != nil {
+			t, err = time.Parse("2006-01-02T15:04:05", s)
+		}
+		if err != nil {
+			props.SetText(name, value)
+			return
+		}
 		props.SetDateTime(name, t)
 		return
 	}
@@ -645,9 +669,16 @@ func setDateProp(props ical.Props, name, value string) {
 		props.SetDate(name, t)
 	} else {
 		t, err := time.Parse(time.RFC3339, value)
-		if err != nil { t, err = time.Parse("2006-01-02T15:04:05Z", value) }
-		if err != nil { t, _ = time.Parse("2006-01-02T15:04:05", value) }
-		if t.IsZero() { props.SetText(name, value); return }
+		if err != nil {
+			t, err = time.Parse("2006-01-02T15:04:05Z", value)
+		}
+		if err != nil {
+			t, _ = time.Parse("2006-01-02T15:04:05", value)
+		}
+		if t.IsZero() {
+			props.SetText(name, value)
+			return
+		}
 		props.SetDateTime(name, t)
 	}
 }

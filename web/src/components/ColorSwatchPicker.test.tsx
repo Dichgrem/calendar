@@ -11,21 +11,33 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("ColorSwatchPicker", () => {
   it("renders all predefined colors as buttons", () => {
-    render(<Wrapper><ColorSwatchPicker value="#3b82f6" onChange={() => {}} /></Wrapper>);
+    render(
+      <Wrapper>
+        <ColorSwatchPicker value="#3b82f6" onChange={() => {}} />
+      </Wrapper>,
+    );
     const buttons = screen.getAllByRole("button");
     expect(buttons.length).toBeGreaterThanOrEqual(12);
   });
 
   it("calls onChange with selected color", async () => {
     const onChange = vi.fn();
-    render(<Wrapper><ColorSwatchPicker value="#3b82f6" onChange={onChange} /></Wrapper>);
+    render(
+      <Wrapper>
+        <ColorSwatchPicker value="#3b82f6" onChange={onChange} />
+      </Wrapper>,
+    );
     const buttons = screen.getAllByRole("button");
     await userEvent.click(buttons[0]);
     expect(onChange).toHaveBeenCalled();
   });
 
   it("shows custom color picker", () => {
-    render(<Wrapper><ColorSwatchPicker value="#3b82f6" onChange={() => {}} /></Wrapper>);
+    render(
+      <Wrapper>
+        <ColorSwatchPicker value="#3b82f6" onChange={() => {}} />
+      </Wrapper>,
+    );
     expect(screen.getByTitle("自定义颜色")).toBeInTheDocument();
   });
 });

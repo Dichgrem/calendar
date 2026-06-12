@@ -10,9 +10,7 @@ import { CalendarView } from "./components/CalendarView";
 import { LoginPage } from "./pages/LoginPage";
 import "./index.css";
 
-const SettingsPage = lazy(() =>
-  import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage }))
-);
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,7 +33,14 @@ function App() {
               <Route element={<Layout />}>
                 <Route index element={<Navigate to="/calendar" replace />} />
                 <Route path="/calendar" element={<CalendarView />} />
-                <Route path="/settings" element={<Suspense fallback={<div className="p-6 text-sm text-neutral-400">请稍候...</div>}><SettingsPage /></Suspense>} />
+                <Route
+                  path="/settings"
+                  element={
+                    <Suspense fallback={<div className="p-6 text-sm text-neutral-400">请稍候...</div>}>
+                      <SettingsPage />
+                    </Suspense>
+                  }
+                />
               </Route>
             </Route>
           </Routes>

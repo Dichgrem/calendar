@@ -1,13 +1,13 @@
 package middleware
 
 import (
+	"calendar/internal/logger"
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"calendar/internal/logger"
 	"net/http"
 	"strings"
 	"time"
@@ -55,6 +55,7 @@ func GetUserIDFromContext(ctx context.Context) string {
 	}
 	return ""
 }
+
 // GetPermission extracts the PermissionContext from the request context.
 func GetPermission(r *http.Request) *PermissionContext {
 	if perm, ok := r.Context().Value(PermissionCtxKey).(*PermissionContext); ok {

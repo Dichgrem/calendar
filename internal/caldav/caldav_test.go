@@ -442,11 +442,11 @@ END:VCALENDAR`
 
 // XML namespace types needed for PROPFIND response parsing
 type msRoot struct {
-	XMLName  xml.Name   `xml:"multistatus"`
-	Response []msResp   `xml:"response"`
+	XMLName  xml.Name `xml:"multistatus"`
+	Response []msResp `xml:"response"`
 }
 type msResp struct {
-	Href string `xml:"href"`
+	Href     string       `xml:"href"`
 	PropStat []msPropStat `xml:"propstat"`
 }
 type msPropStat struct {
