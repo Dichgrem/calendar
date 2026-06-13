@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Database,
   Package,
@@ -14,6 +14,7 @@ import { api } from "../lib/api";
 import { isNative } from "../lib/capacitor";
 import { useI18n } from "../hooks/use-i18n";
 import { useCalendars } from "../hooks/use-calendars";
+import { useSettings } from "../hooks/use-settings";
 import { useTopBar } from "../components/Layout";
 import { LeftControls, CenterControls } from "../components/TopBarControls";
 import { createPortal } from "react-dom";
@@ -66,9 +67,15 @@ export function SettingsPage() {
   const { t } = useI18n();
   const { data: calendars } = useCalendars();
   const topBar = useTopBar();
-  const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { data: settings } = useSettings();
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => api.auth.me(),
+  });
+  const accountUser = (me as any)?.data?.username ?? "";
+  const s =
+    (settings as any)?.data ??
+    ({ userId: "", language: "zh-CN", firstDayOfWeek: 1, dateFormat: "zh", showLunarCalendar: true } as UserSettings);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -76,7 +83,6 @@ export function SettingsPage() {
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
   const [serverUrl, setServerUrl] = useState(localStorage.getItem("serverUrl") || "");
   const [serverUrlSaved, setServerUrlSaved] = useState(false);
-  const [accountUser, setAccountUser] = useState("");
   const [editUsername, setEditUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [editPassword, setEditPassword] = useState(false);
@@ -87,22 +93,7 @@ export function SettingsPage() {
   const [logLevel, setLogLevel] = useState("");
   const [logCount, setLogCount] = useState(200);
   const [logAuto, setLogAuto] = useState(false);
-
-  useEffect(() => {
-    api.settings
-      .get()
-      .then((res) => {
-        setSettings((res as any).data);
-      })
-      .catch(() => setError(t("settings.loadFailed")))
-      .finally(() => setLoading(false));
-    api.auth
-      .me()
-      .then((res: any) => {
-        if (res?.data?.username) setAccountUser(res.data.username);
-      })
-      .catch(() => {});
-  }, []);
+  const [debugMode, setDebugMode] = useState(() => localStorage.getItem("debugMode") === "1");
 
   const fetchLogs = async () => {
     try {
@@ -128,31 +119,8 @@ export function SettingsPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading)
-    return (
-      <div className="flex flex-col h-full">
-        <p className="p-6 text-sm text-neutral-400">{t("settings.loading")}</p>
-      </div>
-    );
-  if (error)
-    return (
-      <div className="flex flex-col h-full">
-        <p className="p-6 text-sm text-red-500">{error}</p>
-      </div>
-    );
-
-  const s =
-    settings ??
-    ({
-      userId: "",
-      language: "zh-CN",
-      firstDayOfWeek: 1,
-      dateFormat: "zh",
-      showLunarCalendar: true,
-    } as UserSettings);
-
   const updateSettings = (next: UserSettings) => {
-    setSettings(next);
+    queryClient.setQueryData(["settings"], (old: any) => ({ ...old, data: next }));
     setDirty(true);
   };
 
@@ -160,7 +128,6 @@ export function SettingsPage() {
     setSaveError("");
     try {
       await api.settings.update(s);
-      setSettings({ ...s } as UserSettings);
       queryClient.invalidateQueries({ queryKey: ["settings"] });
       setDirty(false);
       setSaved(true);
@@ -175,7 +142,7 @@ export function SettingsPage() {
     try {
       const res: any = await api.auth.changeUsername({ username: newUsername });
       if (res?.ok) {
-        setAccountUser(newUsername);
+        queryClient.setQueryData(["me"], (old: any) => ({ ...old, data: { username: newUsername } }));
         setEditUsername(false);
         setAcctMsg(t("settings.saved"));
       } else setAcctMsg(res?.error?.message || t("settings.saveError"));
@@ -240,6 +207,23 @@ export function SettingsPage() {
           {/* Preferences */}
           <Section icon={Wrench} title={t("settings.preferences")}>
             <SettingsForm settings={s} onUpdate={updateSettings} />
+            <div className="flex items-center justify-between py-1 mt-1 border-t border-neutral-100 dark:border-neutral-800">
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">Debug 模式</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={debugMode}
+                onClick={() => {
+                  setDebugMode(!debugMode);
+                  localStorage.setItem("debugMode", !debugMode ? "1" : "0");
+                }}
+                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${debugMode ? "bg-neutral-900 dark:bg-neutral-300" : "bg-neutral-200 dark:bg-neutral-600"}`}
+              >
+                <span
+                  className={`inline-block size-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${debugMode ? "translate-x-[18px]" : "translate-x-0.5"}`}
+                />
+              </button>
+            </div>
           </Section>
 
           {/* Account */}
@@ -398,64 +382,66 @@ export function SettingsPage() {
             </div>
           </Section>
 
-          {/* Server logs */}
-          <Section icon={Database} title={t("settings.serverLogs")} collapsible>
-            <div className="py-0.5 space-y-1.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <select
-                  value={logLevel}
-                  onChange={(e) => setLogLevel(e.target.value)}
-                  className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
-                >
-                  <option value="">{t("settings.logAll")}</option>
-                  <option value="error">Error</option>
-                  <option value="info">Info</option>
-                  <option value="debug">Debug</option>
-                </select>
-                <select
-                  value={logCount}
-                  onChange={(e) => setLogCount(Number(e.target.value))}
-                  className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
-                >
-                  <option value={200}>200</option>
-                  <option value={500}>500</option>
-                  <option value={1000}>1000</option>
-                </select>
-                <label className="flex items-center gap-1.5 text-xs cursor-pointer dark:text-neutral-300">
-                  <input
-                    type="checkbox"
-                    checked={logAuto}
-                    onChange={(e) => setLogAuto(e.target.checked)}
-                    className="peer sr-only"
-                  />
-                  <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors">
-                    <svg
-                      className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                  {t("settings.logAutoRefresh")}
-                </label>
-                <div className="flex-1" />
-                <Button variant="outline" size="sm" onClick={fetchLogs} className="h-7 text-xs">
-                  {t("settings.logRefresh")}
-                </Button>
-                <Button variant="outline" size="sm" onClick={exportLogs} className="h-7 text-xs">
-                  {t("settings.logExport")}
-                </Button>
+          {/* Server logs — only shown when Debug mode is enabled */}
+          {debugMode && (
+            <Section icon={Database} title={t("settings.serverLogs")} collapsible>
+              <div className="py-0.5 space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    value={logLevel}
+                    onChange={(e) => setLogLevel(e.target.value)}
+                    className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
+                  >
+                    <option value="">{t("settings.logAll")}</option>
+                    <option value="error">Error</option>
+                    <option value="info">Info</option>
+                    <option value="debug">Debug</option>
+                  </select>
+                  <select
+                    value={logCount}
+                    onChange={(e) => setLogCount(Number(e.target.value))}
+                    className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
+                  >
+                    <option value={200}>200</option>
+                    <option value={500}>500</option>
+                    <option value={1000}>1000</option>
+                  </select>
+                  <label className="flex items-center gap-1.5 text-xs cursor-pointer dark:text-neutral-300">
+                    <input
+                      type="checkbox"
+                      checked={logAuto}
+                      onChange={(e) => setLogAuto(e.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors">
+                      <svg
+                        className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                    {t("settings.logAutoRefresh")}
+                  </label>
+                  <div className="flex-1" />
+                  <Button variant="outline" size="sm" onClick={fetchLogs} className="h-7 text-xs">
+                    {t("settings.logRefresh")}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={exportLogs} className="h-7 text-xs">
+                    {t("settings.logExport")}
+                  </Button>
+                </div>
+                <textarea
+                  readOnly
+                  value={logLines.join("\n")}
+                  className="w-full h-48 text-[11px] font-mono border rounded-lg p-2 bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 resize-y focus:outline-none"
+                />
               </div>
-              <textarea
-                readOnly
-                value={logLines.join("\n")}
-                className="w-full h-48 text-[11px] font-mono border rounded-lg p-2 bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 resize-y focus:outline-none"
-              />
-            </div>
-          </Section>
+            </Section>
+          )}
 
           {saveError && <p className="text-sm text-red-500 text-center">{saveError}</p>}
 

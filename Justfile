@@ -24,6 +24,10 @@ dev:
     @if [ ! -d cmd/server/dist ]; then echo "Building frontend..."; just build-web; fi
     go run ./cmd/server/
 
+dev-debug:
+    cd web && npx vite &
+    go run ./cmd/server/
+
 # run all Go unit tests
 test:
     go test ./... -count=1
