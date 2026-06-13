@@ -1,3 +1,4 @@
+import "preact/debug";
 import { StrictMode, useState, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
@@ -14,7 +15,7 @@ const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ de
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 30_000, retry: 1 },
+    queries: { staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000, retry: 1, refetchOnWindowFocus: false },
   },
 });
 
