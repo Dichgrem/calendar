@@ -120,7 +120,7 @@ export function MonthGrid({
             className={`relative border-r border-neutral-300 dark:border-neutral-600
               ${!isLastRow ? "border-b" : ""}
               ${isToday ? "bg-[rgba(255,220,40,0.15)] dark:bg-[rgba(255,220,40,0.1)]" : isCurrentMonth ? "bg-neutral-50 dark:bg-neutral-900" : "bg-neutral-100 dark:bg-neutral-950"}
-              ${isHighlighted ? "fc-highlight-search" : ""}
+              ${isHighlighted ? "highlight-search" : ""}
             `}
           >
             <div className="flex items-baseline justify-end gap-1.5 px-2 pt-1.5 pb-0.5">

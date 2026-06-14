@@ -18,15 +18,15 @@
   --color-text-muted: #a3a3a3;
 }
 
-td.fc-highlight-search,
-div.fc-highlight-search {
+td.highlight-search,
+div.highlight-search {
   background-color: rgba(59, 130, 246, 0.2) !important;
   box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
   border-radius: 6px !important;
 }
 
-.dark td.fc-highlight-search,
-.dark div.fc-highlight-search {
+.dark td.highlight-search,
+.dark div.highlight-search {
   background-color: rgba(59, 130, 246, 0.35) !important;
   box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.7) !important;
 }
