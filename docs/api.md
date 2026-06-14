@@ -16,7 +16,10 @@ Base URL: `/api`
 ```
 
 错误码：`BAD_REQUEST`（400）、`UNAUTHORIZED`（401）、`FORBIDDEN`（403）、
-`NOT_FOUND`（404）、`CONFLICT`（409）、`INTERNAL`（500）。
+`NOT_FOUND`（404）、`CONFLICT`（409）、`RATE_LIMITED`（429）、`INTERNAL`（500）。
+
+认证端点受 IP 限流：登录 5 次/分钟，注册 3 次/小时。
+超限返回 429。
 
 ---
 
@@ -42,6 +45,7 @@ POST /api/auth/register
    自动设置 session_token cookie，创建"默认日历"和 user_settings。
 
 用户名：1-100 字符。密码：4-200 字符。
+注册限流：3 次/小时/IP。
 ```
 
 ### 登录
@@ -52,6 +56,7 @@ POST /api/auth/login
 
 → 200 { "userId": "<uuid>", "sessionId": "<hex>" }
    设置 session_token cookie。
+   限流：5 次/分钟/IP。超限返回 429。
 ```
 
 ### 当前用户
