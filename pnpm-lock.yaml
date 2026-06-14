@@ -38,18 +38,6 @@ importers:
       '@capacitor/core':
         specifier: ^7.0.0
         version: 7.6.6
-      '@fullcalendar/core':
-        specifier: ^6.1.15
-        version: 6.1.20
-      '@fullcalendar/daygrid':
-        specifier: ^6.1.15
-        version: 6.1.20(@fullcalendar/core@6.1.20)
-      '@fullcalendar/interaction':
-        specifier: ^6.1.15
-        version: 6.1.20(@fullcalendar/core@6.1.20)
-      '@fullcalendar/react':
-        specifier: ^6.1.15
-        version: 6.1.20(@fullcalendar/core@6.1.20)(@preact/compat@18.3.2(preact@10.29.2))(@preact/compat@18.3.2(preact@10.29.2))
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(@preact/compat@18.3.2(preact@10.29.2))(@preact/compat@18.3.2(preact@10.29.2))
@@ -602,26 +590,6 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
-
-  '@fullcalendar/core@6.1.20':
-    resolution: {integrity: sha512-1cukXLlePFiJ8YKXn/4tMKsy0etxYLCkXk8nUCFi11nRONF2Ba2CD5b21/ovtOO2tL6afTJfwmc1ed3HG7eB1g==}
-
-  '@fullcalendar/daygrid@6.1.20':
-    resolution: {integrity: sha512-AO9vqhkLP77EesmJzuU+IGXgxNulsA8mgQHynclJ8U70vSwAVnbcLG9qftiTAFSlZjiY/NvhE7sflve6cJelyQ==}
-    peerDependencies:
-      '@fullcalendar/core': ~6.1.20
-
-  '@fullcalendar/interaction@6.1.20':
-    resolution: {integrity: sha512-p6txmc5txL0bMiPaJxe2ip6o0T384TyoD2KGdsU6UjZ5yoBlaY+dg7kxfnYKpYMzEJLG58n+URrHr2PgNL2fyA==}
-    peerDependencies:
-      '@fullcalendar/core': ~6.1.20
-
-  '@fullcalendar/react@6.1.20':
-    resolution: {integrity: sha512-1w0pZtceaUdfAnxMSCGHCQalhi+mR1jOe76sXzyAXpcPz/Lf0zHSdcGK/U2XpZlnQgQtBZW+d+QBnnzVQKCxAA==}
-    peerDependencies:
-      '@fullcalendar/core': ~6.1.20
-      react: ^16.7.0 || ^17 || ^18 || ^19
-      react-dom: ^16.7.0 || ^17 || ^18 || ^19
 
   '@ionic/cli-framework-output@2.2.8':
     resolution: {integrity: sha512-TshtaFQsovB4NWRBydbNFawql6yul7d5bMiW1WYYf17hd99V6xdDdk3vtF51bw6sLkxON3bDQpWsnUc9/hVo3g==}
@@ -1749,9 +1717,6 @@ packages:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
     engines: {node: '>=20'}
 
-  preact@10.12.1:
-    resolution: {integrity: sha512-l8386ixSsBdbreOAkqtrwqHwdvR35ID8c3rKPa8lCWuO86dBi32QWHV4vfsZK1utLLFMvw+Z5Ad4XLkZzchscg==}
-
   preact@10.29.2:
     resolution: {integrity: sha512-7tNmwg/7mzzAoB/8kSg6Hl37JraAZw3Z3A0JSY7VXlZwo82Xn0G7wKbNNs2qoF4ZEEsQGTwDAroNdqKs1ofJxQ==}
 
@@ -2590,24 +2555,6 @@ snapshots:
     optional: true
 
   '@exodus/bytes@1.15.1': {}
-
-  '@fullcalendar/core@6.1.20':
-    dependencies:
-      preact: 10.12.1
-
-  '@fullcalendar/daygrid@6.1.20(@fullcalendar/core@6.1.20)':
-    dependencies:
-      '@fullcalendar/core': 6.1.20
-
-  '@fullcalendar/interaction@6.1.20(@fullcalendar/core@6.1.20)':
-    dependencies:
-      '@fullcalendar/core': 6.1.20
-
-  '@fullcalendar/react@6.1.20(@fullcalendar/core@6.1.20)(@preact/compat@18.3.2(preact@10.29.2))(@preact/compat@18.3.2(preact@10.29.2))':
-    dependencies:
-      '@fullcalendar/core': 6.1.20
-      react: '@preact/compat@18.3.2(preact@10.29.2)'
-      react-dom: '@preact/compat@18.3.2(preact@10.29.2)'
 
   '@ionic/cli-framework-output@2.2.8':
     dependencies:
@@ -3651,8 +3598,6 @@ snapshots:
       source-map-js: 1.2.1
 
   powershell-utils@0.1.0: {}
-
-  preact@10.12.1: {}
 
   preact@10.29.2: {}
 
