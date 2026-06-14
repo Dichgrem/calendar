@@ -70,8 +70,9 @@ func main() {
 	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.CORS)
 
-	// Public routes (no auth)
+	// Public routes (no auth, rate-limited)
 	r.Group(func(r chi.Router) {
+		r.Use(middleware.RateLimitByAction)
 		auth.RegisterRoutes(r)
 	})
 
@@ -93,6 +94,7 @@ func main() {
 
 	// Protected REST routes (auth required)
 	r.Group(func(r chi.Router) {
+		r.Use(middleware.RateLimitByAction)
 		r.Use(middleware.RequireAuth)
 
 		// Auth-protected endpoints
