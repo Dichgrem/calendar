@@ -40,7 +40,7 @@ calendar/
 │   ├── event/               # 事件 CRUD + override
 │   ├── ics/                 # ICS 解析/序列化/路由
 │   ├── logger/              # 结构化日志系统（slog + 环形缓冲区）
-│   ├── middleware/           # 认证、错误、安全头
+│   ├── middleware/           # 认证、限流、错误、安全头
 │   ├── settings/            # 用户设置
 │   ├── sync/                # 同步 pull/push
 │   └── validate/            # 共享校验
