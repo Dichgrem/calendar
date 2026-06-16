@@ -113,11 +113,19 @@ export function MonthGrid({
         const dayEvents = eventsByDate.get(key) ?? [];
 
         return (
-          <button
+          // biome-ignore lint/a11y/useSemanticElements: calendar cell — must be div for grid layout
+          <div
             key={key}
-            type="button"
+            role="button"
+            tabIndex={0}
             data-date={key}
             onClick={() => onDateClick(d)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onDateClick(d);
+              }
+            }}
             className={`relative border-r border-neutral-300 dark:border-neutral-600
               ${!isLastRow ? "border-b" : ""}
               ${isToday ? "bg-[rgba(255,220,40,0.15)] dark:bg-[rgba(255,220,40,0.1)]" : isCurrentMonth ? "bg-neutral-50 dark:bg-neutral-900" : "bg-neutral-100 dark:bg-neutral-950"}
@@ -174,7 +182,7 @@ export function MonthGrid({
                 );
               })}
             </div>
-          </button>
+          </div>
         );
       })}
     </div>

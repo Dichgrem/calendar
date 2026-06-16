@@ -82,8 +82,8 @@ export function SettingsPage() {
     queryFn: () => api.auth.me(),
   });
   const accountUser = (me as any)?.data?.username ?? "";
-  const s =
-    (settings as any)?.data ??
+  const s: UserSettings =
+    settings ??
     ({ userId: "", language: "zh-CN", firstDayOfWeek: 1, dateFormat: "zh", showLunarCalendar: true } as UserSettings);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -129,15 +129,18 @@ export function SettingsPage() {
   };
 
   const updateSettings = (next: UserSettings) => {
-    queryClient.setQueryData(["settings"], (old: any) => ({ ...old, data: next }));
+    queryClient.setQueryData(["settings"], next);
     setDirty(true);
   };
 
   const handleSave = async () => {
     setSaveError("");
     try {
-      await api.settings.update(s);
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      // Read latest from cache to avoid stale closure over `s`
+      const latest: UserSettings = (queryClient.getQueryData(["settings"]) as UserSettings) ?? s;
+      const res = await api.settings.update(latest);
+      // Store unwrapped data to match useSettings queryFn which strips { ok, data }
+      if (res) queryClient.setQueryData(["settings"], (res as any).data);
       setDirty(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
