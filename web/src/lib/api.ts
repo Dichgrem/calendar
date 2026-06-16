@@ -1,13 +1,8 @@
-import type { Calendar, Event, UserSettings, SyncPullResponse } from "../types";
+import type { Calendar, Event, SyncPullResponse, UserSettings } from "../types";
 
 interface ApiResponse<T> {
   ok: true;
   data: T;
-}
-
-interface ApiError {
-  ok: false;
-  error: { code: string; message: string };
 }
 
 function getBaseUrl(): string {

@@ -43,7 +43,7 @@ func Register(username, password string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Insert user
 	_, err = tx.Exec(
@@ -144,7 +144,7 @@ func ValidateSession(sessionID string) (string, error) {
 		return "", nil
 	}
 	if time.Now().UTC().After(expiry) {
-		db.DB.Exec("DELETE FROM sessions WHERE id = ?", sessionID)
+		_, _ = db.DB.Exec("DELETE FROM sessions WHERE id = ?", sessionID)
 		return "", nil
 	}
 

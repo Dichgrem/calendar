@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { roundToNextHour, toLocalInput } from "./EventEditor";
 
 describe("roundToNextHour", () => {
@@ -66,7 +66,7 @@ describe("date/time split-merge contract", () => {
 
   it("defaultStart midnight is preserved", () => {
     const highlightDate = "2026-06-15";
-    const d = new Date(highlightDate + "T00:00:00");
+    const d = new Date(`${highlightDate}T00:00:00`);
     const iso = toLocalInput(d);
     expect(iso).toBe("2026-06-15T00:00");
     expect(iso.slice(11, 16)).toBe("00:00");

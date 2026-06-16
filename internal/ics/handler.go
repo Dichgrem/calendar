@@ -291,7 +291,7 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if req.CalendarID != "" {
 		if !perm.IsMember(req.CalendarID) {
@@ -413,7 +413,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var calName string
-	db.DB.QueryRow("SELECT name FROM calendars WHERE id = ?", calendarID).Scan(&calName)
+	_ = db.DB.QueryRow("SELECT name FROM calendars WHERE id = ?", calendarID).Scan(&calName)
 
 	rows, err := db.DB.Query(`
 		SELECT id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, raw_ics
@@ -423,7 +423,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	icalCal := ical.NewCalendar()
 	icalCal.Props.SetText(ical.PropProductID, "-//Calendar//Go//EN")
@@ -469,9 +469,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Hybrid output: verbatim blocks + go-ical encoded components
-	for _, c := range goCalEvents {
-		icalCal.Children = append(icalCal.Children, c)
-	}
+	icalCal.Children = append(icalCal.Children, goCalEvents...)
 
 	var buf bytes.Buffer
 	buf.WriteString("BEGIN:VCALENDAR\r\n")
@@ -487,7 +485,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	// go-ical encoded events
 	if len(goCalEvents) > 0 {
 		var eb bytes.Buffer
-		ical.NewEncoder(&eb).Encode(icalCal)
+		_ = ical.NewEncoder(&eb).Encode(icalCal)
 		// Strip VCALENDAR wrapper, keep only VEVENTs
 		enc := eb.String()
 		if first := strings.Index(enc, "BEGIN:VEVENT"); first >= 0 {
@@ -502,7 +500,9 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("Content-Disposition", "attachment; filename=\"calendar.ics\"")
 	w.WriteHeader(200)
-	w.Write(buf.Bytes())
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		logger.Error("[ics] export write error: %v", err)
+	}
 }
 
 // extractVEventsByUID returns a map of UID → raw VEVENT block from ICS content.
@@ -578,7 +578,7 @@ func fetchIcsFromURL(rawURL string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("fetch failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
@@ -620,7 +620,7 @@ func serializeEvent(ev *ical.Component) string {
 	cal.Props.SetText(ical.PropVersion, "2.0")
 	cal.Children = append(cal.Children, ev)
 	var buf bytes.Buffer
-	ical.NewEncoder(&buf).Encode(cal)
+	_ = ical.NewEncoder(&buf).Encode(cal)
 	return buf.String()
 }
 

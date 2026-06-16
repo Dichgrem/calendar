@@ -110,7 +110,9 @@ func TestAuthStatus_NoUsers(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 	var data map[string]bool
-	json.Unmarshal(resp.Data, &data)
+	if err := json.Unmarshal(resp.Data, &data); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if data["registered"] != false {
 		t.Fatal("expected registered=false")
 	}
@@ -156,7 +158,9 @@ func TestAuthRegisterAndLogin(t *testing.T) {
 		t.Fatalf("me: expected 200, got %d, body=%s", w2.Code, w2.Body.String())
 	}
 	var meData map[string]string
-	json.Unmarshal(resp2.Data, &meData)
+	if err := json.Unmarshal(resp2.Data, &meData); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if meData["username"] != "alice" {
 		t.Fatalf("expected username=alice, got %s", meData["username"])
 	}
@@ -192,7 +196,9 @@ func TestAuthRegisterAndLogin(t *testing.T) {
 		t.Fatalf("login: expected 200, got %d, body=%s", w5.Code, w5.Body.String())
 	}
 	var loginData map[string]string
-	json.Unmarshal(resp5.Data, &loginData)
+	if err := json.Unmarshal(resp5.Data, &loginData); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if loginData["sessionId"] == "" {
 		t.Fatal("expected sessionId in login response")
 	}
@@ -320,7 +326,9 @@ func TestAuthChangeUsername(t *testing.T) {
 	r.ServeHTTP(w3, req3)
 	resp := readJSON[apiResponse](t, w3.Result())
 	var data map[string]string
-	json.Unmarshal(resp.Data, &data)
+	if err := json.Unmarshal(resp.Data, &data); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if data["username"] != "franklin" {
 		t.Fatalf("expected username=franklin, got %s", data["username"])
 	}
@@ -347,7 +355,9 @@ func TestAuthToken(t *testing.T) {
 	}
 	resp := readJSON[apiResponse](t, w2.Result())
 	var data map[string]string
-	json.Unmarshal(resp.Data, &data)
+	if err := json.Unmarshal(resp.Data, &data); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if data["token"] == "" {
 		t.Fatal("expected non-empty token")
 	}
@@ -371,7 +381,9 @@ func TestAuthBearerToken(t *testing.T) {
 	r.ServeHTTP(w2, req)
 	resp := readJSON[apiResponse](t, w2.Result())
 	var data map[string]string
-	json.Unmarshal(resp.Data, &data)
+	if err := json.Unmarshal(resp.Data, &data); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	token := data["token"]
 
 	// Use token via Authorization header

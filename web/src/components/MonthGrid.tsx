@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useSettings } from "../hooks/use-settings";
-import { getLunarText } from "../lib/lunar";
 import { dateStr } from "../lib/date-format";
+import { getLunarText } from "../lib/lunar";
 import type { Event } from "../types";
 
 export const WEEKDAYS_ZH = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
@@ -113,8 +113,9 @@ export function MonthGrid({
         const dayEvents = eventsByDate.get(key) ?? [];
 
         return (
-          <div
+          <button
             key={key}
+            type="button"
             data-date={key}
             onClick={() => onDateClick(d)}
             className={`relative border-r border-neutral-300 dark:border-neutral-600
@@ -150,16 +151,17 @@ export function MonthGrid({
                 const color = ev.color ?? calendarColorMap.get(ev.calendarId) ?? "#3b82f6";
                 const isDot = dotCalendarIds.has(ev.calendarId);
                 return (
-                  <div
+                  <button
                     key={ev.id}
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onEventClick(ev);
                     }}
                     className={
                       isDot
-                        ? "text-[.82rem] truncate leading-snug cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded px-1 flex items-center gap-1 text-neutral-800 dark:text-neutral-200"
-                        : "text-[.82rem] truncate rounded px-1.5 py-[3px] leading-snug cursor-pointer hover:brightness-90"
+                        ? "text-[.82rem] truncate leading-snug cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded px-1 flex items-center gap-1 text-neutral-800 dark:text-neutral-200 w-full text-left"
+                        : "text-[.82rem] truncate rounded px-1.5 py-[3px] leading-snug cursor-pointer hover:brightness-90 w-full text-left"
                     }
                     style={isDot ? {} : { backgroundColor: color, color: "#fff" }}
                   >
@@ -168,11 +170,11 @@ export function MonthGrid({
                       <span className="opacity-80 mr-0.5">{ev.startAt.slice(11, 16)}</span>
                     )}
                     <span className={isDot ? "font-semibold" : ""}>{ev.title}</span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
-          </div>
+          </button>
         );
       })}
     </div>

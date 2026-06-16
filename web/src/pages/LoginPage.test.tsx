@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
+import { describe, expect, it, vi } from "vitest";
 import { LoginPage } from "../pages/LoginPage";
 
 vi.mock("../lib/api", () => ({

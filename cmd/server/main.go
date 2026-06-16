@@ -147,7 +147,7 @@ func main() {
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/")
 		if f, err := staticFS.Open(path); err == nil {
-			f.Close()
+			_ = f.Close()
 		} else {
 			r.URL.Path = "/"
 		}

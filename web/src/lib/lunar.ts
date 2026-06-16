@@ -15,7 +15,7 @@ export function getLunarText(date: Date): string {
 
     const lunar = getLunarDate(dateStr) as LunarInfo;
 
-    if (!lunar || !lunar.lunarMonCN || !lunar.lunarDayCN) {
+    if (!lunar?.lunarMonCN || !lunar.lunarDayCN) {
       return "";
     }
 

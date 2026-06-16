@@ -1,10 +1,10 @@
+import { CaretLeft, CaretRight, Circle } from "@phosphor-icons/react";
 import { useState } from "react";
-import { Circle, CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { useNav } from "../hooks/use-nav";
 import { useCalendars } from "../hooks/use-calendars";
-import { useSettings } from "../hooks/use-settings";
 import { useI18n } from "../hooks/use-i18n";
-import { formatCalendarDate, dateStr } from "../lib/date-format";
+import { useNav } from "../hooks/use-nav";
+import { useSettings } from "../hooks/use-settings";
+import { dateStr, formatCalendarDate } from "../lib/date-format";
 
 const MONTHS_ZH = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
 
@@ -25,7 +25,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
   const isEn = lang === "en";
   const months = isEn ? MONTHS_EN : MONTHS_ZH;
   const dateFormat = settings?.dateFormat ?? "zh";
-  const highlightDateObj = highlightDate ? new Date(highlightDate + "T00:00:00") : null;
+  const highlightDateObj = highlightDate ? new Date(`${highlightDate}T00:00:00`) : null;
   const displayDate = highlightDateObj ?? new Date(displayMonth.year, displayMonth.month, 1);
   const dateLabel = labelOverride ?? formatCalendarDate(displayDate, dateFormat, lang);
 
@@ -60,6 +60,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
   return (
     <div className="flex items-center gap-0.5">
       <button
+        type="button"
         onClick={() => {
           setPickerOpen((v) => !v);
           if (!pickerOpen) setPickerYear(displayMonth.year);
@@ -69,6 +70,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
         {dateLabel}
       </button>
       <button
+        type="button"
         onClick={goPrev}
         aria-label={t("cal.prev")}
         className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
@@ -76,6 +78,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
         <CaretLeft className="size-4" weight="bold" />
       </button>
       <button
+        type="button"
         onClick={goToday}
         aria-label={t("cal.today")}
         className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
@@ -84,6 +87,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
         <Circle className="size-4" weight="bold" />
       </button>
       <button
+        type="button"
         onClick={goNext}
         aria-label={t("cal.next")}
         className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
@@ -94,6 +98,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
         <div className="absolute top-10 left-4 z-50 w-56 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-lg p-3">
           <div className="flex items-center justify-center gap-1 mb-3">
             <button
+              type="button"
               onClick={() => setPickerYear((y) => y - 1)}
               aria-label={t("cal.yearPrev")}
               className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"
@@ -106,6 +111,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
               className="w-16 text-center text-sm font-semibold border-0 bg-transparent text-neutral-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
             <button
+              type="button"
               onClick={() => setPickerYear((y) => y + 1)}
               aria-label={t("cal.yearNext")}
               className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"
@@ -116,6 +122,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
               const isCurrent = i === displayMonth.month && pickerYear === displayMonth.year;
               return (
                 <button
+                  type="button"
                   key={m}
                   onClick={() => gotoMonth(pickerYear, i)}
                   className={`px-2 py-1.5 text-sm rounded-full transition-colors dark:text-neutral-300 ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
@@ -142,6 +149,7 @@ export function CenterControls() {
       {calError && <span className="text-xs text-red-500">{t("cal.failed")}</span>}
       {calendars?.map((cal) => (
         <button
+          type="button"
           key={cal.id}
           onClick={() => toggleCalendar(cal.id)}
           title={cal.name}

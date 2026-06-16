@@ -35,16 +35,16 @@ func setupDB(t *testing.T) (chi.Router, string) {
 	}
 
 	userID := "ev-test-user"
-	db.DB.Exec("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
+	_, _ = db.DB.Exec("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
 		userID, "test", "dummy", "2026-01-01T00:00:00Z")
-	db.DB.Exec("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)",
+	_, _ = db.DB.Exec("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)",
 		"ev-session", userID, "2099-01-01T00:00:00Z")
 
 	// Create a default calendar
 	calID := "ev-test-cal"
-	db.DB.Exec("INSERT INTO calendars (id, name, color, owner_id, created_at, updated_at, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	_, _ = db.DB.Exec("INSERT INTO calendars (id, name, color, owner_id, created_at, updated_at, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		calID, "Default", "#3b82f6", userID, "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z", 0)
-	db.DB.Exec("INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?, ?, ?)",
+	_, _ = db.DB.Exec("INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?, ?, ?)",
 		calID, userID, "admin")
 
 	r := chi.NewRouter()
@@ -102,9 +102,13 @@ func TestCreateAndListEvents(t *testing.T) {
 	}
 
 	var resp apiResp
-	json.NewDecoder(w2.Body).Decode(&resp)
+	if err := json.NewDecoder(w2.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var events []map[string]interface{}
-	json.Unmarshal(resp.Data, &events)
+	if err := json.Unmarshal(resp.Data, &events); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if len(events) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(events))
 	}
@@ -125,9 +129,13 @@ func TestEventOverlapQuery(t *testing.T) {
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, authReq("GET", "/api/calendars/"+calID+"/events?start=2026-06-08T10:00:00Z&end=2026-06-08T10:30:00Z", nil))
 	var resp apiResp
-	json.NewDecoder(w2.Body).Decode(&resp)
+	if err := json.NewDecoder(w2.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var events []map[string]interface{}
-	json.Unmarshal(resp.Data, &events)
+	if err := json.Unmarshal(resp.Data, &events); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if len(events) < 1 {
 		t.Fatal("overlap query should include overlapping event")
 	}
@@ -135,8 +143,12 @@ func TestEventOverlapQuery(t *testing.T) {
 	// Query outside range — should NOT include
 	w3 := httptest.NewRecorder()
 	r.ServeHTTP(w3, authReq("GET", "/api/calendars/"+calID+"/events?start=2026-06-09T00:00:00Z&end=2026-06-09T23:59:59Z", nil))
-	json.NewDecoder(w3.Body).Decode(&resp)
-	json.Unmarshal(resp.Data, &events)
+	if err := json.NewDecoder(w3.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if err := json.Unmarshal(resp.Data, &events); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if len(events) != 0 {
 		t.Fatal("non-overlap query should not include event")
 	}
@@ -152,9 +164,13 @@ func TestUpdateEvent(t *testing.T) {
 		"endAt":   "2026-06-08T10:00:00Z",
 	}))
 	var resp apiResp
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var ev map[string]interface{}
-	json.Unmarshal(resp.Data, &ev)
+	if err := json.Unmarshal(resp.Data, &ev); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	evID := ev["id"].(string)
 
 	w2 := httptest.NewRecorder()
@@ -165,8 +181,12 @@ func TestUpdateEvent(t *testing.T) {
 		t.Fatalf("update: expected 200, got %d: %s", w2.Code, w2.Body.String())
 	}
 
-	json.NewDecoder(w2.Body).Decode(&resp)
-	json.Unmarshal(resp.Data, &ev)
+	if err := json.NewDecoder(w2.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if err := json.Unmarshal(resp.Data, &ev); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if ev["title"] != "New Title" {
 		t.Fatalf("expected New Title, got %v", ev["title"])
 	}
@@ -182,9 +202,13 @@ func TestDeleteEvent(t *testing.T) {
 		"endAt":   "2026-06-08T10:00:00Z",
 	}))
 	var resp apiResp
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var ev map[string]interface{}
-	json.Unmarshal(resp.Data, &ev)
+	if err := json.Unmarshal(resp.Data, &ev); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	evID := ev["id"].(string)
 
 	// Soft delete
@@ -197,9 +221,13 @@ func TestDeleteEvent(t *testing.T) {
 	// Should not appear in list
 	w3 := httptest.NewRecorder()
 	r.ServeHTTP(w3, authReq("GET", "/api/calendars/"+calID+"/events?start=2026-06-01T00:00:00Z&end=2026-06-30T23:59:59Z", nil))
-	json.NewDecoder(w3.Body).Decode(&resp)
+	if err := json.NewDecoder(w3.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var events []map[string]interface{}
-	json.Unmarshal(resp.Data, &events)
+	if err := json.Unmarshal(resp.Data, &events); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if len(events) != 0 {
 		t.Fatal("deleted event should not appear in list")
 	}
@@ -223,9 +251,13 @@ func TestEventOverride(t *testing.T) {
 		"rrule":   "FREQ=WEEKLY",
 	}))
 	var resp apiResp
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var ev map[string]interface{}
-	json.Unmarshal(resp.Data, &ev)
+	if err := json.Unmarshal(resp.Data, &ev); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	evID := ev["id"].(string)
 
 	// Create override

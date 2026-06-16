@@ -35,9 +35,9 @@ func setupDB(t *testing.T) (chi.Router, string) {
 
 	// Create a user with session
 	userID := "test-user-id"
-	db.DB.Exec("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
+	_, _ = db.DB.Exec("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
 		userID, "test", "dummy", "2026-01-01T00:00:00Z")
-	db.DB.Exec("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)",
+	_, _ = db.DB.Exec("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)",
 		"test-session", userID, "2099-01-01T00:00:00Z")
 
 	r := chi.NewRouter()
@@ -74,15 +74,6 @@ type apiResp struct {
 	} `json:"error"`
 }
 
-func decodeResp[T any](t *testing.T, body json.RawMessage) T {
-	t.Helper()
-	var v T
-	if err := json.Unmarshal(body, &v); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	return v
-}
-
 func TestCreateAndListCalendars(t *testing.T) {
 	r, _ := setupDB(t)
 
@@ -104,9 +95,13 @@ func TestCreateAndListCalendars(t *testing.T) {
 	}
 
 	var resp apiResp
-	json.NewDecoder(w2.Body).Decode(&resp)
+	if err := json.NewDecoder(w2.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var cals []map[string]interface{}
-	json.Unmarshal(resp.Data, &cals)
+	if err := json.Unmarshal(resp.Data, &cals); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if len(cals) != 1 {
 		t.Fatalf("expected 1 calendar, got %d", len(cals))
 	}
@@ -147,9 +142,13 @@ func TestGetCalendar(t *testing.T) {
 	r.ServeHTTP(w, authRequest("POST", "/api/calendars", map[string]string{"name": "Personal"}))
 
 	var resp apiResp
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var cal map[string]interface{}
-	json.Unmarshal(resp.Data, &cal)
+	if err := json.Unmarshal(resp.Data, &cal); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	id := cal["id"].(string)
 
 	// Get
@@ -173,9 +172,13 @@ func TestUpdateCalendar(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, authRequest("POST", "/api/calendars", map[string]string{"name": "Old"}))
 	var resp apiResp
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var cal map[string]interface{}
-	json.Unmarshal(resp.Data, &cal)
+	if err := json.Unmarshal(resp.Data, &cal); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	id := cal["id"].(string)
 
 	w2 := httptest.NewRecorder()
@@ -189,8 +192,12 @@ func TestUpdateCalendar(t *testing.T) {
 	// Verify
 	w3 := httptest.NewRecorder()
 	r.ServeHTTP(w3, authRequest("GET", "/api/calendars/"+id, nil))
-	json.NewDecoder(w3.Body).Decode(&resp)
-	json.Unmarshal(resp.Data, &cal)
+	if err := json.NewDecoder(w3.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if err := json.Unmarshal(resp.Data, &cal); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if cal["name"] != "New Name" {
 		t.Fatalf("expected New Name, got %v", cal["name"])
 	}
@@ -202,9 +209,13 @@ func TestDeleteCalendar(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, authRequest("POST", "/api/calendars", map[string]string{"name": "ToDelete"}))
 	var resp apiResp
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var cal map[string]interface{}
-	json.Unmarshal(resp.Data, &cal)
+	if err := json.Unmarshal(resp.Data, &cal); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	id := cal["id"].(string)
 
 	w2 := httptest.NewRecorder()
@@ -228,9 +239,13 @@ func TestReorderCalendars(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, authRequest("POST", "/api/calendars", map[string]string{"name": name}))
 		var resp apiResp
-		json.NewDecoder(w.Body).Decode(&resp)
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
 		var cal map[string]interface{}
-		json.Unmarshal(resp.Data, &cal)
+		if err := json.Unmarshal(resp.Data, &cal); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
 		ids = append(ids, cal["id"].(string))
 	}
 
@@ -246,9 +261,13 @@ func TestReorderCalendars(t *testing.T) {
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, authRequest("GET", "/api/calendars", nil))
 	var resp apiResp
-	json.NewDecoder(w2.Body).Decode(&resp)
+	if err := json.NewDecoder(w2.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	var cals []map[string]interface{}
-	json.Unmarshal(resp.Data, &cals)
+	if err := json.Unmarshal(resp.Data, &cals); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if cals[0]["id"] != ids[2] {
 		t.Fatalf("expected first to be %s, got %s", ids[2], cals[0]["id"])
 	}

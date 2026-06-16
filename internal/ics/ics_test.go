@@ -49,7 +49,7 @@ func setupICS(t *testing.T) chi.Router {
 	}
 
 	hash, _ := auth.MakePasswordHash("testpass")
-	db.DB.Exec(`INSERT OR IGNORE INTO users (id, username, password_hash, created_at)
+	_, _ = db.DB.Exec(`INSERT OR IGNORE INTO users (id, username, password_hash, created_at)
 		VALUES ('u-1', 'testuser', ?, '2026-01-01T00:00:00Z')`, hash)
 
 	r := chi.NewRouter()
@@ -130,7 +130,9 @@ END:VCALENDAR`
 	var resp struct {
 		Data struct{ CalendarID string } `json:"data"`
 	}
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	calID := resp.Data.CalendarID
 	if calID == "" {
 		t.Fatal("no calendarId")
@@ -138,12 +140,12 @@ END:VCALENDAR`
 
 	// Verify event
 	var count int
-	db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id=?", calID).Scan(&count)
+	_ = db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id=?", calID).Scan(&count)
 	if count != 1 {
 		t.Errorf("expected 1 event, got %d", count)
 	}
 	var startAt string
-	db.DB.QueryRow("SELECT start_at FROM events WHERE calendar_id=?", calID).Scan(&startAt)
+	_ = db.DB.QueryRow("SELECT start_at FROM events WHERE calendar_id=?", calID).Scan(&startAt)
 	if startAt != "2026-06-20T10:00:00Z" {
 		t.Errorf("start_at=%q want '2026-06-20T10:00:00Z' (raw YYYYMMDDTHHMMSS was not normalized)", startAt)
 	}
@@ -205,10 +207,12 @@ END:VCALENDAR`
 	var resp struct {
 		Data struct{ CalendarID string } `json:"data"`
 	}
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 
 	var allDay int
-	db.DB.QueryRow("SELECT all_day FROM events WHERE calendar_id=?", resp.Data.CalendarID).Scan(&allDay)
+	_ = db.DB.QueryRow("SELECT all_day FROM events WHERE calendar_id=?", resp.Data.CalendarID).Scan(&allDay)
 	if allDay != 1 {
 		t.Errorf("all_day=%d want 1 (all-day event not detected)", allDay)
 	}
@@ -245,7 +249,9 @@ END:VCALENDAR`,
 			EventCount int    `json:"eventCount"`
 		} `json:"data"`
 	}
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
 	if resp.Data.Name != "Preview Cal" {
 		t.Errorf("name=%q", resp.Data.Name)
 	}

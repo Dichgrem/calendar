@@ -57,7 +57,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Backup failed"))
 		return
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	dst, err := os.Create(dest)
 	if err != nil {
@@ -65,11 +65,11 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Backup failed"))
 		return
 	}
-	defer dst.Close()
+	defer func() { _ = dst.Close() }()
 
 	if _, err := io.Copy(dst, src); err != nil {
 		logger.Error("backup copy: %v", err)
-		os.Remove(dest)
+		_ = os.Remove(dest)
 		middleware.JSONResponse(w, 500, apperror.Internal("Backup failed"))
 		return
 	}
@@ -165,7 +165,7 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Restore failed"))
 		return
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }()
 
 	dstFile, err := os.Create(db.Path)
 	if err != nil {
@@ -173,7 +173,7 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Restore failed"))
 		return
 	}
-	defer dstFile.Close()
+	defer func() { _ = dstFile.Close() }()
 
 	if _, err := io.Copy(dstFile, srcFile); err != nil {
 		logger.Error("restore copy: %v", err)

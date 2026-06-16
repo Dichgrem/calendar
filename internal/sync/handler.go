@@ -59,7 +59,7 @@ func handlePull(w http.ResponseWriter, r *http.Request) {
 		Seq:     lastSeq,
 	}
 	if err == nil {
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		for rows.Next() {
 			var r SyncChangeRecord
 			if rows.Scan(&r.Seq, &r.TableName, &r.RecordID, &r.Op, &r.SyncedAt) != nil {
@@ -89,7 +89,7 @@ func handlePull(w http.ResponseWriter, r *http.Request) {
 		`SELECT table_name, record_id FROM deleted_log`,
 	)
 	if err == nil {
-		defer deletedRows.Close()
+		defer func() { _ = deletedRows.Close() }()
 		for deletedRows.Next() {
 			var tableName, recordID string
 			if deletedRows.Scan(&tableName, &recordID) != nil {
@@ -122,7 +122,7 @@ func handlePush(w http.ResponseWriter, r *http.Request) {
 	// Phase 1: acknowledge the push, return current max seq.
 
 	var maxSeq int
-	db.DB.QueryRow("SELECT COALESCE(MAX(id), 0) FROM sync_sequence").Scan(&maxSeq)
+	_ = db.DB.QueryRow("SELECT COALESCE(MAX(id), 0) FROM sync_sequence").Scan(&maxSeq)
 
 	middleware.JSONResponse(w, 200, map[string]int{"seq": maxSeq})
 }

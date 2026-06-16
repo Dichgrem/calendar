@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { useI18n } from "../hooks/use-i18n";
+import { api } from "../lib/api";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -77,7 +77,6 @@ export function LoginPage() {
             onChange={(e) => setUsername(e.target.value)}
             className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
             required
-            autoFocus
           />
         </label>
 

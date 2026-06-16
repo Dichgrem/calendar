@@ -1,26 +1,26 @@
-import { useState, useEffect } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
+  CalendarDots,
+  CaretDown,
   Database,
+  FloppyDisk,
   Package,
   PencilSimple,
-  Wrench,
   User,
-  CalendarDots,
-  FloppyDisk,
-  CaretDown,
+  Wrench,
 } from "@phosphor-icons/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { CalendarManagement } from "../components/CalendarManagement";
+import { useTopBar } from "../components/Layout";
+import { SettingsForm } from "../components/SettingsForm";
+import { CenterControls, LeftControls } from "../components/TopBarControls";
+import { Button } from "../components/ui/button";
+import { useCalendars } from "../hooks/use-calendars";
+import { useI18n } from "../hooks/use-i18n";
+import { useSettings } from "../hooks/use-settings";
 import { api } from "../lib/api";
 import { isNative } from "../lib/capacitor";
-import { useI18n } from "../hooks/use-i18n";
-import { useCalendars } from "../hooks/use-calendars";
-import { useSettings } from "../hooks/use-settings";
-import { useTopBar } from "../components/Layout";
-import { LeftControls, CenterControls } from "../components/TopBarControls";
-import { createPortal } from "react-dom";
-import { Button } from "../components/ui/button";
-import { SettingsForm } from "../components/SettingsForm";
-import { CalendarManagement } from "../components/CalendarManagement";
 import type { UserSettings } from "../types";
 
 function Section({
@@ -40,9 +40,18 @@ function Section({
 
   return (
     <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 overflow-hidden">
+      {/* biome-ignore lint/a11y/useSemanticElements: collapsible section header */}
       <div
+        role="button"
+        tabIndex={0}
         className={`flex items-center gap-2 px-4 py-1.5 border-b border-neutral-100 dark:border-neutral-800 ${collapsible ? "cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900" : ""}`}
         onClick={() => collapsible && setOpen(!open)}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && collapsible) {
+            e.preventDefault();
+            setOpen(!open);
+          }
+        }}
       >
         <Icon className="size-3.5 text-neutral-400" weight="bold" />
         <h2 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
@@ -261,6 +270,7 @@ export function SettingsPage() {
                     </>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => {
                         setNewUsername(accountUser);
                         setEditUsername(true);
@@ -287,6 +297,7 @@ export function SettingsPage() {
                     </>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => setEditPassword(true)}
                       className="text-[11px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 shrink-0"
                     >
@@ -356,6 +367,7 @@ export function SettingsPage() {
                 <p className="text-xs text-green-600 flex items-center gap-1">
                   {t("settings.backupDone")} —
                   <button
+                    type="button"
                     onClick={() => api.backup.download(backupResult.filename)}
                     className="text-blue-500 hover:underline font-medium"
                   >
@@ -415,6 +427,7 @@ export function SettingsPage() {
                     />
                     <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors">
                       <svg
+                        aria-hidden="true"
                         className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block"
                         fill="none"
                         viewBox="0 0 24 24"

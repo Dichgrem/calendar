@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { formatCalendarDate, dateStr } from "../lib/date-format";
+import { describe, expect, it } from "vitest";
+import { dateStr, formatCalendarDate } from "../lib/date-format";
 
 describe("formatCalendarDate", () => {
   it("formats zh date style", () => {

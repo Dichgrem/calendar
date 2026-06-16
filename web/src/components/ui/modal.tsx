@@ -1,5 +1,5 @@
-import { useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
+import { useCallback, useEffect } from "react";
 
 interface ModalProps {
   open: boolean;
@@ -29,10 +29,15 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   if (!open) return null;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close is intentional
     <div
+      role="presentation"
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
       }}
     >
       <div className="absolute inset-0 bg-black/40 pointer-events-none" />
@@ -40,6 +45,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
         <div className="flex items-center justify-between px-5 py-2.5 border-b border-border">
           <h2 className="text-base font-semibold dark:text-white">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
             className="size-7 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 text-xs transition-colors"

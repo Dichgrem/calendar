@@ -110,7 +110,7 @@ func ErrorHandler(next http.Handler) http.Handler {
 func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"ok":   true,
 		"data": data,
 	})
@@ -120,7 +120,7 @@ func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 func WriteAppError(w http.ResponseWriter, err *apperror.AppError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.Code)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"ok":    false,
 		"error": map[string]string{"code": err.ErrCode, "message": err.Message},
 	})
@@ -231,7 +231,7 @@ func validateSession(sessionID string) string {
 
 	expiry, err := time.Parse(time.RFC3339, expiresAt)
 	if err != nil || time.Now().UTC().After(expiry) {
-		db.DB.Exec("DELETE FROM sessions WHERE id = ?", sessionID)
+		_, _ = db.DB.Exec("DELETE FROM sessions WHERE id = ?", sessionID)
 		return ""
 	}
 
@@ -246,7 +246,7 @@ func loadRoles(userID string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	roles := make(map[string]string)
 	for rows.Next() {

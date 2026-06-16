@@ -42,10 +42,10 @@ func setupSettings(t *testing.T) (chi.Router, string) {
 		}
 	}
 	hash, _ := auth.MakePasswordHash("testpass")
-	db.DB.Exec(`INSERT OR IGNORE INTO users (id, username, password_hash, created_at)
+	_, _ = db.DB.Exec(`INSERT OR IGNORE INTO users (id, username, password_hash, created_at)
 		VALUES ('u-1', 'testuser', ?, '2026-01-01T00:00:00Z')`, hash)
 	// Ensure settings row exists for the test user
-	db.DB.Exec(`INSERT OR IGNORE INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar)
+	_, _ = db.DB.Exec(`INSERT OR IGNORE INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar)
 		VALUES ('u-1', 'zh-CN', 0, 1, 'yyyy-MM-dd', 0)`)
 
 	r := chi.NewRouter()

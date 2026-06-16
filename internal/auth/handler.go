@@ -134,7 +134,7 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("[auth] POST /api/auth/logout")
 	sessionID := extractSessionToken(r)
 	if sessionID != "" {
-		Logout(sessionID)
+		_ = Logout(sessionID)
 	}
 	cfg := config.Load()
 	clearSessionCookie(w, cfg.SecureCookies)
