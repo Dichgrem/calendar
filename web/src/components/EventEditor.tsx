@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useI18n } from "../hooks/use-i18n";
-import { Modal } from "./ui/modal";
+import { api } from "../lib/api";
+import type { Calendar, Event } from "../types";
 import { Button } from "./ui/button";
-import type { Event, Calendar } from "../types";
+import { Modal } from "./ui/modal";
 
 interface EditMode {
   mode: "edit";
@@ -188,7 +188,6 @@ export function EventEditor(props: EventEditorProps) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
-            autoFocus
           />
         </label>
 
@@ -242,6 +241,7 @@ export function EventEditor(props: EventEditorProps) {
           />
           <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors">
             <svg
+              aria-hidden="true"
               className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block"
               fill="none"
               viewBox="0 0 24 24"

@@ -123,7 +123,7 @@ func HandleLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"ok": true, "data": map[string]any{"lines": filtered, "total": len(all)},
 	})
 }

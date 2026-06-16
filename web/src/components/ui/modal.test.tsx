@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { Modal } from "./modal";
 
 describe("Modal", () => {
@@ -64,7 +64,7 @@ describe("Modal", () => {
     const onClose = vi.fn();
     render(
       <Modal open={true} onClose={onClose} title="Test">
-        <button>Click me</button>
+        <button type="button">Click me</button>
       </Modal>,
     );
     const btn = screen.getByText("Click me");
@@ -75,7 +75,7 @@ describe("Modal", () => {
 
   it("renders footer when provided", () => {
     render(
-      <Modal open={true} onClose={() => {}} title="Test" footer={<button>Save</button>}>
+      <Modal open={true} onClose={() => {}} title="Test" footer={<button type="button">Save</button>}>
         <p>Content</p>
       </Modal>,
     );

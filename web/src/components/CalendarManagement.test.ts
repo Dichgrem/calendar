@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 describe("common calendar import detection", () => {
   const COMMON_CALENDARS = [

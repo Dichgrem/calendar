@@ -47,14 +47,14 @@ func TestRingBufConcurrent(t *testing.T) {
 func TestRingWriter(t *testing.T) {
 	rb := &ringBuf{cap: 5}
 	rw := &ringWriter{rb: rb}
-	rw.Write([]byte("hello\n"))
-	rw.Write([]byte("world\n"))
+	_, _ = rw.Write([]byte("hello\n"))
+	_, _ = rw.Write([]byte("world\n"))
 	all := rb.All()
 	if len(all) != 2 || all[0] != "hello" || all[1] != "world" {
 		t.Fatalf("got %v", all)
 	}
 	// Test trailing newline removal
-	rw.Write([]byte("no-newline"))
+	_, _ = rw.Write([]byte("no-newline"))
 	if rb.All()[2] != "no-newline" {
 		t.Fatalf("got %q", rb.All()[2])
 	}
@@ -129,7 +129,9 @@ func TestHandleLogsLevelFilter(t *testing.T) {
 				Lines []string `json:"lines"`
 			} `json:"data"`
 		}
-		json.NewDecoder(w.Body).Decode(&resp)
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
 		return resp.Data.Lines
 	}
 

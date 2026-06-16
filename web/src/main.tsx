@@ -1,13 +1,13 @@
 import "preact/debug";
-import { StrictMode, useState, lazy, Suspense } from "react";
-import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { RequireAuth } from "./components/RequireAuth";
+import { lazy, StrictMode, Suspense, useState } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { CalendarView } from "./components/CalendarView";
 import { Layout } from "./components/Layout";
+import { RequireAuth } from "./components/RequireAuth";
 import { ServerUrlDialog } from "./components/ServerUrlDialog";
 import { isNative } from "./lib/capacitor";
-import { CalendarView } from "./components/CalendarView";
 import { LoginPage } from "./pages/LoginPage";
 import "./index.css";
 

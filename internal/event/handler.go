@@ -75,7 +75,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	events := []Event{}
 	for rows.Next() {
@@ -237,42 +237,42 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if req.Title != nil {
-		tx.Exec("UPDATE events SET title = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE events SET title = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.Title, now, lmod, eventID)
 	}
 	if req.Description != nil {
-		tx.Exec("UPDATE events SET description = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE events SET description = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.Description, now, lmod, eventID)
 	}
 	if req.StartAt != nil {
-		tx.Exec("UPDATE events SET start_at = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE events SET start_at = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.StartAt, now, lmod, eventID)
 	}
 	if req.EndAt != nil {
-		tx.Exec("UPDATE events SET end_at = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE events SET end_at = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.EndAt, now, lmod, eventID)
 	}
 	if req.AllDay != nil {
-		tx.Exec("UPDATE events SET all_day = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE events SET all_day = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			boolToInt(*req.AllDay), now, lmod, eventID)
 	}
 	if req.RRule != nil {
-		tx.Exec("UPDATE events SET rrule = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE events SET rrule = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.RRule, now, lmod, eventID)
 	}
 	if req.Color != nil {
-		tx.Exec("UPDATE events SET color = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE events SET color = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.Color, now, lmod, eventID)
 	}
 	if req.Location != nil {
-		tx.Exec("UPDATE events SET location = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE events SET location = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.Location, now, lmod, eventID)
 	}
 	if req.Deleted != nil {
-		tx.Exec("UPDATE events SET deleted = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE events SET deleted = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			boolToInt(*req.Deleted), now, lmod, eventID)
 	}
 

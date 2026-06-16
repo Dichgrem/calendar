@@ -53,13 +53,13 @@ func setupCalDAV(t *testing.T) chi.Router {
 	if err != nil {
 		t.Fatalf("hash password: %v", err)
 	}
-	db.DB.Exec(`INSERT OR IGNORE INTO users (id, username, password_hash, created_at)
+	_, _ = db.DB.Exec(`INSERT OR IGNORE INTO users (id, username, password_hash, created_at)
 		VALUES ('user-1', 'testuser', ?, '2026-01-01T00:00:00Z')`, passwordHash)
 
 	// Create a calendar for the user
-	db.DB.Exec(`INSERT OR IGNORE INTO calendars (id, name, color, source_type, owner_id, created_at, updated_at, last_modified)
+	_, _ = db.DB.Exec(`INSERT OR IGNORE INTO calendars (id, name, color, source_type, owner_id, created_at, updated_at, last_modified)
 		VALUES ('cal-1', 'Test Calendar', '#3b82f6', 'manual', 'user-1', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)`)
-	db.DB.Exec(`INSERT OR IGNORE INTO calendar_members (calendar_id, user_id, role) VALUES ('cal-1', 'user-1', 'admin')`)
+	_, _ = db.DB.Exec(`INSERT OR IGNORE INTO calendar_members (calendar_id, user_id, role) VALUES ('cal-1', 'user-1', 'admin')`)
 
 	r := chi.NewRouter()
 	// Register CalDAV HTTP methods
@@ -135,7 +135,7 @@ func TestCaldavPropfindCalendars(t *testing.T) {
 func TestCaldavPropfindEvents(t *testing.T) {
 	r := setupCalDAV(t)
 	// Insert an event
-	db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
+	_, _ = db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
 		VALUES ('evt-1', 'cal-1', 'Test Event', '2026-06-09T10:00:00Z', '2026-06-09T11:00:00Z',
 		'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)`)
 
@@ -175,7 +175,7 @@ END:VCALENDAR`
 
 	// Verify event exists in DB with the ICS UID as its ID — not a random UUID.
 	var title string
-	db.DB.QueryRow("SELECT title FROM events WHERE id=? AND calendar_id=?", "test-uid-001", "cal-1").Scan(&title)
+	_ = db.DB.QueryRow("SELECT title FROM events WHERE id=? AND calendar_id=?", "test-uid-001", "cal-1").Scan(&title)
 	if title != "New Event" {
 		t.Errorf("title=%q want 'New Event' (event id may not match UID)", title)
 	}
@@ -193,7 +193,7 @@ END:VCALENDAR`
 func TestCaldavPutUpdateEvent(t *testing.T) {
 	r := setupCalDAV(t)
 	// Pre-insert event
-	db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
+	_, _ = db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
 		VALUES ('evt-update', 'cal-1', 'Old Title', '2026-06-09T10:00:00Z', '2026-06-09T11:00:00Z',
 		'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)`)
 
@@ -215,14 +215,14 @@ END:VCALENDAR`
 	}
 
 	var title string
-	db.DB.QueryRow("SELECT title FROM events WHERE id='evt-update'").Scan(&title)
+	_ = db.DB.QueryRow("SELECT title FROM events WHERE id='evt-update'").Scan(&title)
 	if title != "Updated Title" {
 		t.Errorf("title=%q want 'Updated Title'", title)
 	}
 
 	// Verify no duplicate events
 	var count int
-	db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id='cal-1' AND deleted=0").Scan(&count)
+	_ = db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id='cal-1' AND deleted=0").Scan(&count)
 	if count != 1 {
 		t.Errorf("expected 1 event, got %d — UPDATE should not create duplicate", count)
 	}
@@ -232,7 +232,7 @@ END:VCALENDAR`
 // with cached ICS containing "UID:xxx@calendar" are handled correctly.
 func TestCaldavPutWithAtCalendarUID(t *testing.T) {
 	r := setupCalDAV(t)
-	db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
+	_, _ = db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
 		VALUES ('clean-uid', 'cal-1', 'Original', '2026-06-09T10:00:00Z', '2026-06-09T11:00:00Z',
 		'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)`)
 
@@ -255,13 +255,13 @@ END:VCALENDAR`
 	}
 
 	var title string
-	db.DB.QueryRow("SELECT title FROM events WHERE id='clean-uid'").Scan(&title)
+	_ = db.DB.QueryRow("SELECT title FROM events WHERE id='clean-uid'").Scan(&title)
 	if title != "Modified By DAVx5" {
 		t.Errorf("title=%q want 'Modified By DAVx5'", title)
 	}
 
 	var count int
-	db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id='cal-1' AND deleted=0").Scan(&count)
+	_ = db.DB.QueryRow("SELECT COUNT(*) FROM events WHERE calendar_id='cal-1' AND deleted=0").Scan(&count)
 	if count != 1 {
 		t.Errorf("expected 1 event, got %d — @calendar suffix caused duplicate", count)
 	}
@@ -316,7 +316,7 @@ END:VCALENDAR`
 
 func TestCaldavDeleteEvent(t *testing.T) {
 	r := setupCalDAV(t)
-	db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, deleted, created_at, updated_at, last_modified)
+	_, _ = db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, deleted, created_at, updated_at, last_modified)
 		VALUES ('evt-del', 'cal-1', 'Delete Me', '2026-06-09T10:00:00Z', '2026-06-09T11:00:00Z', 0,
 		'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)`)
 
@@ -329,7 +329,7 @@ func TestCaldavDeleteEvent(t *testing.T) {
 	}
 
 	var deleted int
-	db.DB.QueryRow("SELECT deleted FROM events WHERE id='evt-del'").Scan(&deleted)
+	_ = db.DB.QueryRow("SELECT deleted FROM events WHERE id='evt-del'").Scan(&deleted)
 	if deleted != 1 {
 		t.Errorf("event not soft-deleted, deleted=%d", deleted)
 	}
@@ -348,7 +348,7 @@ func TestCaldavDeleteNotFound(t *testing.T) {
 
 func TestCaldavGetEvent(t *testing.T) {
 	r := setupCalDAV(t)
-	db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
+	_, _ = db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
 		VALUES ('evt-get', 'cal-1', 'GET Event', '2026-06-09T10:00:00Z', '2026-06-09T11:00:00Z',
 		'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)`)
 
@@ -370,7 +370,7 @@ func TestCaldavGetEvent(t *testing.T) {
 
 func TestCaldavReport(t *testing.T) {
 	r := setupCalDAV(t)
-	db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
+	_, _ = db.DB.Exec(`INSERT INTO events (id, calendar_id, title, start_at, end_at, created_at, updated_at, last_modified)
 		VALUES ('evt-rpt', 'cal-1', 'Report Event', '2026-06-09T10:00:00Z', '2026-06-09T11:00:00Z',
 		'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)`)
 
@@ -420,7 +420,7 @@ func TestCaldavPutDbErrorReturns500(t *testing.T) {
 	r := setupCalDAV(t)
 
 	// Drop events table to force DB error
-	db.DB.Exec("DROP TABLE events")
+	_, _ = db.DB.Exec("DROP TABLE events")
 
 	ics := `BEGIN:VCALENDAR
 VERSION:2.0

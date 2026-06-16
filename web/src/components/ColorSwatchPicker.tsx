@@ -1,5 +1,5 @@
-import { CALENDAR_COLORS } from "../lib/colors";
 import { useI18n } from "../hooks/use-i18n";
+import { CALENDAR_COLORS } from "../lib/colors";
 
 interface ColorSwatchPickerProps {
   value: string;

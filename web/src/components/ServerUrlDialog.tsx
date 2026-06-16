@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Modal } from "./ui/modal";
-import { Button } from "./ui/button";
 import { useI18n } from "../hooks/use-i18n";
+import { Button } from "./ui/button";
+import { Modal } from "./ui/modal";
 
 interface Props {
   open: boolean;
@@ -52,7 +52,6 @@ export function ServerUrlDialog({ open, onSaved }: Props) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder={t("serverDialog.placeholder")}
-          autoFocus
           className="block w-full border rounded px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
         />
         {error && <p className="text-xs text-red-500">{error}</p>}

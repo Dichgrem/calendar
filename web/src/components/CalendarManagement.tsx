@@ -1,23 +1,23 @@
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Plus } from "@phosphor-icons/react";
 import {
-  NotePencil,
-  Trash,
+  CaretDown,
+  CaretUp,
   Check,
-  X,
   DownloadSimple,
   FileArrowDown,
   Globe,
-  CaretUp,
-  CaretDown,
+  NotePencil,
+  Plus,
+  Trash,
+  X,
 } from "@phosphor-icons/react";
-import { api } from "../lib/api";
-import { useI18n } from "../hooks/use-i18n";
-import { useCalendarReorder } from "../hooks/use-calendar-reorder";
-import { Button } from "../components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
 import { ImportForm } from "../components/ImportForm";
+import { Button } from "../components/ui/button";
+import { useCalendarReorder } from "../hooks/use-calendar-reorder";
+import { useI18n } from "../hooks/use-i18n";
+import { api } from "../lib/api";
 import type { Calendar } from "../types";
 
 interface CommonCalendar {
@@ -219,7 +219,6 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
               value={newCalName}
               onChange={(e) => setNewCalName(e.target.value)}
               placeholder={t("settings.calNamePlaceholder")}
-              autoFocus
               className="flex-1 text-sm border rounded-lg px-2.5 py-1.5 bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-400"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleCreateCalendar();
@@ -244,6 +243,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-neutral-500">{t("settings.selectCalendars")}</span>
             <button
+              type="button"
               onClick={toggleExportAll}
               className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
             >
@@ -261,6 +261,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 />
                 <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors shrink-0">
                   <svg
+                    aria-hidden="true"
                     className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -279,7 +280,8 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
             <Button
               size="sm"
               onClick={() => {
-                calendars?.filter((c) => exportSelected.has(c.id)).forEach((c) => handleExportCal(c.id, c.name));
+                const selected = calendars?.filter((c) => exportSelected.has(c.id)) ?? [];
+                for (const c of selected) handleExportCal(c.id, c.name);
                 setExportOpen(false);
               }}
               disabled={exportSelected.size === 0}
@@ -354,6 +356,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                   <ColorSwatchPicker value={editColor} onChange={setEditColor} />
                 </div>
                 <button
+                  type="button"
                   onClick={saveCalEdit}
                   aria-label={t("settings.save")}
                   className="size-7 flex items-center justify-center rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600"
@@ -361,6 +364,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                   <Check className="size-4" weight="bold" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setEditingCal(null)}
                   aria-label={t("settings.cancel")}
                   className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400"
@@ -373,6 +377,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 <span className="size-3.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
                 <span className="flex-1 text-sm truncate text-neutral-800 dark:text-neutral-200">{cal.name}</span>
                 <button
+                  type="button"
                   onClick={() => move(idx, idx - 1)}
                   disabled={idx === 0}
                   className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30"
@@ -381,6 +386,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                   <CaretUp className="size-3.5" weight="bold" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => move(idx, idx + 1)}
                   disabled={idx === calendars.length - 1}
                   className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30"
@@ -389,12 +395,14 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                   <CaretDown className="size-3.5" weight="bold" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => startEditCal(cal)}
                   className="size-7 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400"
                 >
                   <NotePencil className="size-3.5" weight="bold" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => deleteCalendar(cal.id)}
                   disabled={deleting === cal.id}
                   className={`size-7 flex items-center justify-center rounded-lg text-neutral-400 ${deleting === cal.id ? "opacity-50" : "hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600"}`}

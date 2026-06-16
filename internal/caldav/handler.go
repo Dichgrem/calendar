@@ -56,7 +56,7 @@ func handlePropfindCalendars(w http.ResponseWriter, r *http.Request) {
 	userID := userIDFromReq(r)
 	logger.Info("[caldav] PROPFIND calendars user=%s", userID)
 	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	rows, err := db.DB.Query(`
@@ -67,7 +67,7 @@ func handlePropfindCalendars(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var rs []response
 	for rows.Next() {
@@ -94,12 +94,14 @@ func handlePropfindCalendars(w http.ResponseWriter, r *http.Request) {
 func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID string) {
 	userID := userIDFromReq(r)
 	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	var count int
-	db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calendarID, userID).Scan(&count)
+	if err := db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calendarID, userID).Scan(&count); err != nil {
+		logger.Error("[caldav] PROPFIND calendar-members scan error: %v", err)
+	}
 	if count == 0 {
 		http.Error(w, "Not Found", 404)
 		return
@@ -112,7 +114,7 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var rs []response
 	for rows.Next() {
@@ -150,7 +152,7 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 func handlePropfindSingle(w http.ResponseWriter, r *http.Request, calendarID, filename string) {
 	userID := userIDFromReq(r)
 	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	eventID := strings.TrimSuffix(filename, ".ics")
@@ -211,7 +213,7 @@ func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	userID := userIDFromReq(r)
 	logger.Info("[caldav] GET event=%s user=%s", filename, userID)
 	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	eventID := strings.TrimSuffix(filename, ".ics")
@@ -234,7 +236,9 @@ func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("ETag", fmt.Sprintf(`"%s-%d"`, eventID, time.Now().Unix()))
 	w.WriteHeader(200)
-	w.Write([]byte(icsContent))
+	if _, err := w.Write([]byte(icsContent)); err != nil {
+		logger.Error("[caldav] GET write error: %v", err)
+	}
 }
 
 func handlePutEvent(w http.ResponseWriter, r *http.Request) {
@@ -242,12 +246,14 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	userID := userIDFromReq(r)
 	logger.Info("[caldav] PUT %s user=%s", r.URL.Path, userID)
 	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	var count int
-	db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calID, userID).Scan(&count)
+	if err := db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calID, userID).Scan(&count); err != nil {
+		logger.Error("[caldav] DELETE calendar-members scan error: %v", err)
+	}
 	if count == 0 {
 		logger.Error("[caldav] PUT %s: calendar not found", r.URL.Path)
 		http.Error(w, "Not Found", 404)
@@ -287,7 +293,7 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	lookupID = strings.TrimSuffix(lookupID, "@calendar@calendar")
 
 	var existingID string
-	db.DB.QueryRow("SELECT id FROM events WHERE id=? AND calendar_id=?", lookupID, calID).Scan(&existingID)
+	_ = db.DB.QueryRow("SELECT id FROM events WHERE id=? AND calendar_id=?", lookupID, calID).Scan(&existingID)
 
 	allDay := 0
 	if !strings.Contains(evStartAt, "T") {
@@ -335,7 +341,7 @@ func handleMkcalendar(w http.ResponseWriter, r *http.Request) {
 	userID := userIDFromReq(r)
 	logger.Info("[caldav] MKCALENDAR user=%s", userID)
 	if userID == "" {
-		http.Error(w, "Unauthorized", 401)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -368,9 +374,9 @@ func handleMkcalendar(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
-	defer tx.Rollback()
-	tx.Exec(`INSERT INTO calendars (id, name, color, source_type, owner_id, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?)`, id, name, color, "manual", userID, now, now, lmod)
-	tx.Exec(`INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?,?,?)`, id, userID, "admin")
+	defer func() { _ = tx.Rollback() }()
+	_, _ = tx.Exec(`INSERT INTO calendars (id, name, color, source_type, owner_id, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?)`, id, name, color, "manual", userID, now, now, lmod)
+	_, _ = tx.Exec(`INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?,?,?)`, id, userID, "admin")
 	if tx.Commit() != nil {
 		http.Error(w, "Internal Server Error", 500)
 		return
@@ -515,7 +521,9 @@ func setDateProp(props ical.Props, name, value string) {
 
 func serializeCal(cal *ical.Calendar) string {
 	var buf bytes.Buffer
-	ical.NewEncoder(&buf).Encode(cal)
+	if err := ical.NewEncoder(&buf).Encode(cal); err != nil {
+		logger.Error("[caldav] PROPFIND encode error: %v", err)
+	}
 	return buf.String()
 }
 
@@ -543,9 +551,14 @@ func compProp(c *ical.Component, name string) string {
 func writeXML(w http.ResponseWriter, ms multiStatus) {
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	w.WriteHeader(207)
-	w.Write([]byte(xml.Header))
+	if _, err := w.Write([]byte(xml.Header)); err != nil {
+		logger.Error("[caldav] PROPFIND write header error: %v", err)
+		return
+	}
 	b, _ := xml.MarshalIndent(ms, "", "  ")
-	w.Write(b)
+	if _, err := w.Write(b); err != nil {
+		logger.Error("[caldav] PROPFIND write body error: %v", err)
+	}
 }
 
 func strOrNil(s string) interface{} {

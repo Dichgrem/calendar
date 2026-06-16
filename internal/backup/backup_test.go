@@ -35,7 +35,7 @@ func setupBackup(t *testing.T) chi.Router {
 		}
 	}
 	hash, _ := auth.MakePasswordHash("testpass")
-	db.DB.Exec(`INSERT OR IGNORE INTO users (id, username, password_hash, created_at)
+	_, _ = db.DB.Exec(`INSERT OR IGNORE INTO users (id, username, password_hash, created_at)
 		VALUES ('u-1', 'testuser', ?, '2026-01-01T00:00:00Z')`, hash)
 
 	r := chi.NewRouter()

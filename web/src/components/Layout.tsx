@@ -1,11 +1,11 @@
-import { createContext, useContext, useCallback, useState, type RefCallback } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router";
-import { CalendarDots, GearSix, SignOut, MagnifyingGlass } from "@phosphor-icons/react";
+import { CalendarDots, GearSix, MagnifyingGlass, SignOut } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "../lib/utils";
+import { createContext, type RefCallback, useCallback, useContext, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router";
 import { useI18n } from "../hooks/use-i18n";
 import { NavProvider } from "../hooks/use-nav";
 import { api } from "../lib/api";
+import { cn } from "../lib/utils";
 
 interface TopBarSlots {
   left: HTMLDivElement | null;
@@ -86,6 +86,7 @@ export function Layout() {
               <div ref={centerRef} className="flex items-center justify-center gap-1" />
               <div className="flex items-center gap-1 justify-end">
                 <button
+                  type="button"
                   onClick={() => {
                     setSearchOpen((v) => !v);
                     setSearchQuery("");
@@ -116,6 +117,7 @@ export function Layout() {
                   </NavLink>
                 ))}
                 <button
+                  type="button"
                   onClick={handleLogout}
                   aria-label={t("nav.logout")}
                   className="size-8 flex items-center justify-center rounded-full text-sm text-neutral-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"

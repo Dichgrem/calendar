@@ -55,7 +55,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	calendars := []Calendar{}
 	for rows.Next() {
@@ -134,7 +134,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	_, err = tx.Exec(
 		`INSERT INTO calendars (id, name, color, source_url, source_type, owner_id, created_at, updated_at, last_modified)
@@ -212,18 +212,18 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if req.Name != nil {
-		tx.Exec("UPDATE calendars SET name = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE calendars SET name = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.Name, now, lmod, id)
 	}
 	if req.Color != nil {
-		tx.Exec("UPDATE calendars SET color = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE calendars SET color = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.Color, now, lmod, id)
 	}
 	if req.SourceURL != nil {
-		tx.Exec("UPDATE calendars SET source_url = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+		_, _ = tx.Exec("UPDATE calendars SET source_url = ?, updated_at = ?, last_modified = ? WHERE id = ?",
 			*req.SourceURL, now, lmod, id)
 	}
 
@@ -291,10 +291,10 @@ func handleReorder(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	for i, calID := range req.OrderedIDs {
-		tx.Exec(
+		_, _ = tx.Exec(
 			"UPDATE calendar_members SET sort_order = ? WHERE calendar_id = ? AND user_id = ?",
 			i, calID, perm.UserID,
 		)

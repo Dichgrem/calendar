@@ -1,17 +1,17 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { Moon, Plus, Sun } from "@phosphor-icons/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Sun, Moon } from "@phosphor-icons/react";
-import { useEvents } from "../hooks/use-events";
 import { useCalendars } from "../hooks/use-calendars";
-import { useSettings } from "../hooks/use-settings";
+import { useEvents } from "../hooks/use-events";
 import { useI18n } from "../hooks/use-i18n";
 import { useNav } from "../hooks/use-nav";
-import { useTopBar, useSearch } from "./Layout";
-import { EventEditor } from "./EventEditor";
-import { LeftControls, CenterControls } from "./TopBarControls";
-import { MonthGrid, getOrderedWeekdays } from "./MonthGrid";
+import { useSettings } from "../hooks/use-settings";
 import { dateStr } from "../lib/date-format";
 import type { Event } from "../types";
+import { EventEditor } from "./EventEditor";
+import { useSearch, useTopBar } from "./Layout";
+import { getOrderedWeekdays, MonthGrid } from "./MonthGrid";
+import { CenterControls, LeftControls } from "./TopBarControls";
 
 export function CalendarView() {
   const topBar = useTopBar();
@@ -52,8 +52,8 @@ export function CalendarView() {
     isError: evError,
   } = useEvents(
     searchQuery ? [] : allCalIds.filter((id) => visibleCalendars.has(id)),
-    searchQuery ? "" : dateStr(new Date(gridStart.getTime() - 86400000)) + "T00:00:00",
-    searchQuery ? "" : dateStr(new Date(gridEnd.getTime() + 86400000)) + "T23:59:59",
+    searchQuery ? "" : `${dateStr(new Date(gridStart.getTime() - 86400000))}T00:00:00`,
+    searchQuery ? "" : `${dateStr(new Date(gridEnd.getTime() + 86400000))}T23:59:59`,
   );
   const { data: allEvents } = useEvents(
     searchQuery ? allCalIds : [],
@@ -173,12 +173,12 @@ export function CalendarView() {
           placeholder={t("cal.search")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          autoFocus
           className="w-full h-7 text-sm text-neutral-800 dark:text-neutral-200 border rounded-lg px-2.5 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-600"
         />
       </div>
       <div className="flex items-center gap-1 px-3 py-1.5 border-b border-neutral-100 dark:border-neutral-800 overflow-x-auto flex-nowrap">
         <button
+          type="button"
           onClick={() => setSearchCalId(null)}
           className={`px-2 py-0.5 text-xs rounded-full transition-colors ${searchCalId === null ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900" : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"}`}
         >
@@ -186,6 +186,7 @@ export function CalendarView() {
         </button>
         {calendars?.map((cal) => (
           <button
+            type="button"
             key={cal.id}
             onClick={() => setSearchCalId(cal.id)}
             className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full transition-colors ${searchCalId === cal.id ? "text-white" : ""} hover:bg-neutral-100 dark:hover:bg-neutral-800`}
@@ -210,6 +211,7 @@ export function CalendarView() {
             const cal = calendars?.find((c) => c.id === e.calendarId);
             return (
               <button
+                type="button"
                 key={e.id}
                 data-search-index={idx}
                 onClick={() => {
@@ -273,6 +275,7 @@ export function CalendarView() {
 
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center gap-3 group">
         <button
+          type="button"
           onClick={toggleDark}
           aria-label={dark ? t("cal.lightMode") : t("cal.darkMode")}
           className="size-10 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-lg flex items-center justify-center text-neutral-700 dark:text-neutral-200 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none group-hover:pointer-events-auto"
@@ -280,6 +283,7 @@ export function CalendarView() {
           {dark ? <Sun className="size-5" weight="bold" /> : <Moon className="size-5" weight="bold" />}
         </button>
         <button
+          type="button"
           onClick={() => setCreating(true)}
           aria-label={t("event.create")}
           className="size-12 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
@@ -294,7 +298,7 @@ export function CalendarView() {
           mode="create"
           calendars={calendars ?? []}
           defaultCalendarId={[...visibleCalendars][0] ?? calendars?.[0]?.id}
-          defaultStart={highlightDate ? new Date(highlightDate + "T00:00:00") : undefined}
+          defaultStart={highlightDate ? new Date(`${highlightDate}T00:00:00`) : undefined}
           open
           onClose={() => setCreating(false)}
         />
