@@ -37,6 +37,10 @@ type backupInfo struct {
 
 func handleCreate(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("[backup] POST create")
+	if !isInstanceAdmin(r) {
+		middleware.JSONResponse(w, 403, apperror.Forbidden("Admin only"))
+		return
+	}
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Cannot create backup directory"))
 		return
@@ -79,6 +83,10 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleList(w http.ResponseWriter, r *http.Request) {
+	if !isInstanceAdmin(r) {
+		middleware.JSONResponse(w, 403, apperror.Forbidden("Admin only"))
+		return
+	}
 	entries, err := os.ReadDir(backupDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -114,6 +122,10 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 
 func handleDownload(w http.ResponseWriter, r *http.Request) {
 	filename := chi.URLParam(r, "filename")
+	if !isInstanceAdmin(r) {
+		middleware.JSONResponse(w, 403, apperror.Forbidden("Admin only"))
+		return
+	}
 
 	// Path traversal protection
 	if strings.Contains(filename, "/") || strings.Contains(filename, "\\") ||
@@ -135,6 +147,10 @@ func handleDownload(w http.ResponseWriter, r *http.Request) {
 
 func handleRestore(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("[backup] POST restore")
+	if !isInstanceAdmin(r) {
+		middleware.JSONResponse(w, 403, apperror.Forbidden("Admin only"))
+		return
+	}
 	var req struct {
 		Filename string `json:"filename"`
 	}
@@ -185,4 +201,16 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 	middleware.JSONResponse(w, 200, map[string]string{
 		"message": "Restored. The server will use the new data after restart.",
 	})
+}
+
+// isInstanceAdmin returns true if the authenticated user is the first (admin) user.
+func isInstanceAdmin(r *http.Request) bool {
+	perm := middleware.GetPermission(r)
+	if perm == nil {
+		return false
+	}
+	// The instance admin is the user with the earliest created_at.
+	var adminID string
+	_ = db.DB.QueryRow("SELECT id FROM users ORDER BY created_at ASC LIMIT 1").Scan(&adminID)
+	return adminID == perm.UserID
 }
