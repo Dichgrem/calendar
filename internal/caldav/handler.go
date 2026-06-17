@@ -260,7 +260,12 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, _ := io.ReadAll(r.Body)
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 10<<20))
+	if err != nil {
+		logger.Info("[caldav] PUT %s: body too large", r.URL.Path)
+		http.Error(w, "Request Entity Too Large", http.StatusRequestEntityTooLarge)
+		return
+	}
 	icalCal, err := ical.NewDecoder(bytes.NewReader(body)).Decode()
 	if err != nil || len(icalCal.Children) == 0 {
 		logger.Info("[caldav] PUT %s: invalid ICS body", r.URL.Path)

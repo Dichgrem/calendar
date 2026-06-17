@@ -21,6 +21,11 @@ import (
 	"calendar/internal/middleware"
 )
 
+const (
+	maxICSBodyBytes = 10 << 20 // 10 MB
+	maxICSEvents    = 5000
+)
+
 // RegisterRoutes adds ICS import/export routes to a chi router.
 func RegisterRoutes(r chi.Router) {
 	r.Post("/api/ics/preview", handlePreview)
@@ -65,6 +70,13 @@ func extractEvents(cal *ical.Calendar) []*ical.Component {
 	return events
 }
 
+func capEvents(events []*ical.Component) []*ical.Component {
+	if len(events) > maxICSEvents {
+		return events[:maxICSEvents]
+	}
+	return events
+}
+
 func componentProp(c *ical.Component, name string) string {
 	s, _ := c.Props.Text(name)
 	if s == "" {
@@ -105,6 +117,7 @@ func normalizeICSDate(raw string) string {
 }
 
 func handlePreview(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxICSBodyBytes)
 	var req struct {
 		Content string `json:"content"`
 	}
@@ -132,7 +145,7 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 		calName = "Imported Calendar"
 	}
 
-	events := extractEvents(icalCal)
+	events := capEvents(extractEvents(icalCal))
 	items := make([]PreviewItem, 0, len(events))
 	var earliest, latest string
 	for _, ev := range events {
@@ -205,7 +218,7 @@ func handleFetchURL(w http.ResponseWriter, r *http.Request) {
 		calName = "Imported Calendar"
 	}
 
-	events := extractEvents(icalCal)
+	events := capEvents(extractEvents(icalCal))
 	items := make([]PreviewItem, 0, len(events))
 	var earliest, latest string
 	for _, ev := range events {
@@ -261,6 +274,7 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 	perm := middleware.GetPermission(r)
 	logger.Debug("[ics] POST import user=%s", perm.UserID)
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxICSBodyBytes)
 	var req importRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		middleware.JSONResponse(w, 400, apperror.BadRequest("Invalid JSON"))
@@ -278,6 +292,10 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	events := extractEvents(icalCal)
+	if len(events) > maxICSEvents {
+		middleware.JSONResponse(w, 413, apperror.BadRequest("Too many events: limit is 5000"))
+		return
+	}
 
 	selected := make(map[string]bool, len(req.SelectedUIDs))
 	for _, uid := range req.SelectedUIDs {
