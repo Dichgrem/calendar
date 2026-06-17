@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"calendar/internal/logger"
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -14,6 +13,7 @@ import (
 
 	"calendar/internal/apperror"
 	"calendar/internal/db"
+	"calendar/internal/logger"
 
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -185,7 +185,8 @@ func verifyHash(password, stored string) bool {
 		return false
 	}
 	hash, salt := parts[0], parts[1]
-	input := hex.EncodeToString(pbkdf2.Key([]byte(password), []byte(salt), 100_000, 32, sha256.New))
+	// Must match auth.PBKDF2Iterations (600_000) for CalDAV Basic Auth to work
+	input := hex.EncodeToString(pbkdf2.Key([]byte(password), []byte(salt), 600_000, 32, sha256.New))
 	return subtle.ConstantTimeCompare([]byte(hash), []byte(input)) == 1
 }
 

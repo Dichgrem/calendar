@@ -315,8 +315,8 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = tx.Rollback() }()
 
 	if req.CalendarID != "" {
-		if !perm.IsMember(req.CalendarID) {
-			middleware.JSONResponse(w, 403, apperror.Forbidden("Access denied"))
+		if !perm.RequireRole(req.CalendarID, "editor") {
+			middleware.JSONResponse(w, 403, apperror.Forbidden("Editor role required"))
 			return
 		}
 		calendarID = req.CalendarID

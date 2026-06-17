@@ -244,19 +244,16 @@ func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	calID, filename := parseCalPath(r.URL.Path)
 	userID := userIDFromReq(r)
+	perm := middleware.GetPermission(r)
 	logger.Info("[caldav] PUT %s user=%s", r.URL.Path, userID)
 	if userID == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var count int
-	if err := db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calID, userID).Scan(&count); err != nil {
-		logger.Error("[caldav] DELETE calendar-members scan error: %v", err)
-	}
-	if count == 0 {
-		logger.Error("[caldav] PUT %s: calendar not found", r.URL.Path)
-		http.Error(w, "Not Found", 404)
+	if !perm.RequireRole(calID, "editor") {
+		logger.Error("[caldav] PUT %s: editor role required", r.URL.Path)
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -336,14 +333,14 @@ func handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
 	calID, filename := parseCalPath(r.URL.Path)
 	eventID := strings.TrimSuffix(filename, ".ics")
 	userID := userIDFromReq(r)
+	perm := middleware.GetPermission(r)
 	logger.Info("[caldav] DELETE %s cal=%s uid=%s user=%s", r.URL.Path, calID, eventID, userID)
 	if userID == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var count int
-	if err := db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calID, userID).Scan(&count); err != nil || count == 0 {
+	if !perm.RequireRole(calID, "editor") {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
