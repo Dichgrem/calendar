@@ -1,13 +1,11 @@
 import "preact/debug";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { lazy, StrictMode, Suspense, useState } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { CalendarView } from "./components/CalendarView";
 import { Layout } from "./components/Layout";
 import { RequireAuth } from "./components/RequireAuth";
-import { ServerUrlDialog } from "./components/ServerUrlDialog";
-import { isNative } from "./lib/capacitor";
 import { LoginPage } from "./pages/LoginPage";
 import "./index.css";
 
@@ -20,13 +18,9 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const needServerUrl = isNative && !localStorage.getItem("serverUrl");
-  const [showDialog, setShowDialog] = useState(needServerUrl);
-
   return (
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <ServerUrlDialog open={showDialog} onSaved={() => setShowDialog(false)} />
         <BrowserRouter>
           <Routes>
             <Route path="/auth/login" element={<LoginPage />} />

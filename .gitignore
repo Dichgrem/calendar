@@ -18,7 +18,6 @@ backups/
 *.test
 *.out
 
-web/android/app/build/outputs/
 todo.md
 problem.md
 AGENTS.md

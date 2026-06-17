@@ -11,7 +11,6 @@ import { useCalendars } from "../hooks/use-calendars";
 import { useI18n } from "../hooks/use-i18n";
 import { useSettings } from "../hooks/use-settings";
 import { api } from "../lib/api";
-import { isNative } from "../lib/capacitor";
 import type { UserSettings } from "../types";
 
 function Section({
@@ -81,8 +80,6 @@ export function SettingsPage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [backingUp, setBackingUp] = useState(false);
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
-  const [serverUrl, setServerUrl] = useState(localStorage.getItem("serverUrl") || "");
-  const [serverUrlSaved, setServerUrlSaved] = useState(false);
   const [editUsername, setEditUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [editPassword, setEditPassword] = useState(false);
@@ -327,34 +324,6 @@ export function SettingsPage() {
           <Section icon={CalendarDots} title={t("settings.calendars")}>
             <CalendarManagement calendars={calendars} />
           </Section>
-
-          {/* Server URL */}
-          {isNative && (
-            <Section icon={Wrench} title={t("settings.serverUrl")}>
-              <div className="py-0.5 space-y-1.5">
-                <input
-                  type="url"
-                  value={serverUrl}
-                  onChange={(e) => setServerUrl(e.target.value)}
-                  placeholder="http://192.168.1.100:3000"
-                  className="block w-full border rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
-                />
-                <p className="text-xs text-neutral-400">{t("settings.serverUrlHint")}</p>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (serverUrl) localStorage.setItem("serverUrl", serverUrl.replace(/\/+$/, ""));
-                    else localStorage.removeItem("serverUrl");
-                    setServerUrlSaved(true);
-                    setTimeout(() => setServerUrlSaved(false), 2000);
-                  }}
-                  className="h-7 text-xs"
-                >
-                  {serverUrlSaved ? t("settings.serverUrlSaved") : t("settings.save")}
-                </Button>
-              </div>
-            </Section>
-          )}
 
           {/* Data & backup */}
           <Section icon={Database} title={t("settings.backupDb")}>
