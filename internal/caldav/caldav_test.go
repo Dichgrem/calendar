@@ -158,13 +158,13 @@ func TestCaldavPutNewEvent(t *testing.T) {
 	ics := `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
-UID:test-uid-001
+UID:550e8400-e29b-41d4-a716-446655440000
 DTSTART:20260620T100000Z
 DTEND:20260620T110000Z
 SUMMARY:New Event
 END:VEVENT
 END:VCALENDAR`
-	req := httptest.NewRequest("PUT", "/dav/calendars/cal-1/test-uid-001.ics", strings.NewReader(ics))
+	req := httptest.NewRequest("PUT", "/dav/calendars/cal-1/550e8400-e29b-41d4-a716-446655440000.ics", strings.NewReader(ics))
 	req.Header.Set("Authorization", basicAuth("testuser", "testpass"))
 	req.Header.Set("Content-Type", "text/calendar")
 	w := httptest.NewRecorder()
@@ -175,13 +175,13 @@ END:VCALENDAR`
 
 	// Verify event exists in DB with the ICS UID as its ID — not a random UUID.
 	var title string
-	_ = db.DB.QueryRow("SELECT title FROM events WHERE id=? AND calendar_id=?", "test-uid-001", "cal-1").Scan(&title)
+	_ = db.DB.QueryRow("SELECT title FROM events WHERE id=? AND calendar_id=?", "550e8400-e29b-41d4-a716-446655440000", "cal-1").Scan(&title)
 	if title != "New Event" {
 		t.Errorf("title=%q want 'New Event' (event id may not match UID)", title)
 	}
 
 	// Verify DAVx5 can GET and DELETE using the same URL
-	req2 := httptest.NewRequest("GET", "/dav/calendars/cal-1/test-uid-001.ics", nil)
+	req2 := httptest.NewRequest("GET", "/dav/calendars/cal-1/550e8400-e29b-41d4-a716-446655440000.ics", nil)
 	req2.Header.Set("Authorization", basicAuth("testuser", "testpass"))
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
