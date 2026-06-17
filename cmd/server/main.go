@@ -100,8 +100,17 @@ func main() {
 		// Auth-protected endpoints
 		auth.RegisterProtectedRoutes(r)
 
-		// Logs endpoint (authenticated)
+		// Logs endpoint (admin only)
 		r.Get("/api/logs", func(w http.ResponseWriter, r *http.Request) {
+			perm := middleware.GetPermission(r)
+			var adminID string
+			_ = db.DB.QueryRow("SELECT id FROM users ORDER BY created_at ASC LIMIT 1").Scan(&adminID)
+			if perm == nil || perm.UserID != adminID {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(403)
+				_, _ = w.Write([]byte(`{"ok":false,"error":"admin only"}`))
+				return
+			}
 			logger.HandleLogs(w, r)
 		})
 

@@ -132,7 +132,8 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 
 	icalCal, err := parseIcsContent(req.Content)
 	if err != nil {
-		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to parse ICS: "+err.Error()))
+		logger.Error("[ics] preview parse error: %v", err)
+		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to parse ICS"))
 		return
 	}
 
@@ -200,13 +201,15 @@ func handleFetchURL(w http.ResponseWriter, r *http.Request) {
 
 	content, err := fetchIcsFromURL(req.URL)
 	if err != nil {
-		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to fetch: "+err.Error()))
+		logger.Error("[ics] fetch-url error: %v", err)
+		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to fetch ICS"))
 		return
 	}
 
 	icalCal, err := parseIcsContent(content)
 	if err != nil {
-		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to parse ICS: "+err.Error()))
+		logger.Error("[ics] fetch-url parse error: %v", err)
+		middleware.JSONResponse(w, 400, apperror.BadRequest("Failed to parse ICS"))
 		return
 	}
 

@@ -42,6 +42,7 @@ bench:
 # vet
 lint:
     go vet ./...
+    golangci-lint run
     @pnpm exec biome check web
     @pnpm --filter @calendar/web exec tsc --noEmit
 

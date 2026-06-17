@@ -14,13 +14,12 @@ import (
 const (
 	SessionTokenBytes = 32 // 64 hex chars
 	SaltBytes         = 16 // 32 hex chars
-	PBKDF2Iterations  = 100_000
+	PBKDF2Iterations  = 600_000
 	PBKDF2KeyLen      = 32 // SHA-256 output
 )
 
 // HashPassword returns PBKDF2(password, salt) as hex.
-// Parameters match the existing Node.js implementation:
-// PBKDF2 SHA-256, 100,000 iterations, 32-byte output.
+// Parameters: PBKDF2 SHA-256, 600,000 iterations, 32-byte output.
 func HashPassword(password, salt string) string {
 	hash := pbkdf2.Key([]byte(password), []byte(salt), PBKDF2Iterations, PBKDF2KeyLen, sha256.New)
 	return hex.EncodeToString(hash)

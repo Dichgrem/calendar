@@ -41,7 +41,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 403, apperror.Forbidden("Admin only"))
 		return
 	}
-	if err := os.MkdirAll(backupDir, 0755); err != nil {
+	if err := os.MkdirAll(backupDir, 0700); err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Cannot create backup directory"))
 		return
 	}
@@ -63,7 +63,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = src.Close() }()
 
-	dst, err := os.Create(dest)
+	dst, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		logger.Error("backup create dest: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Backup failed"))

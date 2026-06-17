@@ -108,8 +108,8 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 400, apperror.BadRequest("Username must be 1-100 characters"))
 		return
 	}
-	if len(req.Password) < 4 || len(req.Password) > 200 {
-		middleware.JSONResponse(w, 400, apperror.BadRequest("Password must be 4-200 characters"))
+	if len(req.Password) < 8 || len(req.Password) > 200 {
+		middleware.JSONResponse(w, 400, apperror.BadRequest("Password must be 8-200 characters"))
 		return
 	}
 
@@ -238,8 +238,8 @@ func HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 400, apperror.BadRequest("oldPassword is required"))
 		return
 	}
-	if len(req.NewPassword) < 4 || len(req.NewPassword) > 200 {
-		middleware.JSONResponse(w, 400, apperror.BadRequest("New password must be 4-200 characters"))
+	if len(req.NewPassword) < 8 || len(req.NewPassword) > 200 {
+		middleware.JSONResponse(w, 400, apperror.BadRequest("New password must be 8-200 characters"))
 		return
 	}
 
@@ -270,6 +270,10 @@ func HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
+
+	// Revoke all other sessions except the current one
+	currentSession := extractSessionToken(r)
+	_, _ = db.DB.Exec("DELETE FROM sessions WHERE user_id = ? AND id != ?", perm.UserID, currentSession)
 
 	logger.Info("[auth] change-password user=%s success", perm.UserID)
 	middleware.JSONResponse(w, 200, nil)

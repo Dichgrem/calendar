@@ -98,6 +98,8 @@ func Login(username, password string, sessionDuration time.Duration) (*User, *Se
 		username,
 	).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt)
 	if err == sql.ErrNoRows {
+		// Prevent user enumeration: hash a dummy password to take constant time
+		_ = VerifyPassword("dummy", "$2a$10$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 		return nil, nil, nil
 	}
 	if err != nil {
