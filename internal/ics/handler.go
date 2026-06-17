@@ -591,7 +591,23 @@ func fetchIcsFromURL(rawURL string) (string, error) {
 		}
 	}
 
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("too many redirects")
+			}
+			// Validate each redirect target
+			rh := req.URL.Hostname()
+			if rh == "" || rh == "localhost" {
+				return fmt.Errorf("redirect to invalid host")
+			}
+			if ip := net.ParseIP(rh); ip != nil && isPrivateIP(ip) {
+				return fmt.Errorf("redirect to private IP not allowed")
+			}
+			return nil
+		},
+	}
 	resp, err := client.Get(rawURL)
 	if err != nil {
 		return "", fmt.Errorf("fetch failed: %w", err)

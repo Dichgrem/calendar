@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -14,6 +15,45 @@ import (
 	"calendar/internal/logger"
 	"calendar/internal/middleware"
 )
+
+// accountFailureTracker provides per-username exponential backoff on login failures.
+type accountFailureTracker struct {
+	mu       sync.Mutex
+	failures map[string]int // username → consecutive failures
+	lastTry  map[string]time.Time
+}
+
+func (a *accountFailureTracker) record(username string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.failures == nil {
+		a.failures = map[string]int{}
+		a.lastTry = map[string]time.Time{}
+	}
+	a.failures[username]++
+	a.lastTry[username] = time.Now()
+}
+
+func (a *accountFailureTracker) reset(username string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	delete(a.failures, username)
+	delete(a.lastTry, username)
+}
+
+func (a *accountFailureTracker) denied(username string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	n := a.failures[username]
+	if n < 5 {
+		return false
+	}
+	// Exponential backoff: 2^n seconds after 5 failures
+	delay := time.Duration(1<<uint(n-5)) * time.Second
+	return time.Since(a.lastTry[username]) < delay
+}
+
+var accountFailures = &accountFailureTracker{}
 
 // RegisterRoutes adds public auth routes to a chi router.
 func RegisterRoutes(r chi.Router) {
@@ -110,6 +150,12 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Account-level rate limiting: block after 5 consecutive failures
+	if accountFailures.denied(req.Username) {
+		middleware.JSONResponse(w, 429, apperror.RateLimited("Too many attempts. Try again in a few seconds."))
+		return
+	}
+
 	cfg := config.Load()
 	user, session, err := Login(req.Username, req.Password, cfg.SessionDuration)
 	if err != nil {
@@ -118,9 +164,11 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if session == nil {
 		logger.Info("[auth] login user=%q invalid credentials", req.Username)
+		accountFailures.record(req.Username)
 		middleware.JSONResponse(w, 401, apperror.Unauthorized("Invalid credentials"))
 		return
 	}
+	accountFailures.reset(req.Username)
 
 	logger.Info("[auth] login user=%q success", req.Username)
 	setSessionCookie(w, session.ID, cfg.SessionDuration, cfg.SecureCookies)

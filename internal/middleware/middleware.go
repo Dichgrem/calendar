@@ -266,18 +266,29 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'")
+		if r.TLS != nil {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
 		next.ServeHTTP(w, r)
 	})
 }
 
 // CORS is middleware for Capacitor WebView cross-origin requests.
-// The APK loads from http://localhost; API calls to the server are CORS.
+// Only allows known whitelisted origins (localhost / capacitor scheme).
 func CORS(next http.Handler) http.Handler {
+	allowed := map[string]bool{
+		"http://localhost":      true, // Capacitor WebView
+		"https://localhost":     true,
+		"capacitor://localhost": true, // Capacitor scheme
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 		if origin != "" {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			if allowed[origin] {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS, PROPFIND, REPORT, MKCALENDAR, PUT")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Depth, Prefer")
 			// Only short-circuit for actual CORS preflight

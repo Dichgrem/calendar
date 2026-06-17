@@ -41,3 +41,8 @@ func Conflict(msg string) *AppError {
 func Internal(msg string) *AppError {
 	return &AppError{Code: http.StatusInternalServerError, ErrCode: "INTERNAL", Message: msg}
 }
+
+// RateLimited returns a 429 Too Many Requests error.
+func RateLimited(msg string) *AppError {
+	return &AppError{Code: http.StatusTooManyRequests, ErrCode: "RATE_LIMITED", Message: msg}
+}

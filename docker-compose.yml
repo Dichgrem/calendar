@@ -2,7 +2,7 @@ services:
   calendar:
     build: .
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"  # only localhost; use reverse proxy for external access
     environment:
       - DATABASE_URL=/app/data/calendar.db
     volumes:
