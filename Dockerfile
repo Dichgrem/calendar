@@ -27,11 +27,14 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /server ./cmd/server/
 # Stage 3: Runtime
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata
+RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 COPY --from=go-builder /server .
+RUN mkdir -p /app/data && chown app:app /app/data
 EXPOSE 3000
 ENV PORT=3000
 ENV DATABASE_URL=/app/data/calendar.db
 ENV SECURE_COOKIES=true
 VOLUME ["/app/data"]
+USER app
 ENTRYPOINT ["./server"]
