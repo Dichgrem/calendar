@@ -310,8 +310,13 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 		}
 		logger.Info("[caldav] PUT %s UPDATED uid=%s title=%q start=%s", r.URL.Path, existingID, evTitle, evStartAt)
 	} else {
+		// Use server-generated UUID if client-provided ID is not a valid UUID
+		id := lookupID
+		if _, err := uuid.Parse(lookupID); err != nil {
+			id = uuid.New().String()
+		}
 		_, err := db.DB.Exec(`INSERT INTO events (id, calendar_id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-			lookupID, calID, evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, now, lmod)
+			id, calID, evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, now, lmod)
 		if err != nil {
 			logger.Error("[caldav] PUT %s INSERT error: %v", r.URL.Path, err)
 			http.Error(w, "Internal Server Error", 500)
