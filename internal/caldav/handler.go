@@ -325,7 +325,19 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 func handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
 	calID, filename := parseCalPath(r.URL.Path)
 	eventID := strings.TrimSuffix(filename, ".ics")
-	logger.Info("[caldav] DELETE %s cal=%s uid=%s", r.URL.Path, calID, eventID)
+	userID := userIDFromReq(r)
+	logger.Info("[caldav] DELETE %s cal=%s uid=%s user=%s", r.URL.Path, calID, eventID, userID)
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var count int
+	if err := db.DB.QueryRow("SELECT COUNT(*) FROM calendar_members WHERE calendar_id=? AND user_id=?", calID, userID).Scan(&count); err != nil || count == 0 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	res, _ := db.DB.Exec(`UPDATE events SET deleted=1, updated_at=?, last_modified=? WHERE id=? AND calendar_id=?`,
 		time.Now().UTC().Format(time.RFC3339), time.Now().UnixMilli(), eventID, calID)
 	affected, _ := res.RowsAffected()
