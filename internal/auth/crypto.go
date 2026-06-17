@@ -19,9 +19,9 @@ const (
 )
 
 // HashPassword returns PBKDF2(password, salt) as hex.
-// Parameters: PBKDF2 SHA-256, 600,000 iterations, 32-byte output.
-func HashPassword(password, salt string) string {
-	hash := pbkdf2.Key([]byte(password), []byte(salt), PBKDF2Iterations, PBKDF2KeyLen, sha256.New)
+// Uses the given iteration count (PBKDF2 SHA-256, 32-byte output).
+func hashPassword(password, salt string, iterations int) string {
+	hash := pbkdf2.Key([]byte(password), []byte(salt), iterations, PBKDF2KeyLen, sha256.New)
 	return hex.EncodeToString(hash)
 }
 
@@ -34,24 +34,34 @@ func GenerateSalt() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// MakePasswordHash produces the stored format: "<hash>:<salt>".
+// MakePasswordHash produces the stored format: "<hash>:<salt>:<iterations>".
+// New users use PBKDF2Iterations; existing old-format hashes default to 100k.
 func MakePasswordHash(password string) (string, error) {
 	salt, err := GenerateSalt()
 	if err != nil {
 		return "", err
 	}
-	hash := HashPassword(password, salt)
-	return fmt.Sprintf("%s:%s", hash, salt), nil
+	hash := hashPassword(password, salt, PBKDF2Iterations)
+	return fmt.Sprintf("%s:%s:%d", hash, salt, PBKDF2Iterations), nil
 }
 
-// VerifyPassword checks a password against the stored hash:salt.
+// VerifyPassword checks a password against the stored string.
+// Format: "hash:salt" (old, 100k iters) or "hash:salt:iterations" (new).
 func VerifyPassword(password, stored string) bool {
-	parts := strings.SplitN(stored, ":", 2)
-	if len(parts) != 2 {
+	parts := strings.SplitN(stored, ":", 3)
+	var hash, salt string
+	iterations := 100_000 // default for old format
+	if len(parts) == 3 {
+		hash, salt = parts[0], parts[1]
+		if n, err := fmt.Sscanf(parts[2], "%d", &iterations); n != 1 || err != nil {
+			return false
+		}
+	} else if len(parts) == 2 {
+		hash, salt = parts[0], parts[1]
+	} else {
 		return false
 	}
-	hash, salt := parts[0], parts[1]
-	input := HashPassword(password, salt)
+	input := hashPassword(password, salt, iterations)
 	return subtle.ConstantTimeCompare([]byte(hash), []byte(input)) == 1
 }
 

@@ -86,7 +86,6 @@ export function SettingsPage() {
     settings ??
     ({ userId: "", language: "zh-CN", firstDayOfWeek: 1, dateFormat: "zh", showLunarCalendar: true } as UserSettings);
   const [saved, setSaved] = useState(false);
-  const [dirty, setDirty] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [backingUp, setBackingUp] = useState(false);
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
@@ -130,7 +129,6 @@ export function SettingsPage() {
 
   const updateSettings = (next: UserSettings) => {
     queryClient.setQueryData(["settings"], next);
-    setDirty(true);
   };
 
   const handleSave = async () => {
@@ -141,7 +139,6 @@ export function SettingsPage() {
       const res = await api.settings.update(latest);
       // Store unwrapped data to match useSettings queryFn which strips { ok, data }
       if (res) queryClient.setQueryData(["settings"], (res as any).data);
-      setDirty(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -165,7 +162,7 @@ export function SettingsPage() {
 
   const handleChangePassword = async () => {
     setAcctMsg("");
-    if (newPassword.length < 4) {
+    if (newPassword.length < 8) {
       setAcctMsg(t("settings.pwTooShort"));
       return;
     }
@@ -177,8 +174,8 @@ export function SettingsPage() {
         setNewPassword("");
         setAcctMsg(t("settings.saved"));
       } else setAcctMsg(res?.error?.message || t("settings.saveError"));
-    } catch {
-      setAcctMsg(t("settings.saveError"));
+    } catch (e: any) {
+      setAcctMsg(e?.message || t("settings.saveError"));
     }
   };
 
@@ -467,9 +464,7 @@ export function SettingsPage() {
       </div>
 
       {/* Sticky save bar */}
-      <div
-        className={`sticky bottom-0 mx-auto max-w-xl px-4 py-3 transition-all duration-300 ${dirty ? "" : "pointer-events-none opacity-0"}`}
-      >
+      <div className="sticky bottom-0 mx-auto max-w-xl px-4 py-3 transition-all duration-300">
         <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-lg px-4 py-2.5 flex items-center gap-3">
           <p className="text-xs text-neutral-500 flex-1">
             {saved ? t("settings.saved") : t("settings.unsavedChanges")}

@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -180,13 +181,20 @@ func verifyUserPassword(username, password string) string {
 }
 
 func verifyHash(password, stored string) bool {
-	parts := strings.SplitN(stored, ":", 2)
-	if len(parts) != 2 {
+	parts := strings.SplitN(stored, ":", 3)
+	var hash, salt string
+	iterations := 100_000 // default for old format
+	if len(parts) == 3 {
+		hash, salt = parts[0], parts[1]
+		if _, err := fmt.Sscanf(parts[2], "%d", &iterations); err != nil {
+			return false
+		}
+	} else if len(parts) == 2 {
+		hash, salt = parts[0], parts[1]
+	} else {
 		return false
 	}
-	hash, salt := parts[0], parts[1]
-	// Must match auth.PBKDF2Iterations (600_000) for CalDAV Basic Auth to work
-	input := hex.EncodeToString(pbkdf2.Key([]byte(password), []byte(salt), 600_000, 32, sha256.New))
+	input := hex.EncodeToString(pbkdf2.Key([]byte(password), []byte(salt), iterations, 32, sha256.New))
 	return subtle.ConstantTimeCompare([]byte(hash), []byte(input)) == 1
 }
 

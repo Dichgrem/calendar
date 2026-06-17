@@ -76,10 +76,10 @@ const strings = {
   "settings.preferences": { "zh-CN": "偏好设置", en: "Preferences" },
   "settings.changePassword": { "zh-CN": "修改密码", en: "Change password" },
   "settings.oldPassword": { "zh-CN": "旧密码", en: "Old password" },
-  "settings.newPassword": { "zh-CN": "新密码（至少 4 位）", en: "New password (min 4 chars)" },
+  "settings.newPassword": { "zh-CN": "新密码（至少 8 位）", en: "New password (min 8 chars)" },
   "settings.pwTooShort": {
-    "zh-CN": "新密码至少 4 位",
-    en: "New password must be at least 4 characters",
+    "zh-CN": "新密码至少 8 位",
+    en: "New password must be at least 8 characters",
   },
   "settings.dataMgmt": { "zh-CN": "数据管理", en: "Data Management" },
   "settings.importIcs": { "zh-CN": "导入 ICS 日历", en: "Import ICS Calendar" },

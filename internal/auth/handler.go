@@ -273,7 +273,9 @@ func HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	// Revoke all other sessions except the current one
 	currentSession := extractSessionToken(r)
-	_, _ = db.DB.Exec("DELETE FROM sessions WHERE user_id = ? AND id != ?", perm.UserID, currentSession)
+	if currentSession != "" {
+		_, _ = db.DB.Exec("DELETE FROM sessions WHERE user_id = ? AND id != ?", perm.UserID, currentSession)
+	}
 
 	logger.Info("[auth] change-password user=%s success", perm.UserID)
 	middleware.JSONResponse(w, 200, nil)

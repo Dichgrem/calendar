@@ -88,7 +88,7 @@ export function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
             required
-            minLength={4}
+            minLength={8}
           />
         </label>
 
