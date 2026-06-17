@@ -125,7 +125,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
                   type="button"
                   key={m}
                   onClick={() => gotoMonth(pickerYear, i)}
-                  className={`px-2 py-1.5 text-sm rounded-full transition-colors dark:text-neutral-300 ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors dark:text-neutral-300 ${isCurrent ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
                 >
                   {m}
                 </button>

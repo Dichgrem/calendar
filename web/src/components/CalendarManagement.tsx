@@ -237,65 +237,6 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
         </div>
       )}
 
-      {/* Export panel */}
-      {exportOpen && (
-        <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-neutral-500">{t("settings.selectCalendars")}</span>
-            <button
-              type="button"
-              onClick={toggleExportAll}
-              className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-            >
-              {exportSelected.size === calendars?.length ? t("settings.deselectAll") : t("settings.selectAll")}
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
-            {calendars?.map((cal) => (
-              <label key={cal.id} className="flex items-center gap-1.5 cursor-pointer text-sm">
-                <input
-                  type="checkbox"
-                  checked={exportSelected.has(cal.id)}
-                  onChange={() => toggleExportCal(cal.id)}
-                  className="peer sr-only"
-                />
-                <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors shrink-0">
-                  <svg
-                    aria-hidden="true"
-                    className="size-3 text-white dark:text-neutral-800 hidden peer-checked:block"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-                <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                <span className="text-neutral-800 dark:text-neutral-200">{cal.name}</span>
-              </label>
-            ))}
-          </div>
-          <div className="flex gap-1">
-            <Button
-              size="sm"
-              onClick={() => {
-                const selected = calendars?.filter((c) => exportSelected.has(c.id)) ?? [];
-                for (const c of selected) handleExportCal(c.id, c.name);
-                setExportOpen(false);
-              }}
-              disabled={exportSelected.size === 0}
-              className="h-7 text-xs"
-            >
-              {t("settings.exportSelected")} ({exportSelected.size})
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setExportOpen(false)} className="h-7 text-xs">
-              {t("settings.cancel")}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Common calendars */}
       {commonCalOpen && (
         <div className="mb-3 space-y-1.5">
@@ -334,6 +275,65 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
       {importOpen && (
         <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
           <ImportForm />
+        </div>
+      )}
+
+      {/* Export panel */}
+      {exportOpen && (
+        <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-neutral-500">{t("settings.selectCalendars")}</span>
+            <button
+              type="button"
+              onClick={toggleExportAll}
+              className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+            >
+              {exportSelected.size === calendars?.length ? t("settings.deselectAll") : t("settings.selectAll")}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
+            {calendars?.map((cal) => (
+              <label key={cal.id} className="flex items-center gap-1.5 cursor-pointer text-sm">
+                <input
+                  type="checkbox"
+                  checked={exportSelected.has(cal.id)}
+                  onChange={() => toggleExportCal(cal.id)}
+                  className="peer sr-only"
+                />
+                <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors  shrink-0">
+                  <svg
+                    aria-hidden="true"
+                    className="w-3.5 h-3.5 text-white dark:text-neutral-800 transition-opacity"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
+                <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                <span className="text-neutral-800 dark:text-neutral-200">{cal.name}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              onClick={() => {
+                const selected = calendars?.filter((c) => exportSelected.has(c.id)) ?? [];
+                for (const c of selected) handleExportCal(c.id, c.name);
+                setExportOpen(false);
+              }}
+              disabled={exportSelected.size === 0}
+              className="h-7 text-xs"
+            >
+              {t("settings.exportSelected")} ({exportSelected.size})
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(false)} className="h-7 text-xs">
+              {t("settings.cancel")}
+            </Button>
+          </div>
         </div>
       )}
 
