@@ -202,7 +202,7 @@ export function SettingsPage() {
       {topBar?.left && createPortal(<LeftControls />, topBar.left)}
       {topBar?.center && createPortal(<CenterControls />, topBar.center)}
       <div className="flex-1 overflow-auto">
-        <div className="max-w-xl mx-auto px-4 py-6 space-y-3">
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-3">
           {/* Preferences */}
           <Section icon={Wrench} title={t("settings.preferences")}>
             <SettingsForm settings={s} onUpdate={updateSettings} />

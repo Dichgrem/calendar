@@ -169,7 +169,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex items-center justify-center gap-1 mb-3">
+      <div className="flex items-center justify-center gap-1 mb-3 flex-wrap">
         <Button
           variant="outline"
           size="sm"

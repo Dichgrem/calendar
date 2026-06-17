@@ -12,7 +12,7 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
 
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-sm text-neutral-600 dark:text-neutral-400 shrink-0">{label}</span>
+      <span className="text-sm text-neutral-600 dark:text-neutral-400 shrink-0 truncate max-w-[40%]">{label}</span>
       <div className="flex-1 flex justify-end">{children}</div>
     </div>
   );
