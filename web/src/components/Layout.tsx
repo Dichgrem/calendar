@@ -1,6 +1,6 @@
 import { CalendarDots, GearSix, MagnifyingGlass, SignOut } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, type RefCallback, useCallback, useContext, useState } from "react";
+import { createContext, type RefCallback, useCallback, useContext, useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { useI18n } from "../hooks/use-i18n";
 import { NavProvider } from "../hooks/use-nav";
@@ -61,6 +61,22 @@ export function Layout() {
     queryClient.clear();
     navigate("/auth/login");
   };
+
+  // Keyboard shortcut: Ctrl+K or / to open search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "/" && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const navItems = [
     { to: "/calendar", icon: CalendarDots, label: t("nav.calendar") },

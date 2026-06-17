@@ -169,6 +169,7 @@ export function CalendarView() {
     <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 mt-1 min-w-[24rem] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
       <div className="px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
         <input
+          ref={(el) => el?.focus()}
           type="text"
           placeholder={t("cal.search")}
           value={searchQuery}
