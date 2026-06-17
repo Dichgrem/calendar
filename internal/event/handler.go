@@ -130,8 +130,8 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 	calendarID := chi.URLParam(r, "calendarId")
 	logger.Debug("[event] POST cal=%s user=%s", calendarID, perm.UserID)
 
-	if !perm.IsMember(calendarID) {
-		middleware.JSONResponse(w, 403, apperror.Forbidden("Access denied"))
+	if !perm.RequireRole(calendarID, "editor") {
+		middleware.JSONResponse(w, 403, apperror.Forbidden("Editor role required"))
 		return
 	}
 
@@ -209,6 +209,10 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+		return
+	}
+	if !perm.RequireRole(e.CalendarID, "editor") {
+		middleware.JSONResponse(w, 403, apperror.Forbidden("Editor role required"))
 		return
 	}
 	_ = e // used for future role checks
@@ -298,13 +302,17 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	eventID := chi.URLParam(r, "id")
 	logger.Debug("[event] DELETE id=%s user=%s", eventID, perm.UserID)
 
-	_, err := getEvent(eventID, perm.UserID)
+	e, err := getEvent(eventID, perm.UserID)
 	if err == sql.ErrNoRows {
 		middleware.JSONResponse(w, 404, apperror.NotFound("Event not found"))
 		return
 	}
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+		return
+	}
+	if !perm.RequireRole(e.CalendarID, "editor") {
+		middleware.JSONResponse(w, 403, apperror.Forbidden("Editor role required"))
 		return
 	}
 
@@ -339,13 +347,17 @@ func handleOverride(w http.ResponseWriter, r *http.Request) {
 	parentID := chi.URLParam(r, "id")
 
 	// Check access
-	_, err := getEvent(parentID, perm.UserID)
+	e, err := getEvent(parentID, perm.UserID)
 	if err == sql.ErrNoRows {
 		middleware.JSONResponse(w, 404, apperror.NotFound("Event not found"))
 		return
 	}
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+		return
+	}
+	if !perm.RequireRole(e.CalendarID, "editor") {
+		middleware.JSONResponse(w, 403, apperror.Forbidden("Editor role required"))
 		return
 	}
 
