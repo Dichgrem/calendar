@@ -71,6 +71,7 @@ const strings = {
   "settings.sunday": { "zh-CN": "周日", en: "Sunday" },
   "settings.monday": { "zh-CN": "周一", en: "Monday" },
   "settings.saveError": { "zh-CN": "保存失败，请重试", en: "Failed to save, please retry" },
+  "settings.saving": { "zh-CN": "保存中...", en: "Saving..." },
   "settings.saved": { "zh-CN": "已保存", en: "Saved" },
   "settings.save": { "zh-CN": "保存设置", en: "Save settings" },
   "settings.preferences": { "zh-CN": "偏好设置", en: "Preferences" },

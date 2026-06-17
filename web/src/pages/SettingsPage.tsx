@@ -1,15 +1,6 @@
-import {
-  CalendarDots,
-  CaretDown,
-  Database,
-  FloppyDisk,
-  Package,
-  PencilSimple,
-  User,
-  Wrench,
-} from "@phosphor-icons/react";
+import { CalendarDots, CaretDown, Database, Package, PencilSimple, User, Wrench } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarManagement } from "../components/CalendarManagement";
 import { useTopBar } from "../components/Layout";
@@ -85,8 +76,9 @@ export function SettingsPage() {
   const s: UserSettings =
     settings ??
     ({ userId: "", language: "zh-CN", firstDayOfWeek: 1, dateFormat: "zh", showLunarCalendar: true } as UserSettings);
-  const [saved, setSaved] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [backingUp, setBackingUp] = useState(false);
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
   const [serverUrl, setServerUrl] = useState(localStorage.getItem("serverUrl") || "");
@@ -129,21 +121,19 @@ export function SettingsPage() {
 
   const updateSettings = (next: UserSettings) => {
     queryClient.setQueryData(["settings"], next);
-  };
-
-  const handleSave = async () => {
-    setSaveError("");
-    try {
-      // Read latest from cache to avoid stale closure over `s`
-      const latest: UserSettings = (queryClient.getQueryData(["settings"]) as UserSettings) ?? s;
-      const res = await api.settings.update(latest);
-      // Store unwrapped data to match useSettings queryFn which strips { ok, data }
-      if (res) queryClient.setQueryData(["settings"], (res as any).data);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {
-      setSaveError(t("settings.saveError"));
-    }
+    // Debounce: save after 500ms of no changes
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSaveState("saving");
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await api.settings.update(next);
+        setSaveState("saved");
+        setTimeout(() => setSaveState("idle"), 2000);
+      } catch {
+        setSaveState("error");
+        setTimeout(() => setSaveState("idle"), 2500);
+      }
+    }, 500);
   };
 
   const handleChangeUsername = async () => {
@@ -325,7 +315,13 @@ export function SettingsPage() {
                   />
                 </div>
               )}
-              {acctMsg && <p className="text-[11px] text-green-600 pb-1">{acctMsg}</p>}
+              {acctMsg && (
+                <div className="fixed top-14 right-4 z-50 pointer-events-none">
+                  <div className="px-5 py-3 rounded-lg shadow-lg text-base font-semibold transition-all duration-300 bg-green-600 text-white">
+                    {acctMsg}
+                  </div>
+                </div>
+              )}
             </div>
           </Section>
           <Section icon={CalendarDots} title={t("settings.calendars")}>
@@ -463,18 +459,26 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* Sticky save bar */}
-      <div className="sticky bottom-0 mx-auto max-w-xl px-4 py-3 transition-all duration-300">
-        <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-lg px-4 py-2.5 flex items-center gap-3">
-          <p className="text-xs text-neutral-500 flex-1">
-            {saved ? t("settings.saved") : t("settings.unsavedChanges")}
-          </p>
-          <Button size="sm" onClick={handleSave} className="h-8 text-xs gap-1.5 px-4">
-            <FloppyDisk className="size-3.5" weight="bold" />
-            {t("settings.save")}
-          </Button>
+      {/* Save toast */}
+      {saveState !== "idle" && (
+        <div className="fixed top-14 right-4 z-50 pointer-events-none">
+          <div
+            className={`px-5 py-3 rounded-lg shadow-lg text-base font-semibold transition-all duration-300 ${
+              saveState === "saving"
+                ? "bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-800"
+                : saveState === "saved"
+                  ? "bg-green-600 text-white"
+                  : "bg-red-600 text-white"
+            }`}
+          >
+            {saveState === "saving"
+              ? t("settings.saving")
+              : saveState === "saved"
+                ? t("settings.saved")
+                : t("settings.saveError")}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
