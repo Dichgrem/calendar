@@ -152,3 +152,15 @@ calendar/
 ├── Justfile
 └── go.mod
 ```
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Usage Guide](docs/usage.md) | Desktop & mobile setup, CalDAV pairing, backup/restore |
+| [API Reference](docs/api.md) | REST API endpoints, CalDAV protocol, error codes |
+| [Developer Guide](docs/dev-guide.md) | Build from source, just commands, frontend HMR |
+| [Project Structure](docs/structure.md) | Code layout, packages, architecture decisions |
+| [Log System](docs/log.md) | Log levels, debug mode, log viewer |

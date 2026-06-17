@@ -150,3 +150,15 @@ calendar/
 ├── Justfile
 └── go.mod
 ```
+
+---
+
+## 📚 文档
+
+| 文档 | 说明 |
+|------|------|
+| [使用指南](docs/usage.md) | 桌面/移动端设置、CalDAV 配对、备份恢复 |
+| [API 参考](docs/api.md) | REST API 端点、CalDAV 协议、错误码 |
+| [开发指南](docs/dev-guide.md) | 源码构建、just 命令、前端 HMR |
+| [项目结构](docs/structure.md) | 代码布局、包结构、架构决策 |
+| [日志系统](docs/log.md) | 日志级别、Debug 模式、日志查看器 |
