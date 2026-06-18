@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { useSettings } from "../hooks/use-settings";
 import { dateStr } from "../lib/date-format";
 import { getLunarText } from "../lib/lunar";
@@ -44,7 +44,7 @@ interface MonthGridProps {
   onEventClick: (event: Event) => void;
 }
 
-export function MonthGrid({
+export const MonthGrid = memo(function MonthGrid({
   year,
   month,
   firstDayOfWeek,
@@ -187,4 +187,4 @@ export function MonthGrid({
       })}
     </div>
   );
-}
+});

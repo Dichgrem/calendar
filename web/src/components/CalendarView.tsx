@@ -1,4 +1,5 @@
 import { Moon, Plus, Sun } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCalendars } from "../hooks/use-calendars";
@@ -6,6 +7,7 @@ import { useEvents } from "../hooks/use-events";
 import { useI18n } from "../hooks/use-i18n";
 import { useNav } from "../hooks/use-nav";
 import { useSettings } from "../hooks/use-settings";
+import { api } from "../lib/api";
 import { dateStr } from "../lib/date-format";
 import type { Event } from "../types";
 import { EventEditor } from "./EventEditor";
@@ -27,6 +29,12 @@ export function CalendarView() {
     return saved;
   });
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const queryClient = useQueryClient();
+
+  // Preload settings page chunk in the background
+  useEffect(() => {
+    import("../pages/SettingsPage");
+  }, []);
 
   const { data: calendars } = useCalendars();
   const { data: settings } = useSettings();
@@ -62,6 +70,34 @@ export function CalendarView() {
   );
 
   const searchableEvents = searchQuery ? allEvents : events;
+
+  // Prefetch adjacent months for instant navigation
+  useEffect(() => {
+    if (searchQuery || !allCalIds.length) return;
+    const visibleIds = allCalIds.filter((id) => visibleCalendars.has(id));
+    if (!visibleIds.length) return;
+
+    const prefetchMonth = (year: number, month: number) => {
+      const d = new Date(year, month, 1);
+      d.setDate(d.getDate() - ((d.getDay() - firstDayOfWeek + 7) % 7));
+      const s = `${dateStr(new Date(d.getTime() - 86400000))}T00:00:00`;
+      const e = `${dateStr(new Date(d.getTime() + 41 * 86400000))}T23:59:59`;
+      queryClient.prefetchQuery({
+        queryKey: ["events", visibleIds, s, e],
+        queryFn: () =>
+          Promise.all(visibleIds.map((id) => api.events.list(id, s, e))).then((res) =>
+            res.flatMap((r: any) => r.data ?? []),
+          ),
+      });
+    };
+
+    // Next month
+    const nm = displayMonth.month + 1;
+    prefetchMonth(nm > 11 ? displayMonth.year + 1 : displayMonth.year, nm > 11 ? 0 : nm);
+    // Previous month
+    const pm = displayMonth.month - 1;
+    prefetchMonth(pm < 0 ? displayMonth.year - 1 : displayMonth.year, pm < 0 ? 11 : pm);
+  }, [displayMonth, allCalIds, firstDayOfWeek, visibleCalendars, searchQuery, queryClient]);
 
   const toggleDark = () => {
     const next = !dark;
