@@ -27,7 +27,6 @@ function Section({
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-
   return (
     <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 overflow-hidden">
       {/* biome-ignore lint/a11y/useSemanticElements: collapsible section header */}
@@ -60,7 +59,6 @@ function Section({
     </div>
   );
 }
-
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const { t } = useI18n();
@@ -91,21 +89,18 @@ export function SettingsPage() {
   const [logCount, setLogCount] = useState(200);
   const [logAuto, setLogAuto] = useState(false);
   const [showLogs, setShowLogs] = useState(() => localStorage.getItem("showLogs") === "1");
-
   const fetchLogs = async () => {
     try {
       const res: any = await api.logs(logCount, logLevel || undefined);
       if (res?.data?.lines) setLogLines(res.data.lines);
     } catch {}
   };
-
   useEffect(() => {
     fetchLogs();
     if (!logAuto) return;
     const t = setInterval(fetchLogs, 5000);
     return () => clearInterval(t);
   }, [logAuto, logLevel, logCount]);
-
   const exportLogs = () => {
     const blob = new Blob([logLines.join("\n")], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -115,7 +110,6 @@ export function SettingsPage() {
     a.click();
     URL.revokeObjectURL(url);
   };
-
   const updateSettings = (next: UserSettings) => {
     queryClient.setQueryData(["settings"], next);
     // Debounce: save after 500ms of no changes
@@ -132,7 +126,6 @@ export function SettingsPage() {
       }
     }, 500);
   };
-
   const handleChangeUsername = async () => {
     setAcctMsg("");
     try {
@@ -146,7 +139,6 @@ export function SettingsPage() {
       setAcctMsg(t("settings.saveError"));
     }
   };
-
   const handleChangePassword = async () => {
     setAcctMsg("");
     if (newPassword.length < 8) {
@@ -165,7 +157,6 @@ export function SettingsPage() {
       setAcctMsg(e?.message || t("settings.saveError"));
     }
   };
-
   const handleBackup = async () => {
     setBackingUp(true);
     setBackupResult(null);
@@ -178,7 +169,6 @@ export function SettingsPage() {
       setBackingUp(false);
     }
   };
-
   const handleExportConfig = async () => {
     try {
       const cfg = await api.settings.exportConfig();
@@ -193,7 +183,6 @@ export function SettingsPage() {
       setSaveError(t("settings.exportConfigFailed"));
     }
   };
-
   return (
     <div className="flex flex-col h-full">
       {topBar?.left && createPortal(<LeftControls />, topBar.left)}
@@ -221,7 +210,6 @@ export function SettingsPage() {
               </button>
             </div>
           </Section>
-
           {/* Account */}
           <Section icon={User} title={t("settings.account")}>
             <div>
@@ -293,7 +281,6 @@ export function SettingsPage() {
                   )}
                 </div>
               </div>
-
               {editPassword && (
                 <div className="pb-1 space-y-1">
                   <input
@@ -324,7 +311,6 @@ export function SettingsPage() {
           <Section icon={CalendarDots} title={t("settings.calendars")}>
             <CalendarManagement calendars={calendars} />
           </Section>
-
           {/* Data & backup */}
           <Section icon={Database} title={t("settings.backupDb")}>
             <div className="py-0.5 space-y-1.5">
@@ -358,7 +344,6 @@ export function SettingsPage() {
               </div>
             </div>
           </Section>
-
           {/* Server logs — only shown when Debug mode is enabled */}
           {showLogs && (
             <Section icon={Database} title={t("settings.serverLogs")} collapsible>
@@ -412,22 +397,54 @@ export function SettingsPage() {
                     {t("settings.logExport")}
                   </Button>
                 </div>
-                <textarea
-                  readOnly
-                  value={logLines.join("\n")}
-                  className="w-full h-48 text-[11px] font-mono border rounded-lg p-2 bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 resize-y focus:outline-none"
-                />
+                <div className="w-full h-96 overflow-y-auto border rounded-lg bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 font-mono text-xs">
+                  {logLines.map((line, i) => {
+                    const timeMatch = line.match(/^time=(\S+)\s/);
+                    const levelMatch = line.match(/level=(\w+)\s/);
+                    const msgMatch = line.match(/msg="?(.+?)"?$/);
+                    const time = timeMatch ? timeMatch[1].replace("T", " ").slice(0, 19) : "";
+                    const level = levelMatch ? levelMatch[1] : "";
+                    const msg = msgMatch ? msgMatch[1] : line;
+                    const levelColor =
+                      level === "ERROR"
+                        ? "text-red-600 dark:text-red-400 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30"
+                        : level === "WARN"
+                          ? "text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"
+                          : level === "DEBUG"
+                            ? "text-neutral-400 dark:text-neutral-500 border-neutral-200 dark:border-neutral-700"
+                            : "text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700";
+                    return (
+                      <div
+                        key={i}
+                        className={`px-2.5 py-1 border-b flex items-center gap-2 ${levelColor} last:border-b-0`}
+                      >
+                        <span className="text-neutral-400 dark:text-neutral-500 shrink-0 tabular-nums">{time}</span>
+                        <span
+                          className={`font-semibold uppercase shrink-0 w-12 ${
+                            level === "ERROR"
+                              ? "text-red-600 dark:text-red-400"
+                              : level === "WARN"
+                                ? "text-amber-600 dark:text-amber-400"
+                                : level === "DEBUG"
+                                  ? "text-neutral-400 dark:text-neutral-500"
+                                  : "text-blue-600 dark:text-blue-400"
+                          }`}
+                        >
+                          {level}
+                        </span>
+                        <span className="flex-1 whitespace-pre-wrap break-all ">{msg}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </Section>
           )}
-
           {saveError && <p className="text-sm text-red-500 text-center">{saveError}</p>}
-
           {/* Spacer for sticky bar */}
           <div className="h-16" />
         </div>
       </div>
-
       {/* Save toast */}
       {saveState !== "idle" && (
         <div className="fixed top-14 right-4 z-50 pointer-events-none">
