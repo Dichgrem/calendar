@@ -1,6 +1,6 @@
 services:
   calendar:
-    build: .
+    image: brantcoat/calendar:latest
     ports:
       - "127.0.0.1:3000:3000"  # only localhost; use reverse proxy for external access
     environment:
