@@ -144,6 +144,7 @@ const strings = {
   "settings.exportConfigFailed": { "zh-CN": "导出配置失败", en: "Export config failed" },
   "settings.serverLogs": { "zh-CN": "服务器日志", en: "Server Logs" },
   "settings.logAll": { "zh-CN": "全部", en: "All" },
+  "settings.showLogs": { "zh-CN": "显示日志", en: "Show Logs" },
   "settings.logAutoRefresh": { "zh-CN": "自动刷新", en: "Auto-refresh" },
   "settings.logRefresh": { "zh-CN": "刷新", en: "Refresh" },
   "settings.logExport": { "zh-CN": "导出", en: "Export" },

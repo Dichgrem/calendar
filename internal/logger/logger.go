@@ -7,8 +7,11 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
+	"time"
 )
 
 // ringBuf stores the last N log entries.
@@ -59,10 +62,88 @@ func (rw *ringWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+const maxLogFileSize = 10 << 20 // 10 MB per day
+
+// rotatingFile wraps an *os.File and rotates to .1 suffix when maxLogFileSize is exceeded.
+type rotatingFile struct {
+	mu   sync.Mutex
+	f    *os.File
+	path string
+	size int64
+}
+
+func (rf *rotatingFile) Write(p []byte) (int, error) {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+
+	if rf.size > 0 && rf.size+int64(len(p)) > maxLogFileSize {
+		_ = rf.f.Close()
+		_ = os.Rename(rf.path, rf.path+".1")
+		f, err := os.OpenFile(rf.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return 0, err
+		}
+		rf.f = f
+		rf.size = 0
+	}
+
+	n, err := rf.f.Write(p)
+	rf.size += int64(n)
+	return n, err
+}
+
 func init() {
-	w := io.MultiWriter(os.Stderr, &ringWriter{rb: ring})
+	writers := []io.Writer{os.Stderr, &ringWriter{rb: ring}}
+
+	logDir := os.Getenv("LOG_DIR")
+	if logDir == "-" {
+		logDir = ""
+	}
+	if logDir == "" {
+		// Default: alongside the database directory
+		if dbPath := os.Getenv("DATABASE_URL"); dbPath != "" {
+			logDir = filepath.Join(filepath.Dir(dbPath), "logs")
+		} else {
+			logDir = "data/logs"
+		}
+	}
+
+	if logDir != "" {
+		if err := os.MkdirAll(logDir, 0755); err == nil {
+			today := time.Now().UTC().Format("2006-01-02")
+			filename := filepath.Join(logDir, "server-"+today+".log")
+			f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+			if err == nil {
+				writers = append(writers, &rotatingFile{f: f, path: filename})
+			}
+		}
+		// Clean up old log files (>7 days)
+		go cleanupOldLogs(logDir)
+	}
+
+	w := io.MultiWriter(writers...)
 	h := slog.NewTextHandler(w, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(h))
+}
+
+func cleanupOldLogs(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	cutoff := time.Now().Add(-7 * 24 * time.Hour)
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasPrefix(e.Name(), "server-") || !strings.HasSuffix(e.Name(), ".log") {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().Before(cutoff) {
+			_ = os.Remove(filepath.Join(dir, e.Name()))
+		}
+	}
 }
 
 // Info logs at info level. Supports printf-style formatting.

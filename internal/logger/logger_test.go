@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -220,3 +222,55 @@ func TestInfoErrorDebugFatal(t *testing.T) {
 }
 
 func itoa(n int) string { return strings.TrimSpace(fmt.Sprintf("%d", n)) }
+
+func TestRotatingFileWrite(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "test.log")
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rf := &rotatingFile{f: f, path: path}
+
+	// Write a small line
+	_, _ = rf.Write([]byte("hello\n"))
+	if rf.size != 6 {
+		t.Errorf("size=%d want 6", rf.size)
+	}
+
+	// Verify file contents
+	got, _ := os.ReadFile(path)
+	if string(got) != "hello\n" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestRotatingFileRotation(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "test.log")
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rf := &rotatingFile{f: f, path: path}
+
+	// Write data up to near the limit, then cross it
+	data := make([]byte, maxLogFileSize-5)
+	for i := range data {
+		data[i] = 'a'
+	}
+	_, _ = rf.Write(data)                 // size = maxLogFileSize - 5
+	_, _ = rf.Write([]byte("ZZZZZZZZZZ")) // triggers rotation (5 + 10 = maxLogFileSize+5)
+
+	// The original file should now be closed and renamed to .1
+	rotated := path + ".1"
+	if _, err := os.Stat(rotated); err != nil {
+		t.Errorf("rotated file missing: %v", err)
+	}
+
+	// The new file should contain only the overflow write
+	got, _ := os.ReadFile(path)
+	if string(got) != "ZZZZZZZZZZ" {
+		t.Errorf("new file got %q want 'ZZZZZZZZZZ'", got)
+	}
+}

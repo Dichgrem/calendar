@@ -90,7 +90,7 @@ export function SettingsPage() {
   const [logLevel, setLogLevel] = useState("");
   const [logCount, setLogCount] = useState(200);
   const [logAuto, setLogAuto] = useState(false);
-  const [debugMode, setDebugMode] = useState(() => localStorage.getItem("debugMode") === "1");
+  const [showLogs, setShowLogs] = useState(() => localStorage.getItem("showLogs") === "1");
 
   const fetchLogs = async () => {
     try {
@@ -204,19 +204,19 @@ export function SettingsPage() {
           <Section icon={Wrench} title={t("settings.preferences")}>
             <SettingsForm settings={s} onUpdate={updateSettings} />
             <div className="flex items-center justify-between py-1 mt-1 border-t border-neutral-100 dark:border-neutral-800">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">Debug 模式</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">{t("settings.showLogs")}</span>
               <button
                 type="button"
                 role="switch"
-                aria-checked={debugMode}
+                aria-checked={showLogs}
                 onClick={() => {
-                  setDebugMode(!debugMode);
-                  localStorage.setItem("debugMode", !debugMode ? "1" : "0");
+                  setShowLogs(!showLogs);
+                  localStorage.setItem("showLogs", !showLogs ? "1" : "0");
                 }}
-                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${debugMode ? "bg-neutral-900 dark:bg-neutral-300" : "bg-neutral-200 dark:bg-neutral-600"}`}
+                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${showLogs ? "bg-neutral-900 dark:bg-neutral-300" : "bg-neutral-200 dark:bg-neutral-600"}`}
               >
                 <span
-                  className={`inline-block size-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${debugMode ? "translate-x-[18px]" : "translate-x-0.5"}`}
+                  className={`inline-block size-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${showLogs ? "translate-x-[18px]" : "translate-x-0.5"}`}
                 />
               </button>
             </div>
@@ -360,7 +360,7 @@ export function SettingsPage() {
           </Section>
 
           {/* Server logs — only shown when Debug mode is enabled */}
-          {debugMode && (
+          {showLogs && (
             <Section icon={Database} title={t("settings.serverLogs")} collapsible>
               <div className="py-0.5 space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
