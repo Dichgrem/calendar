@@ -193,23 +193,50 @@ func main() {
 }
 
 func runMigrations() error {
-	data, err := migrationsFS.ReadFile("migrations/00001_initial.sql")
+	// Ensure schema_versions table exists
+	_, _ = db.DB.Exec(`CREATE TABLE IF NOT EXISTS schema_versions (
+		filename TEXT PRIMARY KEY,
+		applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+	)`)
+
+	entries, err := migrationsFS.ReadDir("migrations")
 	if err != nil {
-		return fmt.Errorf("read migration: %w", err)
+		return fmt.Errorf("read migrations dir: %w", err)
 	}
 
-	for _, stmt := range splitSQL(string(data)) {
-		stmt = strings.TrimSpace(stmt)
-		if stmt == "" {
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
 			continue
 		}
-		if _, err := db.DB.Exec(stmt); err != nil {
-			if strings.Contains(err.Error(), "already exists") {
+
+		var applied int
+		_ = db.DB.QueryRow("SELECT COUNT(*) FROM schema_versions WHERE filename = ?", entry.Name()).Scan(&applied)
+		if applied > 0 {
+			continue
+		}
+
+		data, err := migrationsFS.ReadFile("migrations/" + entry.Name())
+		if err != nil {
+			return fmt.Errorf("read migration %s: %w", entry.Name(), err)
+		}
+
+		for _, stmt := range splitSQL(string(data)) {
+			stmt = strings.TrimSpace(stmt)
+			if stmt == "" {
 				continue
 			}
-			return fmt.Errorf("migration exec: %w\nSQL: %s", err, stmt)
+			if _, err := db.DB.Exec(stmt); err != nil {
+				if strings.Contains(err.Error(), "already exists") {
+					continue
+				}
+				return fmt.Errorf("migration %s exec: %w\nSQL: %s", entry.Name(), err, stmt)
+			}
 		}
+
+		_, _ = db.DB.Exec("INSERT INTO schema_versions (filename) VALUES (?)", entry.Name())
+		logger.Info("Migration applied: %s", entry.Name())
 	}
+
 	logger.Info("Migrations complete")
 	return nil
 }
