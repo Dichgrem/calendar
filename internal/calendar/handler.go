@@ -163,6 +163,8 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info("[calendar] create id=%s name=%q", id, req.Name)
+	_, _ = db.DB.Exec("INSERT INTO sync_sequence (table_name, record_id, op, synced_at) VALUES (?, ?, 'created', ?)",
+		"calendars", id, now)
 	c, err := getCalendar(id, perm.UserID)
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
@@ -215,16 +217,28 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = tx.Rollback() }()
 
 	if req.Name != nil {
-		_, _ = tx.Exec("UPDATE calendars SET name = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.Name, now, lmod, id)
+		if _, err := tx.Exec("UPDATE calendars SET name = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.Name, now, lmod, id); err != nil {
+			logger.Error("[calendar] update id=%s name error: %v", id, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.Color != nil {
-		_, _ = tx.Exec("UPDATE calendars SET color = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.Color, now, lmod, id)
+		if _, err := tx.Exec("UPDATE calendars SET color = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.Color, now, lmod, id); err != nil {
+			logger.Error("[calendar] update id=%s color error: %v", id, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.SourceURL != nil {
-		_, _ = tx.Exec("UPDATE calendars SET source_url = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.SourceURL, now, lmod, id)
+		if _, err := tx.Exec("UPDATE calendars SET source_url = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.SourceURL, now, lmod, id); err != nil {
+			logger.Error("[calendar] update id=%s source_url error: %v", id, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -234,6 +248,8 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info("[calendar] update id=%s success", id)
+	_, _ = db.DB.Exec("INSERT INTO sync_sequence (table_name, record_id, op, synced_at) VALUES (?, ?, 'updated', ?)",
+		"calendars", id, now)
 
 	c, err := getCalendar(id, perm.UserID)
 	if err != nil {
@@ -269,6 +285,12 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info("[calendar] delete id=%s success", id)
+	now := time.Now().UTC().Format(time.RFC3339)
+	lmod := time.Now().UnixMilli()
+	_, _ = db.DB.Exec("INSERT INTO sync_sequence (table_name, record_id, op, synced_at) VALUES (?, ?, 'deleted', ?)",
+		"calendars", id, now)
+	_, _ = db.DB.Exec("INSERT INTO deleted_log (id, table_name, record_id, deleted_at, last_modified) VALUES (?, ?, ?, ?, ?)",
+		uuid.New().String(), "calendars", id, now, lmod)
 	middleware.JSONResponse(w, 200, nil)
 }
 
@@ -294,10 +316,14 @@ func handleReorder(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = tx.Rollback() }()
 
 	for i, calID := range req.OrderedIDs {
-		_, _ = tx.Exec(
+		if _, err := tx.Exec(
 			"UPDATE calendar_members SET sort_order = ? WHERE calendar_id = ? AND user_id = ?",
 			i, calID, perm.UserID,
-		)
+		); err != nil {
+			logger.Error("[calendar] reorder cal=%s error: %v", calID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

@@ -2,6 +2,7 @@ package ics
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"calendar/internal/db"
 	"calendar/internal/logger"
 	"calendar/internal/middleware"
+	"calendar/internal/util"
 )
 
 const (
@@ -77,17 +79,6 @@ func capEvents(events []*ical.Component) []*ical.Component {
 	return events
 }
 
-func componentProp(c *ical.Component, name string) string {
-	s, _ := c.Props.Text(name)
-	if s == "" {
-		vals := c.Props.Values(name)
-		if len(vals) > 0 && vals[0].Value != "" {
-			s = vals[0].Value
-		}
-	}
-	return s
-}
-
 // NormalizeICSDate converts ICS raw datetime to ISO 8601 for storage.
 // Handles: "20240101" → "2024-01-01", "20240101T090000Z" → "2024-01-01T09:00:00Z"
 func NormalizeICSDate(raw string) string {
@@ -138,7 +129,7 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Calendar name from X-WR-CALNAME or NAME
-	calName := componentProp(icalCal.Component, ical.PropName)
+	calName := util.ComponentProp(icalCal.Component, ical.PropName)
 	if calName == "" {
 		calName = propText(icalCal.Component, "X-WR-CALNAME")
 	}
@@ -150,11 +141,11 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 	items := make([]PreviewItem, 0, len(events))
 	var earliest, latest string
 	for _, ev := range events {
-		uid := componentProp(ev, ical.PropUID)
-		title := componentProp(ev, ical.PropSummary)
-		startAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeStart))
-		endAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeEnd))
-		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
+		uid := util.ComponentProp(ev, ical.PropUID)
+		title := util.ComponentProp(ev, ical.PropSummary)
+		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart))
+		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd))
+		rruleVal := util.ComponentProp(ev, ical.PropRecurrenceRule)
 
 		items = append(items, PreviewItem{
 			Type:     "event",
@@ -187,6 +178,7 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleFetchURL(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxICSBodyBytes)
 	var req struct {
 		URL string `json:"url"`
 	}
@@ -213,7 +205,7 @@ func handleFetchURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	calName := componentProp(icalCal.Component, ical.PropName)
+	calName := util.ComponentProp(icalCal.Component, ical.PropName)
 	if calName == "" {
 		calName = propText(icalCal.Component, "X-WR-CALNAME")
 	}
@@ -225,11 +217,11 @@ func handleFetchURL(w http.ResponseWriter, r *http.Request) {
 	items := make([]PreviewItem, 0, len(events))
 	var earliest, latest string
 	for _, ev := range events {
-		uid := componentProp(ev, ical.PropUID)
-		title := componentProp(ev, ical.PropSummary)
-		startAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeStart))
-		endAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeEnd))
-		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
+		uid := util.ComponentProp(ev, ical.PropUID)
+		title := util.ComponentProp(ev, ical.PropSummary)
+		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart))
+		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd))
+		rruleVal := util.ComponentProp(ev, ical.PropRecurrenceRule)
 
 		items = append(items, PreviewItem{
 			Type:     "event",
@@ -323,7 +315,7 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 	} else {
 		name := req.CalendarName
 		if name == "" {
-			name = componentProp(icalCal.Component, ical.PropName)
+			name = util.ComponentProp(icalCal.Component, ical.PropName)
 		}
 		if name == "" {
 			name = propText(icalCal.Component, "X-WR-CALNAME")
@@ -374,7 +366,7 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 	rawVEvents := extractVEventsByUID(req.Content)
 
 	for _, ev := range events {
-		uid := componentProp(ev, ical.PropUID)
+		uid := util.ComponentProp(ev, ical.PropUID)
 		if uid == "" {
 			uid = uuid.New().String()
 		}
@@ -383,18 +375,18 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		}
 
 		eventID := uuid.New().String()
-		title := componentProp(ev, ical.PropSummary)
-		startAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeStart))
-		endAt := normalizeICSDate(componentProp(ev, ical.PropDateTimeEnd))
+		title := util.ComponentProp(ev, ical.PropSummary)
+		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart))
+		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd))
 
 		rawICS := rawVEvents[uid]
 		if rawICS == "" {
 			rawICS = serializeEvent(ev)
 		}
 
-		desc := componentProp(ev, ical.PropDescription)
-		rruleVal := componentProp(ev, ical.PropRecurrenceRule)
-		loc := componentProp(ev, ical.PropLocation)
+		desc := util.ComponentProp(ev, ical.PropDescription)
+		rruleVal := util.ComponentProp(ev, ical.PropRecurrenceRule)
+		loc := util.ComponentProp(ev, ical.PropLocation)
 
 		allDay := 0
 		if !strings.Contains(startAt, "T") && !strings.Contains(endAt, "T") {
@@ -405,8 +397,8 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 			INSERT INTO events (id, calendar_id, title, description, start_at, end_at,
 			                    all_day, rrule, color, location, created_at, updated_at, last_modified, raw_ics)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`, eventID, calendarID, title, strOrNil(desc), startAt, endAt,
-			allDay, strOrNil(rruleVal), nil, strOrNil(loc), now, now, lmod, rawICS)
+		`, eventID, calendarID, title, util.StrOrNil(desc), startAt, endAt,
+			allDay, util.StrOrNil(rruleVal), nil, util.StrOrNil(loc), now, now, lmod, rawICS)
 		if err != nil {
 			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 			return
@@ -446,15 +438,18 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = rows.Close() }()
 
-	icalCal := ical.NewCalendar()
-	icalCal.Props.SetText(ical.PropProductID, "-//Calendar//Go//EN")
-	icalCal.Props.SetText(ical.PropVersion, "2.0")
-	if calName != "" {
-		icalCal.Props.SetText(ical.PropName, calName)
-	}
+	// Stream ICS output: header → events → footer
+	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"calendar.ics\"")
+	w.WriteHeader(200)
+	writeTo := func(s string) { _, _ = w.Write([]byte(s)) }
 
-	var rawBlocks []string            // verbatim VEVENT strings from raw_ics
-	var goCalEvents []*ical.Component // DB-reconstructed VEVENTs
+	writeTo("BEGIN:VCALENDAR\r\n")
+	writeTo("PRODID:-//Calendar//Go//EN\r\n")
+	writeTo("VERSION:2.0\r\n")
+	if calName != "" {
+		writeTo("NAME:" + calName + "\r\n")
+	}
 
 	for rows.Next() {
 		var id, title, startAt, endAt, createdAt, updatedAt string
@@ -467,7 +462,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 		if rawIcs != nil && *rawIcs != "" {
 			block := extractVEventText(*rawIcs)
 			if block != "" {
-				rawBlocks = append(rawBlocks, block)
+				writeTo(block + "\r\n")
 			}
 		} else {
 			evComp := ical.NewEvent()
@@ -476,54 +471,32 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 			if desc != nil {
 				evComp.Props.SetText(ical.PropDescription, *desc)
 			}
-			setDateProp(evComp.Props, ical.PropDateTimeStart, startAt)
-			setDateProp(evComp.Props, ical.PropDateTimeEnd, endAt)
+			util.SetDateProp(evComp.Props, ical.PropDateTimeStart, startAt)
+			util.SetDateProp(evComp.Props, ical.PropDateTimeEnd, endAt)
 			if rrule != nil {
 				evComp.Props.SetText(ical.PropRecurrenceRule, *rrule)
 			}
 			if loc != nil {
 				evComp.Props.SetText(ical.PropLocation, *loc)
 			}
-			setDateProp(evComp.Props, ical.PropDateTimeStamp, createdAt)
-			goCalEvents = append(goCalEvents, evComp.Component)
-		}
-	}
-
-	// Hybrid output: verbatim blocks + go-ical encoded components
-	icalCal.Children = append(icalCal.Children, goCalEvents...)
-
-	var buf bytes.Buffer
-	buf.WriteString("BEGIN:VCALENDAR\r\n")
-	buf.WriteString("PRODID:-//Calendar//Go//EN\r\n")
-	buf.WriteString("VERSION:2.0\r\n")
-	if calName != "" {
-		buf.WriteString("NAME:" + calName + "\r\n")
-	}
-	// Verbatim raw_ics blocks
-	for _, block := range rawBlocks {
-		buf.WriteString(block + "\r\n")
-	}
-	// go-ical encoded events
-	if len(goCalEvents) > 0 {
-		var eb bytes.Buffer
-		_ = ical.NewEncoder(&eb).Encode(icalCal)
-		// Strip VCALENDAR wrapper, keep only VEVENTs
-		enc := eb.String()
-		if first := strings.Index(enc, "BEGIN:VEVENT"); first >= 0 {
-			if last := strings.LastIndex(enc, "END:VEVENT"); last >= 0 {
-				buf.WriteString(enc[first : last+len("END:VEVENT")])
-				buf.WriteString("\r\n")
+			util.SetDateProp(evComp.Props, ical.PropDateTimeStamp, createdAt)
+			// Encode single event via temporary calendar, strip wrapper
+			tmpCal := ical.NewCalendar()
+			tmpCal.Props.SetText(ical.PropProductID, "-//Calendar//Go//EN")
+			tmpCal.Props.SetText(ical.PropVersion, "2.0")
+			tmpCal.Children = append(tmpCal.Children, evComp.Component)
+			var eb bytes.Buffer
+			_ = ical.NewEncoder(&eb).Encode(tmpCal)
+			enc := eb.String()
+			if first := strings.Index(enc, "BEGIN:VEVENT"); first >= 0 {
+				if last := strings.LastIndex(enc, "END:VEVENT"); last >= 0 {
+					writeTo(enc[first:last+len("END:VEVENT")] + "\r\n")
+				}
 			}
 		}
 	}
-	buf.WriteString("END:VCALENDAR\r\n")
 
-	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
-	w.Header().Set("Content-Disposition", "attachment; filename=\"calendar.ics\"")
-	w.WriteHeader(200)
-	if _, err := w.Write(buf.Bytes()); err != nil {
-		logger.Error("[ics] export write error: %v", err)
-	}
+	writeTo("END:VCALENDAR\r\n")
 }
 
 // extractVEventsByUID returns a map of UID → raw VEVENT block from ICS content.
@@ -584,18 +557,34 @@ func fetchIcsFromURL(rawURL string) (string, error) {
 	if ip := net.ParseIP(host); ip != nil && isPrivateIP(ip) {
 		return "", fmt.Errorf("private IP not allowed")
 	}
-	addrs, err := net.LookupIP(host)
-	if err != nil {
-		return "", fmt.Errorf("DNS lookup failed: %w", err)
-	}
-	for _, addr := range addrs {
-		if privateIP(addr) {
-			return "", fmt.Errorf("private IP not allowed")
-		}
+
+	// DNS rebinding protection: validate resolved IP at dial time.
+	origDial := (&net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 10 * time.Second,
+	}).DialContext
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid address: %w", err)
+			}
+			ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+			if err != nil {
+				return nil, fmt.Errorf("DNS lookup failed: %w", err)
+			}
+			for _, ip := range ips {
+				if isPrivateIP(ip.IP) {
+					return nil, fmt.Errorf("private IP not allowed: %s", ip.IP)
+				}
+			}
+			return origDial(ctx, network, addr)
+		},
 	}
 
 	client := &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout:   15 * time.Second,
+		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
 				return fmt.Errorf("too many redirects")
@@ -633,18 +622,9 @@ func isPrivateIP(ip net.IP) bool {
 		ip.IsLinkLocalMulticast() || ip.IsUnspecified()
 }
 
-func privateIP(ip net.IP) bool { return isPrivateIP(ip) }
-
 // propText reads a property from a component, handling unknown property names
 func propText(c *ical.Component, name string) string {
 	s, _ := c.Props.Text(name)
-	return s
-}
-
-func strOrNil(s string) interface{} {
-	if s == "" {
-		return nil
-	}
 	return s
 }
 
@@ -659,63 +639,4 @@ func serializeEvent(ev *ical.Component) string {
 	var buf bytes.Buffer
 	_ = ical.NewEncoder(&buf).Encode(cal)
 	return buf.String()
-}
-
-// SetDateProp sets a date/datetime property with correct VALUE parameter.
-// Exported for testing.
-func SetDateProp(props ical.Props, name, value string) {
-	setDateProp(props, name, value)
-}
-
-// setDateProp sets a date/datetime property with correct VALUE parameter.
-func setDateProp(props ical.Props, name, value string) {
-	if value == "" {
-		return
-	}
-	// ICS raw date: YYYYMMDD
-	if len(value) == 8 {
-		t, err := time.Parse("20060102", value)
-		if err != nil {
-			props.SetText(name, value)
-			return
-		}
-		props.SetDate(name, t)
-		return
-	}
-	// ICS raw datetime: YYYYMMDDTHHMMSS[Z]
-	if len(value) == 15 || len(value) == 16 {
-		s := value[0:4] + "-" + value[4:6] + "-" + value[6:8] + "T" +
-			value[9:11] + ":" + value[11:13] + ":" + value[13:15]
-		if len(value) == 16 && value[15] == 'Z' {
-			s += "Z"
-		}
-		t, err := time.Parse(time.RFC3339, s+"Z")
-		if err != nil {
-			t, err = time.Parse("2006-01-02T15:04:05", s)
-		}
-		if err != nil {
-			props.SetText(name, value)
-			return
-		}
-		props.SetDateTime(name, t)
-		return
-	}
-	// ISO date: YYYY-MM-DD
-	if len(value) == 10 {
-		t, _ := time.Parse("2006-01-02", value)
-		props.SetDate(name, t)
-	} else {
-		t, err := time.Parse(time.RFC3339, value)
-		if err != nil {
-			t, err = time.Parse("2006-01-02T15:04:05Z", value)
-		}
-		if err != nil {
-			t, _ = time.Parse("2006-01-02T15:04:05", value)
-		}
-		if t.IsZero() {
-			props.SetText(name, value)
-			return
-		}
-		props.SetDateTime(name, t)
-	}
 }

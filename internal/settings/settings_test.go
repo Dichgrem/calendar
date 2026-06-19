@@ -58,7 +58,8 @@ func setupSettings(t *testing.T) (chi.Router, string) {
 	})
 
 	req := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(
-		`{"username":"testuser","password":"testpass"}`))
+		`{"username":"testuser","password":"testpass"}`,
+	))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -85,7 +86,8 @@ func TestSettingsGet(t *testing.T) {
 func TestSettingsUpdate(t *testing.T) {
 	r, sid := setupSettings(t)
 	req := httptest.NewRequest("PATCH", "/api/settings", strings.NewReader(
-		`{"language":"en","showLunarCalendar":true}`))
+		`{"language":"en","showLunarCalendar":true}`,
+	))
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(&http.Cookie{Name: "session_token", Value: sid})
 	w := httptest.NewRecorder()
@@ -98,7 +100,8 @@ func TestSettingsUpdate(t *testing.T) {
 func TestSettingsValidation(t *testing.T) {
 	r, sid := setupSettings(t)
 	req := httptest.NewRequest("PATCH", "/api/settings", strings.NewReader(
-		`{"language":"fr","firstDayOfWeek":9}`))
+		`{"language":"fr","firstDayOfWeek":9}`,
+	))
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(&http.Cookie{Name: "session_token", Value: sid})
 	w := httptest.NewRecorder()

@@ -39,7 +39,7 @@ func TestExportCalendarICS(t *testing.T) {
 	_, _ = db.DB.Exec(`INSERT INTO calendars (id, name) VALUES ('cal-1', 'Test Cal')`)
 	_, _ = db.DB.Exec(`INSERT INTO events (id, calendar_id, start_at, raw_ics) VALUES ('ev-1', 'cal-1', '2026-01-01', 'BEGIN:VEVENT\nEND:VEVENT')`)
 
-	if err := os.MkdirAll(backupDir(), 0700); err != nil {
+	if err := os.MkdirAll(backupDir(), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = os.RemoveAll(backupDir()) }()

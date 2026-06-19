@@ -22,7 +22,7 @@ func setupBackupDB(t *testing.T) chi.Router {
 		_ = os.RemoveAll(backupDir())
 	})
 
-	if err := os.MkdirAll(backupDir(), 0700); err != nil {
+	if err := os.MkdirAll(backupDir(), 0o700); err != nil {
 		t.Fatalf("create backup dir: %v", err)
 	}
 

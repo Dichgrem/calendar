@@ -62,7 +62,8 @@ func TestBackupPathTraversalBlocked(t *testing.T) {
 	r := setupBackup(t)
 	// Login
 	req1 := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(
-		`{"username":"testuser","password":"testpass"}`))
+		`{"username":"testuser","password":"testpass"}`,
+	))
 	req1.Header.Set("Content-Type", "application/json")
 	w1 := httptest.NewRecorder()
 	r.ServeHTTP(w1, req1)

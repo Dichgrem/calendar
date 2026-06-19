@@ -47,7 +47,8 @@ func setupSync(t *testing.T) (chi.Router, string) {
 	})
 
 	req := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(
-		`{"username":"testuser","password":"testpass"}`))
+		`{"username":"testuser","password":"testpass"}`,
+	))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -74,7 +75,8 @@ func TestSyncPull(t *testing.T) {
 func TestSyncPush(t *testing.T) {
 	r, sid := setupSync(t)
 	req := httptest.NewRequest("POST", "/api/sync/push", strings.NewReader(
-		`{"changes":{},"last_pulled_seq":0}`))
+		`{"changes":{},"last_pulled_seq":0}`,
+	))
 	req.AddCookie(&http.Cookie{Name: "session_token", Value: sid})
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

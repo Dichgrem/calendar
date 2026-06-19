@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
@@ -9,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -18,6 +21,19 @@ import (
 
 	"golang.org/x/crypto/pbkdf2"
 )
+
+var sessionSecret []byte
+
+func init() {
+	if secret := os.Getenv("SESSION_SECRET"); secret != "" {
+		sessionSecret = []byte(secret)
+	} else {
+		sessionSecret = make([]byte, 32)
+		if _, err := rand.Read(sessionSecret); err != nil {
+			panic("failed to generate session secret: " + err.Error())
+		}
+	}
+}
 
 type contextKey string
 
@@ -143,7 +159,7 @@ func extractSession(r *http.Request) string {
 	if strings.HasPrefix(authHeader, "Basic ") {
 		userID := resolveBasicAuth(authHeader[6:])
 		if userID != "" {
-			return "u:" + userID // virtual session: prefix "u:" marks direct auth
+			return signVirtualSession(userID)
 		}
 	}
 
@@ -172,6 +188,8 @@ func verifyUserPassword(username, password string) string {
 	var id, hash string
 	err := db.DB.QueryRow("SELECT id, password_hash FROM users WHERE username = ?", username).Scan(&id, &hash)
 	if err != nil {
+		// Compute dummy PBKDF2 to prevent timing-based username enumeration
+		_ = pbkdf2.Key([]byte(password), []byte("dummy-salt"), 100_000, 32, sha256.New)
 		return ""
 	}
 	if !verifyHash(password, hash) {
@@ -198,14 +216,38 @@ func verifyHash(password, stored string) bool {
 	return subtle.ConstantTimeCompare([]byte(hash), []byte(input)) == 1
 }
 
+func signVirtualSession(userID string) string {
+	mac := hmac.New(sha256.New, sessionSecret)
+	mac.Write([]byte(userID))
+	sig := hex.EncodeToString(mac.Sum(nil))
+	return "va:" + userID + ":" + sig
+}
+
+func verifyVirtualSession(sessionID string) (string, bool) {
+	if !strings.HasPrefix(sessionID, "va:") {
+		return "", false
+	}
+	parts := strings.SplitN(sessionID[3:], ":", 2)
+	if len(parts) != 2 {
+		return "", false
+	}
+	userID, sig := parts[0], parts[1]
+	mac := hmac.New(sha256.New, sessionSecret)
+	mac.Write([]byte(userID))
+	expected := hex.EncodeToString(mac.Sum(nil))
+	if subtle.ConstantTimeCompare([]byte(sig), []byte(expected)) != 1 {
+		return "", false
+	}
+	return userID, true
+}
+
 func resolveSession(sessionID string) (*PermissionContext, string) {
 	if sessionID == "" {
 		return nil, ""
 	}
 
-	// Virtual sessions from Basic Auth: prefix "u:<userID>"
-	if strings.HasPrefix(sessionID, "u:") {
-		userID := sessionID[2:]
+	// Virtual sessions from Basic Auth: prefix "va:userID:hmac"
+	if userID, ok := verifyVirtualSession(sessionID); ok {
 		roles, err := loadRoles(userID)
 		if err != nil {
 			logger.Info("Failed to load roles: %v", err)

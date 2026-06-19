@@ -105,10 +105,10 @@ func exportCalendarICS(calID string) error {
 	filename := fmt.Sprintf("%s-%s.ics", safeName, timestamp)
 	path := filepath.Join(backupDir(), filename)
 
-	if err := os.MkdirAll(backupDir(), 0700); err != nil {
+	if err := os.MkdirAll(backupDir(), 0o700); err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, []byte(buf.String()), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(buf.String()), 0o600); err != nil {
 		return err
 	}
 

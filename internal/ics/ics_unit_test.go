@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	ical "github.com/emersion/go-ical"
+
+	"calendar/internal/util"
 )
 
 func TestExtractEventsEmpty(t *testing.T) {
@@ -61,7 +63,7 @@ func TestNormalizeICSDateTimeNoZ(t *testing.T) {
 
 func TestComponentPropText(t *testing.T) {
 	cal, _ := parseIcsContent("BEGIN:VCALENDAR\nSUMMARY:Test Cal\nBEGIN:VEVENT\nSUMMARY:My Event\nEND:VEVENT\nEND:VCALENDAR")
-	name := componentProp(cal.Component, "SUMMARY")
+	name := util.ComponentProp(cal.Component, "SUMMARY")
 	if name != "Test Cal" {
 		t.Errorf("got %q", name)
 	}

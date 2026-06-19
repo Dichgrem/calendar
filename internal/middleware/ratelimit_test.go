@@ -1,12 +1,13 @@
 package middleware
 
 import (
-	"golang.org/x/time/rate"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 func TestRateLimiterMapGetOrCreate(t *testing.T) {

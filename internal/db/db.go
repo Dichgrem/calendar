@@ -8,14 +8,16 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var DB *sql.DB
-var Path string
+var (
+	DB   *sql.DB
+	Path string
+)
 
 // Open initializes the SQLite database and runs pending migrations.
 func Open(databaseURL string) error {
 	// Ensure directory exists
 	dir := filepath.Dir(databaseURL)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 

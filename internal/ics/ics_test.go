@@ -68,7 +68,8 @@ func setupICS(t *testing.T) chi.Router {
 func loginSession(t *testing.T, r chi.Router) string {
 	t.Helper()
 	req := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(
-		`{"username":"testuser","password":"testpass"}`))
+		`{"username":"testuser","password":"testpass"}`,
+	))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)

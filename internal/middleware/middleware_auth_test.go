@@ -27,14 +27,15 @@ func TestResolveSessionVirtual(t *testing.T) {
 		calendar_id TEXT NOT NULL, user_id TEXT NOT NULL, role TEXT NOT NULL,
 		PRIMARY KEY (calendar_id, user_id))`)
 
-	perm, sid := resolveSession("u:test-user-1")
+	signed := signVirtualSession("test-user-1")
+	perm, sid := resolveSession(signed)
 	if perm == nil {
 		t.Fatal("virtual session should resolve")
 	}
 	if perm.UserID != "test-user-1" {
 		t.Errorf("userID: %s", perm.UserID)
 	}
-	if sid != "u:test-user-1" {
+	if sid != signed {
 		t.Errorf("session id: %s", sid)
 	}
 }

@@ -226,7 +226,7 @@ func itoa(n int) string { return strings.TrimSpace(fmt.Sprintf("%d", n)) }
 func TestRotatingFileWrite(t *testing.T) {
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "test.log")
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +248,7 @@ func TestRotatingFileWrite(t *testing.T) {
 func TestRotatingFileRotation(t *testing.T) {
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "test.log")
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}

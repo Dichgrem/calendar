@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-
 	"net/http"
 	"os"
 	"os/signal"
@@ -197,10 +196,12 @@ func main() {
 
 func runMigrations() error {
 	// Ensure schema_versions table exists
-	_, _ = db.DB.Exec(`CREATE TABLE IF NOT EXISTS schema_versions (
+	if _, err := db.DB.Exec(`CREATE TABLE IF NOT EXISTS schema_versions (
 		filename TEXT PRIMARY KEY,
 		applied_at TEXT NOT NULL DEFAULT (datetime('now'))
-	)`)
+	)`); err != nil {
+		return fmt.Errorf("create schema_versions: %w", err)
+	}
 
 	entries, err := migrationsFS.ReadDir("migrations")
 	if err != nil {
@@ -236,7 +237,9 @@ func runMigrations() error {
 			}
 		}
 
-		_, _ = db.DB.Exec("INSERT INTO schema_versions (filename) VALUES (?)", entry.Name())
+		if _, err := db.DB.Exec("INSERT INTO schema_versions (filename) VALUES (?)", entry.Name()); err != nil {
+			return fmt.Errorf("migration %s record: %w", entry.Name(), err)
+		}
 		logger.Info("Migration applied: %s", entry.Name())
 	}
 

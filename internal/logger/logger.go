@@ -79,7 +79,7 @@ func (rf *rotatingFile) Write(p []byte) (int, error) {
 	if rf.size > 0 && rf.size+int64(len(p)) > maxLogFileSize {
 		_ = rf.f.Close()
 		_ = os.Rename(rf.path, rf.path+".1")
-		f, err := os.OpenFile(rf.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(rf.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 		if err != nil {
 			return 0, err
 		}
@@ -109,10 +109,10 @@ func init() {
 	}
 
 	if logDir != "" {
-		if err := os.MkdirAll(logDir, 0755); err == nil {
+		if err := os.MkdirAll(logDir, 0o755); err == nil {
 			today := time.Now().UTC().Format("2006-01-02")
 			filename := filepath.Join(logDir, "server-"+today+".log")
-			f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+			f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 			if err == nil {
 				writers = append(writers, &rotatingFile{f: f, path: filename})
 			}

@@ -16,6 +16,7 @@ import (
 	"calendar/internal/ics"
 	"calendar/internal/logger"
 	"calendar/internal/middleware"
+	"calendar/internal/util"
 )
 
 func requestScheme(r *http.Request) string {
@@ -129,17 +130,19 @@ func handlePropfindEvents(w http.ResponseWriter, r *http.Request, calendarID str
 		icalCal := buildCal(title, desc, rrule, loc, startAt, endAt, id, createdAt)
 		icsContent := serializeCal(icalCal)
 
-		rs = append(rs, response{
-			Href: fmt.Sprintf("/dav/calendars/%s/%s.ics", calendarID, id),
-			PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
-				DisplayName:      title,
-				GetContentType:   "text/calendar; charset=utf-8",
-				GetContentLength: int64(len(icsContent)),
-				GetETag:          fmt.Sprintf(`"%d"`, lmod),
-				GetLastModified:  updatedAt,
-				CalendarData:     &calendarData{Content: icsContent},
-				ResourceType:     &resourceType{},
-			}}}},
+		rs = append(
+			rs, response{
+				Href: fmt.Sprintf("/dav/calendars/%s/%s.ics", calendarID, id),
+				PropStat: []propStat{{Status: "HTTP/1.1 200 OK", Prop: prop{
+					DisplayName:      title,
+					GetContentType:   "text/calendar; charset=utf-8",
+					GetContentLength: int64(len(icsContent)),
+					GetETag:          fmt.Sprintf(`"%d"`, lmod),
+					GetLastModified:  updatedAt,
+					CalendarData:     &calendarData{Content: icsContent},
+					ResourceType:     &resourceType{},
+				}}},
+			},
 		)
 	}
 	if rs == nil {
@@ -161,7 +164,8 @@ func handlePropfindSingle(w http.ResponseWriter, r *http.Request, calendarID, fi
 	var desc, rrule, loc *string
 	var allDay int
 	var lmod int64
-	err := db.DB.QueryRow(`
+	err := db.DB.QueryRow(
+		`
 		SELECT e.title, e.description, e.start_at, e.end_at, e.all_day, e.rrule, e.location, e.created_at, e.updated_at, e.last_modified
 		FROM events e INNER JOIN calendar_members cm ON e.calendar_id = cm.calendar_id
 		WHERE e.id = ? AND cm.user_id = ? AND e.deleted = 0`, eventID, userID,
@@ -221,7 +225,8 @@ func handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	var title, startAt, endAt, createdAt string
 	var desc, rrule, loc *string
 	var allDay int
-	err := db.DB.QueryRow(`
+	err := db.DB.QueryRow(
+		`
 		SELECT e.title, e.description, e.start_at, e.end_at, e.all_day, e.rrule, e.location, e.created_at
 		FROM events e INNER JOIN calendar_members cm ON e.calendar_id = cm.calendar_id
 		WHERE e.id = ? AND cm.user_id = ? AND e.deleted = 0`, eventID, userID,
@@ -278,10 +283,10 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	ev := events[0]
 
-	evTitle := compProp(ev, ical.PropSummary)
-	evStartAt := ics.NormalizeICSDate(compProp(ev, ical.PropDateTimeStart))
-	evEndAt := ics.NormalizeICSDate(compProp(ev, ical.PropDateTimeEnd))
-	evUID := compProp(ev, ical.PropUID)
+	evTitle := util.ComponentProp(ev, ical.PropSummary)
+	evStartAt := ics.NormalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart))
+	evEndAt := ics.NormalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd))
+	evUID := util.ComponentProp(ev, ical.PropUID)
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()
 
@@ -302,9 +307,10 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 		allDay = 1
 	}
 
+	rawICS := string(body)
 	if existingID != "" {
-		_, err := db.DB.Exec(`UPDATE events SET title=?, description=?, start_at=?, end_at=?, all_day=?, rrule=?, location=?, updated_at=?, last_modified=? WHERE id=?`,
-			evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, lmod, existingID)
+		_, err := db.DB.Exec(`UPDATE events SET title=?, description=?, start_at=?, end_at=?, all_day=?, rrule=?, location=?, raw_ics=?, updated_at=?, last_modified=? WHERE id=?`,
+			evTitle, util.StrOrNil(util.ComponentProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, util.StrOrNil(util.ComponentProp(ev, ical.PropRecurrenceRule)), util.StrOrNil(util.ComponentProp(ev, ical.PropLocation)), rawICS, now, lmod, existingID)
 		if err != nil {
 			logger.Error("[caldav] PUT %s UPDATE error: %v", r.URL.Path, err)
 			http.Error(w, "Internal Server Error", 500)
@@ -317,8 +323,8 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 		if _, err := uuid.Parse(lookupID); err != nil {
 			id = uuid.New().String()
 		}
-		_, err := db.DB.Exec(`INSERT INTO events (id, calendar_id, title, description, start_at, end_at, all_day, rrule, location, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-			id, calID, evTitle, strOrNil(compProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, strOrNil(compProp(ev, ical.PropRecurrenceRule)), strOrNil(compProp(ev, ical.PropLocation)), now, now, lmod)
+		_, err := db.DB.Exec(`INSERT INTO events (id, calendar_id, title, description, start_at, end_at, all_day, rrule, location, raw_ics, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			id, calID, evTitle, util.StrOrNil(util.ComponentProp(ev, ical.PropDescription)), evStartAt, evEndAt, allDay, util.StrOrNil(util.ComponentProp(ev, ical.PropRecurrenceRule)), util.StrOrNil(util.ComponentProp(ev, ical.PropLocation)), rawICS, now, now, lmod)
 		if err != nil {
 			logger.Error("[caldav] PUT %s INSERT error: %v", r.URL.Path, err)
 			http.Error(w, "Internal Server Error", 500)
@@ -394,8 +400,16 @@ func handleMkcalendar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = tx.Rollback() }()
-	_, _ = tx.Exec(`INSERT INTO calendars (id, name, color, source_type, owner_id, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?)`, id, name, color, "manual", userID, now, now, lmod)
-	_, _ = tx.Exec(`INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?,?,?)`, id, userID, "admin")
+	if _, err := tx.Exec(`INSERT INTO calendars (id, name, color, source_type, owner_id, created_at, updated_at, last_modified) VALUES (?,?,?,?,?,?,?,?)`, id, name, color, "manual", userID, now, now, lmod); err != nil {
+		logger.Error("[caldav] MKCALENDAR insert calendar error: %v", err)
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
+	if _, err := tx.Exec(`INSERT INTO calendar_members (calendar_id, user_id, role) VALUES (?,?,?)`, id, userID, "admin"); err != nil {
+		logger.Error("[caldav] MKCALENDAR insert member error: %v", err)
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
 	if tx.Commit() != nil {
 		http.Error(w, "Internal Server Error", 500)
 		return
@@ -475,67 +489,13 @@ func buildCal(title string, desc, rrule, loc *string, startAt, endAt, uid, dtsta
 	if loc != nil {
 		ev.Props.SetText(ical.PropLocation, *loc)
 	}
-	setDateProp(ev.Props, ical.PropDateTimeStart, startAt)
-	setDateProp(ev.Props, ical.PropDateTimeEnd, endAt)
+	util.SetDateProp(ev.Props, ical.PropDateTimeStart, startAt)
+	util.SetDateProp(ev.Props, ical.PropDateTimeEnd, endAt)
 	if dtstamp != "" {
-		setDateProp(ev.Props, ical.PropDateTimeStamp, dtstamp)
+		util.SetDateProp(ev.Props, ical.PropDateTimeStamp, dtstamp)
 	}
 	cal.Children = append(cal.Children, ev.Component)
 	return cal
-}
-
-// setDateProp sets a date property, auto-detecting all-day vs datetime.
-func setDateProp(props ical.Props, name, value string) {
-	if value == "" {
-		return
-	}
-	// ICS raw date: YYYYMMDD
-	if len(value) == 8 {
-		t, err := time.Parse("20060102", value)
-		if err != nil {
-			props.SetText(name, value)
-			return
-		}
-		props.SetDate(name, t)
-		return
-	}
-	// ICS raw datetime: YYYYMMDDTHHMMSS[Z] — PUT/Fossify store these
-	if len(value) == 15 || len(value) == 16 {
-		s := value[0:4] + "-" + value[4:6] + "-" + value[6:8] + "T" +
-			value[9:11] + ":" + value[11:13] + ":" + value[13:15]
-		if len(value) == 16 && value[15] == 'Z' {
-			s += "Z"
-		}
-		// Try with Z first, then without
-		t, err := time.Parse(time.RFC3339, s+"Z")
-		if err != nil {
-			t, err = time.Parse("2006-01-02T15:04:05", s)
-		}
-		if err != nil {
-			props.SetText(name, value)
-			return
-		}
-		props.SetDateTime(name, t)
-		return
-	}
-	// ISO date: YYYY-MM-DD
-	if len(value) == 10 {
-		t, _ := time.Parse("2006-01-02", value)
-		props.SetDate(name, t)
-	} else {
-		t, err := time.Parse(time.RFC3339, value)
-		if err != nil {
-			t, err = time.Parse("2006-01-02T15:04:05Z", value)
-		}
-		if err != nil {
-			t, _ = time.Parse("2006-01-02T15:04:05", value)
-		}
-		if t.IsZero() {
-			props.SetText(name, value)
-			return
-		}
-		props.SetDateTime(name, t)
-	}
 }
 
 func serializeCal(cal *ical.Calendar) string {
@@ -556,17 +516,6 @@ func calendarEvents(cal *ical.Calendar) []*ical.Component {
 	return evs
 }
 
-func compProp(c *ical.Component, name string) string {
-	s, _ := c.Props.Text(name)
-	if s == "" {
-		vals := c.Props.Values(name)
-		if len(vals) > 0 && vals[0].Value != "" {
-			return vals[0].Value
-		}
-	}
-	return s
-}
-
 func writeXML(w http.ResponseWriter, ms multiStatus) {
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	w.WriteHeader(207)
@@ -578,11 +527,4 @@ func writeXML(w http.ResponseWriter, ms multiStatus) {
 	if _, err := w.Write(b); err != nil {
 		logger.Error("[caldav] PROPFIND write body error: %v", err)
 	}
-}
-
-func strOrNil(s string) interface{} {
-	if s == "" {
-		return nil
-	}
-	return s
 }

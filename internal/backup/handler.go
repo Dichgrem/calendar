@@ -48,7 +48,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 403, apperror.Forbidden("Admin only"))
 		return
 	}
-	if err := os.MkdirAll(backupDir(), 0700); err != nil {
+	if err := os.MkdirAll(backupDir(), 0o700); err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Cannot create backup directory"))
 		return
 	}
@@ -70,7 +70,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = src.Close() }()
 
-	dst, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY, 0600)
+	dst, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		logger.Error("backup create dest: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Backup failed"))
@@ -179,9 +179,8 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Copy backup over current database file.
-	// SQLite in WAL mode handles file replacement safely:
-	// existing connection keeps working; new connections read the new file.
+	// Copy backup to a temp file, then atomically rename over the live DB.
+	// This prevents data loss if the process crashes mid-copy.
 	srcFile, err := os.Open(src)
 	if err != nil {
 		logger.Error("restore open backup: %v", err)
@@ -190,9 +189,10 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = srcFile.Close() }()
 
-	dstFile, err := os.Create(db.Path)
+	tmpPath := db.Path + ".tmp"
+	dstFile, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
-		logger.Error("restore create db: %v", err)
+		logger.Error("restore create temp: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Restore failed"))
 		return
 	}
@@ -200,6 +200,21 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := io.Copy(dstFile, srcFile); err != nil {
 		logger.Error("restore copy: %v", err)
+		_ = os.Remove(tmpPath)
+		middleware.JSONResponse(w, 500, apperror.Internal("Restore failed"))
+		return
+	}
+
+	if err := dstFile.Close(); err != nil {
+		logger.Error("restore close temp: %v", err)
+		_ = os.Remove(tmpPath)
+		middleware.JSONResponse(w, 500, apperror.Internal("Restore failed"))
+		return
+	}
+
+	if err := os.Rename(tmpPath, db.Path); err != nil {
+		logger.Error("restore rename: %v", err)
+		_ = os.Remove(tmpPath)
 		middleware.JSONResponse(w, 500, apperror.Internal("Restore failed"))
 		return
 	}

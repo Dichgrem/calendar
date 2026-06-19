@@ -116,7 +116,8 @@ func TestCaldavPropfindRoot(t *testing.T) {
 func TestCaldavPropfindCalendars(t *testing.T) {
 	r := setupCalDAV(t)
 	req := httptest.NewRequest("PROPFIND", "/dav/calendars/", strings.NewReader(
-		`<propfind xmlns="DAV:"><prop><displayname/><resourcetype/></prop></propfind>`))
+		`<propfind xmlns="DAV:"><prop><displayname/><resourcetype/></prop></propfind>`,
+	))
 	req.Header.Set("Authorization", basicAuth("testuser", "testpass"))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -140,7 +141,8 @@ func TestCaldavPropfindEvents(t *testing.T) {
 		'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 1)`)
 
 	req := httptest.NewRequest("PROPFIND", "/dav/calendars/cal-1/", strings.NewReader(
-		`<propfind xmlns="DAV:"><prop><getetag/><calendar-data xmlns="urn:ietf:params:xml:ns:caldav"/></prop></propfind>`))
+		`<propfind xmlns="DAV:"><prop><getetag/><calendar-data xmlns="urn:ietf:params:xml:ns:caldav"/></prop></propfind>`,
+	))
 	req.Header.Set("Authorization", basicAuth("testuser", "testpass"))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -460,7 +462,8 @@ type msProp struct {
 func TestPropfindResponseIsValidXML(t *testing.T) {
 	r := setupCalDAV(t)
 	req := httptest.NewRequest("PROPFIND", "/dav/calendars/", strings.NewReader(
-		`<propfind xmlns="DAV:"><prop><displayname/></prop></propfind>`))
+		`<propfind xmlns="DAV:"><prop><displayname/></prop></propfind>`,
+	))
 	req.Header.Set("Authorization", basicAuth("testuser", "testpass"))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)

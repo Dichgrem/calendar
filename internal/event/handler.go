@@ -13,6 +13,7 @@ import (
 	"calendar/internal/db"
 	"calendar/internal/logger"
 	"calendar/internal/middleware"
+	"calendar/internal/util"
 	"calendar/internal/validate"
 )
 
@@ -70,6 +71,8 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		WHERE calendar_id = ?
 		  AND deleted = 0
 		  AND (rrule IS NOT NULL OR (start_at <= ? AND end_at >= ?))
+		ORDER BY start_at ASC
+		LIMIT 5000
 	`, calendarID, end, start)
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
@@ -162,7 +165,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 		allDay = *req.AllDay
 	}
 
-	allDayInt := boolToInt(allDay)
+	allDayInt := util.BoolToInt(allDay)
 
 	_, err := db.DB.Exec(`
 		INSERT INTO events (id, calendar_id, title, description, start_at, end_at,
@@ -177,6 +180,8 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info("[event] create id=%s title=%q start=%s", id, req.Title, req.StartAt)
+	_, _ = db.DB.Exec("INSERT INTO sync_sequence (table_name, record_id, op, synced_at) VALUES (?, ?, 'created', ?)",
+		"events", id, now)
 	e, err := getEvent(id, perm.UserID)
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
@@ -244,40 +249,76 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = tx.Rollback() }()
 
 	if req.Title != nil {
-		_, _ = tx.Exec("UPDATE events SET title = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.Title, now, lmod, eventID)
+		if _, err := tx.Exec("UPDATE events SET title = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.Title, now, lmod, eventID); err != nil {
+			logger.Error("[event] update id=%s title error: %v", eventID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.Description != nil {
-		_, _ = tx.Exec("UPDATE events SET description = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.Description, now, lmod, eventID)
+		if _, err := tx.Exec("UPDATE events SET description = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.Description, now, lmod, eventID); err != nil {
+			logger.Error("[event] update id=%s description error: %v", eventID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.StartAt != nil {
-		_, _ = tx.Exec("UPDATE events SET start_at = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.StartAt, now, lmod, eventID)
+		if _, err := tx.Exec("UPDATE events SET start_at = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.StartAt, now, lmod, eventID); err != nil {
+			logger.Error("[event] update id=%s start_at error: %v", eventID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.EndAt != nil {
-		_, _ = tx.Exec("UPDATE events SET end_at = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.EndAt, now, lmod, eventID)
+		if _, err := tx.Exec("UPDATE events SET end_at = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.EndAt, now, lmod, eventID); err != nil {
+			logger.Error("[event] update id=%s end_at error: %v", eventID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.AllDay != nil {
-		_, _ = tx.Exec("UPDATE events SET all_day = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			boolToInt(*req.AllDay), now, lmod, eventID)
+		if _, err := tx.Exec("UPDATE events SET all_day = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			util.BoolToInt(*req.AllDay), now, lmod, eventID); err != nil {
+			logger.Error("[event] update id=%s all_day error: %v", eventID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.RRule != nil {
-		_, _ = tx.Exec("UPDATE events SET rrule = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.RRule, now, lmod, eventID)
+		if _, err := tx.Exec("UPDATE events SET rrule = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.RRule, now, lmod, eventID); err != nil {
+			logger.Error("[event] update id=%s rrule error: %v", eventID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.Color != nil {
-		_, _ = tx.Exec("UPDATE events SET color = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.Color, now, lmod, eventID)
+		if _, err := tx.Exec("UPDATE events SET color = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.Color, now, lmod, eventID); err != nil {
+			logger.Error("[event] update id=%s color error: %v", eventID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.Location != nil {
-		_, _ = tx.Exec("UPDATE events SET location = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			*req.Location, now, lmod, eventID)
+		if _, err := tx.Exec("UPDATE events SET location = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			*req.Location, now, lmod, eventID); err != nil {
+			logger.Error("[event] update id=%s location error: %v", eventID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 	if req.Deleted != nil {
-		_, _ = tx.Exec("UPDATE events SET deleted = ?, updated_at = ?, last_modified = ? WHERE id = ?",
-			boolToInt(*req.Deleted), now, lmod, eventID)
+		if _, err := tx.Exec("UPDATE events SET deleted = ?, updated_at = ?, last_modified = ? WHERE id = ?",
+			util.BoolToInt(*req.Deleted), now, lmod, eventID); err != nil {
+			logger.Error("[event] update id=%s deleted error: %v", eventID, err)
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -287,6 +328,8 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info("[event] update id=%s success", eventID)
+	_, _ = db.DB.Exec("INSERT INTO sync_sequence (table_name, record_id, op, synced_at) VALUES (?, ?, 'updated', ?)",
+		"events", eventID, now)
 
 	e, err = getEvent(eventID, perm.UserID)
 	if err != nil {
@@ -330,6 +373,8 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info("[event] delete id=%s success", eventID)
+	_, _ = db.DB.Exec("INSERT INTO sync_sequence (table_name, record_id, op, synced_at) VALUES (?, ?, 'deleted', ?)",
+		"events", eventID, now)
 
 	middleware.JSONResponse(w, 200, nil)
 }
@@ -377,7 +422,7 @@ func handleOverride(w http.ResponseWriter, r *http.Request) {
 		deleted = *req.Deleted
 	}
 
-	deletedInt := boolToInt(deleted)
+	deletedInt := util.BoolToInt(deleted)
 
 	// Check existing
 	var existingID string
@@ -434,11 +479,4 @@ func getEvent(eventID, userID string) (*Event, error) {
 	}
 	e.AllDay = allDayInt != 0
 	return &e, nil
-}
-
-func boolToInt(v bool) int {
-	if v {
-		return 1
-	}
-	return 0
 }
