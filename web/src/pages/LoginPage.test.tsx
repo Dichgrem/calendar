@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/preact";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { LoginPage } from "../pages/LoginPage";
 
@@ -17,13 +16,9 @@ vi.mock("../lib/api", () => ({
 
 import { api } from "../lib/api";
 
-function Wrapper({ children }: { children: React.ReactNode }) {
+function Wrapper({ children }: { children: preact.ComponentChildren }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return (
-    <QueryClientProvider client={qc}>
-      <MemoryRouter>{children}</MemoryRouter>
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
 describe("LoginPage", () => {

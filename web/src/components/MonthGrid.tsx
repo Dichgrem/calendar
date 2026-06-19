@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo } from "preact/compat";
 import { useSettings } from "../hooks/use-settings";
 import { dateStr } from "../lib/date-format";
 import { getLunarText } from "../lib/lunar";

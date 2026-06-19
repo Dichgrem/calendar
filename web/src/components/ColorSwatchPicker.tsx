@@ -26,7 +26,7 @@ export function ColorSwatchPicker({ value, onChange }: ColorSwatchPickerProps) {
       <input
         type="color"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.currentTarget.value)}
         className="size-6 rounded-full cursor-pointer border-0 p-0"
         title={t("common.customColor")}
       />

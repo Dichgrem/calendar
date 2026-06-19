@@ -1,11 +1,11 @@
 import { CalendarDots, GearSix, MagnifyingGlass, SignOut } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, type RefCallback, useCallback, useContext, useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router";
+import { type ComponentChildren, createContext } from "preact";
+import { useCallback, useContext, useEffect, useState } from "preact/hooks";
+import { route } from "preact-router";
 import { useI18n } from "../hooks/use-i18n";
 import { NavProvider } from "../hooks/use-nav";
 import { api } from "../lib/api";
-import { cn } from "../lib/utils";
 
 interface TopBarSlots {
   left: HTMLDivElement | null;
@@ -39,7 +39,7 @@ export function useSearch() {
   return useContext(SearchCtx);
 }
 
-export function Layout() {
+export function Layout({ children }: { children: ComponentChildren }) {
   const [leftEl, setLeftEl] = useState<HTMLDivElement | null>(null);
   const [centerEl, setCenterEl] = useState<HTMLDivElement | null>(null);
   const [rightEl, setRightEl] = useState<HTMLDivElement | null>(null);
@@ -48,18 +48,17 @@ export function Layout() {
   const [searchCalId, setSearchCalId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const { t } = useI18n();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const leftRef: RefCallback<HTMLDivElement> = useCallback((el) => setLeftEl(el), []);
-  const centerRef: RefCallback<HTMLDivElement> = useCallback((el) => setCenterEl(el), []);
-  const rightRef: RefCallback<HTMLDivElement> = useCallback((el) => setRightEl(el), []);
-  const dropdownRef: RefCallback<HTMLDivElement> = useCallback((el) => setDropdownEl(el), []);
+  const leftRef = useCallback((el: HTMLDivElement | null) => setLeftEl(el), []);
+  const centerRef = useCallback((el: HTMLDivElement | null) => setCenterEl(el), []);
+  const rightRef = useCallback((el: HTMLDivElement | null) => setRightEl(el), []);
+  const dropdownRef = useCallback((el: HTMLDivElement | null) => setDropdownEl(el), []);
 
   const handleLogout = async () => {
     await api.auth.logout();
     queryClient.clear();
-    navigate("/auth/login");
+    route("/auth/login");
   };
 
   // Keyboard shortcut: Ctrl+K or / to open search
@@ -116,21 +115,15 @@ export function Layout() {
                 </button>
                 <div ref={rightRef} className="flex items-center gap-1" />
                 {navItems.map((item) => (
-                  <NavLink
+                  <button
                     key={item.to}
-                    to={item.to}
+                    type="button"
+                    onClick={() => route(item.to)}
                     aria-label={item.label}
-                    className={({ isActive }) =>
-                      cn(
-                        "size-8 flex items-center justify-center rounded-full text-sm transition-colors",
-                        isActive
-                          ? "text-neutral-900 bg-neutral-200 dark:text-white dark:bg-neutral-800"
-                          : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800",
-                      )
-                    }
+                    className="size-8 flex items-center justify-center rounded-full text-sm transition-colors text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800"
                   >
                     <item.icon className="size-4" weight="bold" />
-                  </NavLink>
+                  </button>
                 ))}
                 <button
                   type="button"
@@ -144,9 +137,7 @@ export function Layout() {
               </div>
             </nav>
             <div ref={dropdownRef} className="relative" />
-            <main className="flex-1 overflow-hidden">
-              <Outlet />
-            </main>
+            <main className="flex-1 overflow-hidden">{children}</main>
           </div>
         </SearchCtx.Provider>
       </TopBarCtx.Provider>

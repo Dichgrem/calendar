@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "preact/hooks";
 import { useI18n } from "../hooks/use-i18n";
 import { api } from "../lib/api";
 import type { Calendar, Event } from "../types";
@@ -169,7 +169,7 @@ export function EventEditor(props: EventEditorProps) {
             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.calendar")}</span>
             <select
               value={calendarId}
-              onChange={(e) => setCalendarId(e.target.value)}
+              onChange={(e) => setCalendarId(e.currentTarget.value)}
               className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             >
               {props.calendars.map((c) => (
@@ -186,7 +186,7 @@ export function EventEditor(props: EventEditorProps) {
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => setTitle(e.currentTarget.value)}
             className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
           />
         </label>
@@ -198,14 +198,14 @@ export function EventEditor(props: EventEditorProps) {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => setStartDate(e.currentTarget.value)}
                 className="flex-1 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
               />
               {!allDay && (
                 <input
                   type="time"
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                  onChange={(e) => setStartTime(e.currentTarget.value)}
                   className="w-26 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                 />
               )}
@@ -217,14 +217,14 @@ export function EventEditor(props: EventEditorProps) {
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => setEndDate(e.currentTarget.value)}
                 className="flex-1 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
               />
               {!allDay && (
                 <input
                   type="time"
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                  onChange={(e) => setEndTime(e.currentTarget.value)}
                   className="w-26 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                 />
               )}
@@ -236,7 +236,7 @@ export function EventEditor(props: EventEditorProps) {
           <input
             type="checkbox"
             checked={allDay}
-            onChange={(e) => setAllDay(e.target.checked)}
+            onChange={(e) => setAllDay(e.currentTarget.checked)}
             className="peer sr-only"
           />
           <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors ">
@@ -259,7 +259,7 @@ export function EventEditor(props: EventEditorProps) {
           <input
             type="text"
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => setLocation(e.currentTarget.value)}
             className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
           />
         </label>
@@ -268,7 +268,7 @@ export function EventEditor(props: EventEditorProps) {
           <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t("event.description")}</span>
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.currentTarget.value)}
             rows={3}
             className="mt-1.5 block w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400 resize-none"
           />

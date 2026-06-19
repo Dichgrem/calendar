@@ -1,4 +1,5 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { type ComponentChildren, createContext } from "preact";
+import { useCallback, useContext, useEffect, useState } from "preact/hooks";
 import { useCalendars } from "./use-calendars";
 
 interface NavState {
@@ -25,7 +26,7 @@ export function useNav() {
   return useContext(NavCtx);
 }
 
-export function NavProvider({ children }: { children: ReactNode }) {
+export function NavProvider({ children }: { children: ComponentChildren }) {
   const [displayMonth, setDisplayMonth] = useState({
     year: new Date().getFullYear(),
     month: new Date().getMonth(),

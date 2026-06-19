@@ -12,7 +12,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState } from "preact/hooks";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
 import { ImportForm } from "../components/ImportForm";
 import { Button } from "../components/ui/button";
@@ -238,7 +238,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
             <input
               type="text"
               value={newCalName}
-              onChange={(e) => setNewCalName(e.target.value)}
+              onChange={(e) => setNewCalName(e.currentTarget.value)}
               placeholder={t("settings.calNamePlaceholder")}
               className="flex-1 text-sm border rounded-lg px-2.5 py-1.5 bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-400"
               onKeyDown={(e) => {
@@ -400,7 +400,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
             <span className="text-xs text-neutral-500">{t("settings.autoBackupInterval")}</span>
             <select
               value={autoBackupInterval}
-              onChange={(e) => setAutoBackupInterval(Number(e.target.value))}
+              onChange={(e) => setAutoBackupInterval(Number(e.currentTarget.value))}
               className="text-xs border rounded px-2 py-1 bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700"
             >
               <option value={0}>{t("settings.autoBackupOff")}</option>
@@ -446,7 +446,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                   <input
                     type="text"
                     value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
+                    onChange={(e) => setEditName(e.currentTarget.value)}
                     className="w-full text-sm border rounded-lg px-2 py-1 bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                   />
                   <ColorSwatchPicker value={editColor} onChange={setEditColor} />

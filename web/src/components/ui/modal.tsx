@@ -1,12 +1,12 @@
-import type { ReactNode } from "react";
-import { useCallback, useEffect } from "react";
+import type { ComponentChildren } from "preact";
+import { useCallback, useEffect } from "preact/hooks";
 
 interface ModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  children: ReactNode;
-  footer?: ReactNode;
+  children: ComponentChildren;
+  footer?: ComponentChildren;
 }
 
 export function Modal({ open, onClose, title, children, footer }: ModalProps) {
@@ -37,7 +37,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
         if (e.target === e.currentTarget) onClose();
       }}
       onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
+        if (e.key === "Escape" && e.target === e.currentTarget) onClose();
       }}
     >
       <div className="absolute inset-0 bg-black/40 pointer-events-none" />

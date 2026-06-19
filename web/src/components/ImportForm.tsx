@@ -1,6 +1,7 @@
 import { FileText, Globe, UploadSimple, Warning } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import type { JSX } from "preact";
+import { useCallback, useState } from "preact/hooks";
 import { useI18n } from "../hooks/use-i18n";
 import { api } from "../lib/api";
 import { pickDistinctColor } from "../lib/colors";
@@ -39,8 +40,8 @@ export function ImportForm() {
   const [imported, setImported] = useState(false);
 
   const handleFile = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const f = e.target.files?.[0];
+    async (e: JSX.TargetedEvent<HTMLInputElement>) => {
+      const f = e.currentTarget.files?.[0];
       if (!f) return;
       setFile(f);
       setLoading(true);
@@ -169,7 +170,7 @@ export function ImportForm() {
               <input
                 type="url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => setUrl(e.currentTarget.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleFetchUrl();
                 }}
@@ -208,7 +209,7 @@ export function ImportForm() {
               <input
                 type="text"
                 value={calendarName}
-                onChange={(e) => setCalendarName(e.target.value)}
+                onChange={(e) => setCalendarName(e.currentTarget.value)}
                 className="text-sm border rounded px-2 py-1 bg-white dark:bg-neutral-900 dark:border-neutral-700 flex-1 min-w-0"
                 placeholder={t("import.calName")}
               />
@@ -216,7 +217,7 @@ export function ImportForm() {
                 <input
                   type="checkbox"
                   checked={overwrite}
-                  onChange={(e) => setOverwrite(e.target.checked)}
+                  onChange={(e) => setOverwrite(e.currentTarget.checked)}
                   className="peer sr-only"
                 />
                 <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors ">

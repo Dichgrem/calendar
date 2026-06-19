@@ -1,7 +1,8 @@
 import { CalendarDots, CaretDown, Database, Package, PencilSimple, User, Wrench } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import type { ComponentChildren } from "preact";
+import { createPortal } from "preact/compat";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { CalendarManagement } from "../components/CalendarManagement";
 import { useTopBar } from "../components/Layout";
 import { SettingsForm } from "../components/SettingsForm";
@@ -22,7 +23,7 @@ function Section({
 }: {
   icon: any;
   title: string;
-  children: React.ReactNode;
+  children: ComponentChildren;
   collapsible?: boolean;
   defaultOpen?: boolean;
 }) {
@@ -220,7 +221,7 @@ export function SettingsPage() {
                     <input
                       type="text"
                       value={newUsername}
-                      onChange={(e) => setNewUsername(e.target.value)}
+                      onChange={(e) => setNewUsername(e.currentTarget.value)}
                       placeholder={accountUser}
                       className="border rounded-lg px-2 py-0.5 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400 w-40"
                     />
@@ -286,14 +287,14 @@ export function SettingsPage() {
                   <input
                     type="password"
                     value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
+                    onChange={(e) => setOldPassword(e.currentTarget.value)}
                     placeholder={t("settings.oldPassword")}
                     className="block w-full border rounded-lg px-2.5 py-1 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                   />
                   <input
                     type="password"
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
+                    onChange={(e) => setNewPassword(e.currentTarget.value)}
                     placeholder={t("settings.newPassword")}
                     className="block w-full border rounded-lg px-2.5 py-1 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                   />
@@ -351,7 +352,7 @@ export function SettingsPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <select
                     value={logLevel}
-                    onChange={(e) => setLogLevel(e.target.value)}
+                    onChange={(e) => setLogLevel(e.currentTarget.value)}
                     className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
                   >
                     <option value="">{t("settings.logAll")}</option>
@@ -361,7 +362,7 @@ export function SettingsPage() {
                   </select>
                   <select
                     value={logCount}
-                    onChange={(e) => setLogCount(Number(e.target.value))}
+                    onChange={(e) => setLogCount(Number(e.currentTarget.value))}
                     className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
                   >
                     <option value={200}>200</option>
@@ -372,7 +373,7 @@ export function SettingsPage() {
                     <input
                       type="checkbox"
                       checked={logAuto}
-                      onChange={(e) => setLogAuto(e.target.checked)}
+                      onChange={(e) => setLogAuto(e.currentTarget.checked)}
                       className="peer sr-only"
                     />
                     <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors ">

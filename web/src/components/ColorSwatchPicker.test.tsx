@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/preact";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ColorSwatchPicker } from "./ColorSwatchPicker";
 
-function Wrapper({ children }: { children: React.ReactNode }) {
+function Wrapper({ children }: { children: preact.ComponentChildren }) {
   const qc = new QueryClient();
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }

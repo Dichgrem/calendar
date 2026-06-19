@@ -1,12 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import type { JSX } from "preact";
+import { useEffect, useState } from "preact/hooks";
+import { route } from "preact-router";
 import { Button } from "../components/ui/button";
 import { useI18n } from "../hooks/use-i18n";
 import { api } from "../lib/api";
 
 export function LoginPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useI18n();
   const [username, setUsername] = useState("");
@@ -27,7 +27,7 @@ export function LoginPage() {
       .finally(() => setChecking(false));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: JSX.TargetedEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -39,7 +39,7 @@ export function LoginPage() {
         await api.auth.login({ username, password });
       }
       queryClient.invalidateQueries({ queryKey: ["auth"] });
-      navigate("/calendar");
+      route("/calendar");
     } catch (e) {
       setError(e instanceof Error ? e.message : isFirstUser ? t("login.registerFailed") : t("login.loginFailed"));
     } finally {
@@ -74,7 +74,7 @@ export function LoginPage() {
           <input
             type="text"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => setUsername(e.currentTarget.value)}
             className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
             required
           />
@@ -85,7 +85,7 @@ export function LoginPage() {
           <input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.currentTarget.value)}
             className="mt-1 block w-full border rounded px-2 py-1.5 text-sm bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
             required
             minLength={8}

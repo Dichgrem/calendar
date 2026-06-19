@@ -1,3 +1,4 @@
+import type { ComponentChildren } from "preact";
 import { useI18n } from "../hooks/use-i18n";
 import type { UserSettings } from "../types";
 
@@ -10,7 +11,7 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
   const { t } = useI18n();
   const s = settings;
 
-  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  const Row = ({ label, children }: { label: string; children: ComponentChildren }) => (
     <div className="flex items-center justify-between gap-3 py-1.5">
       <span className="text-sm text-neutral-600 dark:text-neutral-400 shrink-0 truncate max-w-[40%]">{label}</span>
       <div className="flex-1 flex justify-end">{children}</div>
@@ -23,7 +24,7 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
         <select
           value={s.language}
           onChange={(e) => {
-            const lang = e.target.value;
+            const lang = e.currentTarget.value;
             const next = { ...s, language: lang };
             if (s.dateFormat === "zh" || s.dateFormat === "en") {
               next.dateFormat = lang === "en" ? "en" : "zh";
@@ -40,7 +41,7 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
       <Row label={t("settings.firstDay")}>
         <select
           value={s.firstDayOfWeek}
-          onChange={(e) => onUpdate({ ...s, firstDayOfWeek: Number(e.target.value) })}
+          onChange={(e) => onUpdate({ ...s, firstDayOfWeek: Number(e.currentTarget.value) })}
           className="text-sm border rounded-lg px-2.5 py-1.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
         >
           <option value={0}>{t("settings.sunday")}</option>
@@ -53,7 +54,7 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
           <select
             value={["zh", "en"].includes(s.dateFormat) ? s.dateFormat : "custom"}
             onChange={(e) => {
-              if (e.target.value !== "custom") onUpdate({ ...s, dateFormat: e.target.value });
+              if (e.currentTarget.value !== "custom") onUpdate({ ...s, dateFormat: e.currentTarget.value });
               else onUpdate({ ...s, dateFormat: "yyyy-MM-dd" });
             }}
             className="text-sm border rounded-lg px-2.5 py-1.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
@@ -66,7 +67,7 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
             <input
               type="text"
               value={s.dateFormat}
-              onChange={(e) => onUpdate({ ...s, dateFormat: e.target.value })}
+              onChange={(e) => onUpdate({ ...s, dateFormat: e.currentTarget.value })}
               placeholder="yyyy-MM-dd"
               className="w-36 text-sm border rounded-lg px-2 py-1.5 font-mono bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />

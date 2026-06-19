@@ -1,7 +1,7 @@
 import { Moon, Plus, Sun } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { createPortal } from "preact/compat";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useCalendars } from "../hooks/use-calendars";
 import { useEvents } from "../hooks/use-events";
 import { useI18n } from "../hooks/use-i18n";
@@ -30,11 +30,6 @@ export function CalendarView() {
   });
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const queryClient = useQueryClient();
-
-  // Preload settings page chunk in the background
-  useEffect(() => {
-    import("../pages/SettingsPage");
-  }, []);
 
   const { data: calendars } = useCalendars();
   const { data: settings } = useSettings();
@@ -209,7 +204,7 @@ export function CalendarView() {
           type="text"
           placeholder={t("cal.search")}
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
           className="w-full h-7 text-sm text-neutral-800 dark:text-neutral-200 border rounded-lg px-2.5 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-600"
         />
       </div>

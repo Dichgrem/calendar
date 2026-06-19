@@ -1,5 +1,5 @@
 import { CaretLeft, CaretRight, Circle } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useState } from "preact/hooks";
 import { useCalendars } from "../hooks/use-calendars";
 import { useI18n } from "../hooks/use-i18n";
 import { useNav } from "../hooks/use-nav";
@@ -106,7 +106,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
             <input
               type="number"
               value={pickerYear}
-              onChange={(e) => setPickerYear(Number(e.target.value))}
+              onChange={(e) => setPickerYear(Number(e.currentTarget.value))}
               min={1970}
               className="w-16 text-center text-sm font-semibold border-0 bg-transparent text-neutral-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
