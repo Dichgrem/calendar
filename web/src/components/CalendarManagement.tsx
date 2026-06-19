@@ -13,14 +13,15 @@ import {
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "preact/hooks";
+import { AutoBackupPanel } from "../components/AutoBackupPanel";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
+import { ExportPanel } from "../components/ExportPanel";
 import { ImportForm } from "../components/ImportForm";
 import { Button } from "../components/ui/button";
 import { useCalendarReorder } from "../hooks/use-calendar-reorder";
 import { useI18n } from "../hooks/use-i18n";
-import { useSettings } from "../hooks/use-settings";
 import { api } from "../lib/api";
-import type { Calendar, UserSettings } from "../types";
+import type { Calendar } from "../types";
 
 interface CommonCalendar {
   id: string;
@@ -69,17 +70,13 @@ interface CalendarManagementProps {
 export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const queryClient = useQueryClient();
   const { t, lang } = useI18n();
-  const { data: settings } = useSettings();
   const [editingCal, setEditingCal] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
-  const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
   const [commonCalOpen, setCommonCalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [autoBackupOpen, setAutoBackupOpen] = useState(false);
-  const [autoBackupCalendars, setAutoBackupCalendars] = useState<Set<string>>(new Set());
-  const [autoBackupInterval, setAutoBackupInterval] = useState(0);
   const [importing, setImporting] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -97,12 +94,14 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
     setEditName(cal.name);
     setEditColor(cal.color);
   };
+
   const saveCalEdit = async () => {
     if (!editingCal) return;
     await api.calendars.update(editingCal, { name: editName, color: editColor });
     queryClient.invalidateQueries({ queryKey: ["calendars"] });
     setEditingCal(null);
   };
+
   const deleteCalendar = async (id: string) => {
     if (!window.confirm(t("settings.confirmDelete"))) return;
     setDeleting(id);
@@ -116,21 +115,6 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
       setDeleting(null);
     }
   };
-  const handleExportCal = (id: string, name: string) => {
-    const a = document.createElement("a");
-    a.href = api.ics.exportUrl(id);
-    a.download = `${name}.ics`;
-    a.click();
-  };
-  const toggleExportCal = (id: string) =>
-    setExportSelected((p) => {
-      const n = new Set(p);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  const toggleExportAll = () =>
-    calendars &&
-    setExportSelected((p) => (p.size === calendars.length ? new Set() : new Set(calendars.map((c) => c.id))));
 
   const handleImportCommon = async (cal: CommonCalendar) => {
     setImporting((p) => new Set(p).add(cal.id));
@@ -174,7 +158,6 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
 
   return (
     <div>
-      {/* Toolbar */}
       <div className="flex items-center justify-center gap-1 mb-3 flex-wrap">
         <Button
           variant="outline"
@@ -202,28 +185,14 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
           <DownloadSimple className="size-3" weight="bold" />
           {t("settings.importIcs")}
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setExportSelected(new Set(calendars?.map((c) => c.id) ?? []));
-            setExportOpen(true);
-          }}
-          className="h-7 text-xs gap-1"
-        >
+        <Button variant="outline" size="sm" onClick={() => setExportOpen(true)} className="h-7 text-xs gap-1">
           <FileArrowDown className="size-3" weight="bold" />
           {t("settings.exportIcs")}
         </Button>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            // Load saved settings when opening
-            const savedCals = settings?.autoBackupCalendars;
-            setAutoBackupCalendars(savedCals ? new Set(savedCals.split(",").filter(Boolean)) : new Set());
-            setAutoBackupInterval(settings?.autoBackupInterval ?? 0);
-            setAutoBackupOpen(!autoBackupOpen);
-          }}
+          onClick={() => setAutoBackupOpen(!autoBackupOpen)}
           className="h-7 text-xs gap-1"
         >
           <Clock className="size-3" weight="bold" />
@@ -231,7 +200,6 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
         </Button>
       </div>
 
-      {/* Create calendar form */}
       {creating && (
         <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
           <div className="flex items-center gap-2">
@@ -258,7 +226,6 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
         </div>
       )}
 
-      {/* Common calendars */}
       {commonCalOpen && (
         <div className="mb-3 space-y-1.5">
           {COMMON_CALENDARS.map((cal) => (
@@ -292,149 +259,18 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
         </div>
       )}
 
-      {/* ICS import form */}
       {importOpen && (
         <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
           <ImportForm />
         </div>
       )}
 
-      {/* Export panel */}
-      {exportOpen && (
-        <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-neutral-500">{t("settings.selectCalendars")}</span>
-            <button
-              type="button"
-              onClick={toggleExportAll}
-              className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-            >
-              {exportSelected.size === calendars?.length ? t("settings.deselectAll") : t("settings.selectAll")}
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
-            {calendars?.map((cal) => (
-              <label key={cal.id} className="flex items-center gap-1.5 cursor-pointer text-sm">
-                <input
-                  type="checkbox"
-                  checked={exportSelected.has(cal.id)}
-                  onChange={() => toggleExportCal(cal.id)}
-                  className="peer sr-only"
-                />
-                <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors  shrink-0">
-                  <svg
-                    aria-hidden="true"
-                    className="w-3.5 h-3.5 text-white dark:text-neutral-800 transition-opacity"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3.5}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-                <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                <span className="text-neutral-800 dark:text-neutral-200">{cal.name}</span>
-              </label>
-            ))}
-          </div>
-          <div className="flex gap-1">
-            <Button
-              size="sm"
-              onClick={() => {
-                const selected = calendars?.filter((c) => exportSelected.has(c.id)) ?? [];
-                for (const c of selected) handleExportCal(c.id, c.name);
-                setExportOpen(false);
-              }}
-              disabled={exportSelected.size === 0}
-              className="h-7 text-xs"
-            >
-              {t("settings.exportSelected")} ({exportSelected.size})
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setExportOpen(false)} className="h-7 text-xs">
-              {t("settings.cancel")}
-            </Button>
-          </div>
-        </div>
+      {exportOpen && calendars && <ExportPanel calendars={calendars} onClose={() => setExportOpen(false)} />}
+
+      {autoBackupOpen && calendars && (
+        <AutoBackupPanel calendars={calendars} onClose={() => setAutoBackupOpen(false)} />
       )}
 
-      {/* Auto backup panel */}
-      {autoBackupOpen && (
-        <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-neutral-500">{t("settings.autoBackupCalendars")}</span>
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
-            {calendars?.map((cal) => (
-              <label key={cal.id} className="flex items-center gap-1.5 cursor-pointer text-sm">
-                <input
-                  type="checkbox"
-                  checked={autoBackupCalendars.has(cal.id)}
-                  onChange={() => {
-                    setAutoBackupCalendars((p) => {
-                      const n = new Set(p);
-                      n.has(cal.id) ? n.delete(cal.id) : n.add(cal.id);
-                      return n;
-                    });
-                  }}
-                  className="peer sr-only"
-                />
-                <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors shrink-0">
-                  <svg
-                    aria-hidden="true"
-                    className="w-3.5 h-3.5 text-white dark:text-neutral-800"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3.5}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-                <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                <span className="text-neutral-800 dark:text-neutral-200">{cal.name}</span>
-              </label>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs text-neutral-500">{t("settings.autoBackupInterval")}</span>
-            <select
-              value={autoBackupInterval}
-              onChange={(e) => setAutoBackupInterval(Number(e.currentTarget.value))}
-              className="text-xs border rounded px-2 py-1 bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700"
-            >
-              <option value={0}>{t("settings.autoBackupOff")}</option>
-              <option value={30}>{t("settings.autoBackup30m")}</option>
-              <option value={60}>{t("settings.autoBackup1h")}</option>
-              <option value={360}>{t("settings.autoBackup6h")}</option>
-              <option value={720}>{t("settings.autoBackup12h")}</option>
-              <option value={1440}>{t("settings.autoBackup24h")}</option>
-            </select>
-          </div>
-          <div className="flex gap-1">
-            <Button
-              size="sm"
-              onClick={async () => {
-                const next = {
-                  autoBackupCalendars: [...autoBackupCalendars].join(","),
-                  autoBackupInterval,
-                } satisfies Partial<UserSettings>;
-                const res = await api.settings.update(next);
-                queryClient.setQueryData(["settings"], res.data);
-                setAutoBackupOpen(false);
-              }}
-              className="h-7 text-xs"
-            >
-              {t("settings.save")}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setAutoBackupOpen(false)} className="h-7 text-xs">
-              {t("settings.cancel")}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Calendar list */}
       <div className="space-y-1">
         {calendars?.map((cal, idx) => (
           <div

@@ -1,10 +1,12 @@
-import { CalendarDots, CaretDown, Database, Package, PencilSimple, User, Wrench } from "@phosphor-icons/react";
+import { CalendarDots, CaretDown, Database, Package, User, Wrench } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ComponentChildren, ComponentType } from "preact";
 import { createPortal } from "preact/compat";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { AccountSection } from "../components/AccountSection";
 import { CalendarManagement } from "../components/CalendarManagement";
 import { useTopBar } from "../components/Layout";
+import { LogsViewer } from "../components/LogsViewer";
 import { SettingsForm } from "../components/SettingsForm";
 import { CenterControls, LeftControls } from "../components/TopBarControls";
 import { Button } from "../components/ui/button";
@@ -60,6 +62,7 @@ function Section({
     </div>
   );
 }
+
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const { t } = useI18n();
@@ -79,44 +82,8 @@ export function SettingsPage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [backingUp, setBackingUp] = useState(false);
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
-  const [editUsername, setEditUsername] = useState(false);
-  const [newUsername, setNewUsername] = useState("");
-  const [editPassword, setEditPassword] = useState(false);
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [acctMsg, setAcctMsg] = useState("");
-  const [logLines, setLogLines] = useState<string[]>([]);
-  const [logLevel, setLogLevel] = useState("");
-  const [logCount, setLogCount] = useState(200);
-  const [logAuto, setLogAuto] = useState(false);
-  const [logError, setLogError] = useState("");
   const [showLogs, setShowLogs] = useState(() => localStorage.getItem("showLogs") === "1");
-  const logAbortRef = useRef<AbortController | null>(null);
-  const fetchLogs = useCallback(async () => {
-    if (logAbortRef.current) logAbortRef.current.abort();
-    const ac = new AbortController();
-    logAbortRef.current = ac;
-    setLogError("");
-    try {
-      const res = await api.logs(logCount, logLevel || undefined, ac.signal);
-      if (ac.signal.aborted) return;
-      if (res?.data?.lines) setLogLines(res.data.lines);
-    } catch (e) {
-      if (ac.signal.aborted) return;
-      setLogError(e instanceof Error ? e.message : "Failed to fetch logs");
-    }
-  }, [logCount, logLevel]);
-  useEffect(() => {
-    fetchLogs();
-    if (!logAuto) return;
-    const t = setInterval(fetchLogs, 5000);
-    return () => clearInterval(t);
-  }, [logAuto, fetchLogs]);
-  useEffect(() => {
-    return () => {
-      if (logAbortRef.current) logAbortRef.current.abort();
-    };
-  }, []);
+
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     return () => {
@@ -124,17 +91,8 @@ export function SettingsPage() {
       if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
     };
   }, []);
-  const exportLogs = () => {
-    const blob = new Blob([logLines.join("\n")], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "calendar-server.log";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+
   const updateSettings = (next: UserSettings) => {
-    // Debounce: save after 500ms of no changes
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveState("saving");
     saveTimer.current = setTimeout(async () => {
@@ -151,39 +109,7 @@ export function SettingsPage() {
       }
     }, 500);
   };
-  const handleChangeUsername = async () => {
-    setAcctMsg("");
-    try {
-      const res = await api.auth.changeUsername({ username: newUsername });
-      if (res?.ok) {
-        queryClient.setQueryData(["me"], (old: { data?: { username: string } } | undefined) =>
-          old ? { ...old, data: { ...old.data, username: newUsername } } : old,
-        );
-        setEditUsername(false);
-        setAcctMsg(t("settings.saved"));
-      }
-    } catch {
-      setAcctMsg(t("settings.saveError"));
-    }
-  };
-  const handleChangePassword = async () => {
-    setAcctMsg("");
-    if (newPassword.length < 8) {
-      setAcctMsg(t("settings.pwTooShort"));
-      return;
-    }
-    try {
-      const res = await api.auth.changePassword({ oldPassword, newPassword });
-      if (res?.ok) {
-        setEditPassword(false);
-        setOldPassword("");
-        setNewPassword("");
-        setAcctMsg(t("settings.saved"));
-      }
-    } catch (e: any) {
-      setAcctMsg(e?.message || t("settings.saveError"));
-    }
-  };
+
   const handleBackup = async () => {
     setBackingUp(true);
     setBackupResult(null);
@@ -196,6 +122,7 @@ export function SettingsPage() {
       setBackingUp(false);
     }
   };
+
   const handleExportConfig = async () => {
     try {
       const cfg = await api.settings.exportConfig();
@@ -210,13 +137,13 @@ export function SettingsPage() {
       setSaveError(t("settings.exportConfigFailed"));
     }
   };
+
   return (
     <div className="flex flex-col h-full">
       {topBar?.left && createPortal(<LeftControls />, topBar.left)}
       {topBar?.center && createPortal(<CenterControls />, topBar.center)}
       <div className="flex-1 overflow-auto">
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-3">
-          {/* Preferences */}
           <Section icon={Wrench} title={t("settings.preferences")}>
             <SettingsForm settings={s} onUpdate={updateSettings} />
             <div className="flex items-center justify-between py-1 mt-1 border-t border-neutral-100 dark:border-neutral-800">
@@ -237,108 +164,12 @@ export function SettingsPage() {
               </button>
             </div>
           </Section>
-          {/* Account */}
           <Section icon={User} title={t("settings.account")}>
-            <div>
-              <div className="flex items-center justify-between gap-3 py-0.5">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-xs text-neutral-400 shrink-0">{t("login.username")}</span>
-                  {editUsername ? (
-                    <input
-                      type="text"
-                      value={newUsername}
-                      onChange={(e) => setNewUsername(e.currentTarget.value)}
-                      placeholder={accountUser}
-                      className="border rounded-lg px-2 py-0.5 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400 w-40"
-                    />
-                  ) : (
-                    <p className="text-sm truncate text-neutral-800 dark:text-neutral-200">{accountUser}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {editUsername ? (
-                    <>
-                      <Button size="sm" onClick={handleChangeUsername} className="h-6 text-xs px-2">
-                        {t("settings.save")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditUsername(false)}
-                        className="h-6 text-xs px-2"
-                      >
-                        {t("settings.cancel")}
-                      </Button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewUsername(accountUser);
-                        setEditUsername(true);
-                      }}
-                      className="size-6 flex items-center justify-center rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 shrink-0"
-                    >
-                      <PencilSimple className="size-3" weight="bold" />
-                    </button>
-                  )}
-                  <span className="text-[11px] text-neutral-400 mx-1">|</span>
-                  {editPassword ? (
-                    <>
-                      <Button size="sm" onClick={handleChangePassword} className="h-6 text-xs px-2">
-                        {t("settings.save")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditPassword(false)}
-                        className="h-6 text-xs px-2"
-                      >
-                        {t("settings.cancel")}
-                      </Button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setEditPassword(true)}
-                      className="text-[11px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 shrink-0"
-                    >
-                      {t("settings.changePassword")}
-                    </button>
-                  )}
-                </div>
-              </div>
-              {editPassword && (
-                <div className="pb-1 space-y-1">
-                  <input
-                    type="password"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.currentTarget.value)}
-                    placeholder={t("settings.oldPassword")}
-                    className="block w-full border rounded-lg px-2.5 py-1 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
-                  />
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.currentTarget.value)}
-                    placeholder={t("settings.newPassword")}
-                    className="block w-full border rounded-lg px-2.5 py-1 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
-                  />
-                </div>
-              )}
-              {acctMsg && (
-                <div className="fixed top-14 right-4 z-50 pointer-events-none">
-                  <div className="px-5 py-3 rounded-lg shadow-lg text-base font-semibold transition-all duration-300 bg-green-600 text-white">
-                    {acctMsg}
-                  </div>
-                </div>
-              )}
-            </div>
+            <AccountSection username={accountUser} />
           </Section>
           <Section icon={CalendarDots} title={t("settings.calendars")}>
             <CalendarManagement calendars={calendars} />
           </Section>
-          {/* Data & backup */}
           <Section icon={Database} title={t("settings.backupDb")}>
             <div className="py-0.5 space-y-1.5">
               {backupResult && (
@@ -371,109 +202,15 @@ export function SettingsPage() {
               </div>
             </div>
           </Section>
-          {/* Server logs — only shown when Debug mode is enabled */}
           {showLogs && (
             <Section icon={Database} title={t("settings.serverLogs")} collapsible>
-              <div className="py-0.5 space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <select
-                    value={logLevel}
-                    onChange={(e) => setLogLevel(e.currentTarget.value)}
-                    className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
-                  >
-                    <option value="">{t("settings.logAll")}</option>
-                    <option value="error">Error</option>
-                    <option value="info">Info</option>
-                    <option value="debug">Debug</option>
-                  </select>
-                  <select
-                    value={logCount}
-                    onChange={(e) => setLogCount(Number(e.currentTarget.value))}
-                    className="text-xs border rounded px-1.5 py-0.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700"
-                  >
-                    <option value={200}>200</option>
-                    <option value={500}>500</option>
-                    <option value={1000}>1000</option>
-                  </select>
-                  <label className="flex items-center gap-1.5 text-xs cursor-pointer dark:text-neutral-300">
-                    <input
-                      type="checkbox"
-                      checked={logAuto}
-                      onChange={(e) => setLogAuto(e.currentTarget.checked)}
-                      className="peer sr-only"
-                    />
-                    <span className="size-4 rounded border border-neutral-300 dark:border-neutral-500 flex items-center justify-center peer-checked:bg-neutral-700 dark:peer-checked:bg-neutral-300 peer-checked:border-neutral-700 dark:peer-checked:border-neutral-300 transition-colors ">
-                      <svg
-                        aria-hidden="true"
-                        className="w-3.5 h-3.5 text-white dark:text-neutral-800 transition-opacity"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={3.5}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </span>
-                    {t("settings.logAutoRefresh")}
-                  </label>
-                  <div className="flex-1" />
-                  <Button variant="outline" size="sm" onClick={fetchLogs} className="h-7 text-xs">
-                    {t("settings.logRefresh")}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={exportLogs} className="h-7 text-xs">
-                    {t("settings.logExport")}
-                  </Button>
-                </div>
-                <div className="w-full h-96 overflow-y-auto border rounded-lg bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 font-mono text-xs">
-                  {logError && <p className="px-2.5 py-2 text-red-500 text-xs">{logError}</p>}
-                  {logLines.map((line, i) => {
-                    const timeMatch = line.match(/^time=(\S+)\s/);
-                    const levelMatch = line.match(/level=(\w+)\s/);
-                    const msgMatch = line.match(/msg="?(.+?)"?$/);
-                    const time = timeMatch ? timeMatch[1].replace("T", " ").slice(0, 19) : "";
-                    const level = levelMatch ? levelMatch[1] : "";
-                    const msg = msgMatch ? msgMatch[1] : line;
-                    const levelColor =
-                      level === "ERROR"
-                        ? "text-red-600 dark:text-red-400 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30"
-                        : level === "WARN"
-                          ? "text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"
-                          : level === "DEBUG"
-                            ? "text-neutral-400 dark:text-neutral-500 border-neutral-200 dark:border-neutral-700"
-                            : "text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700";
-                    return (
-                      <div
-                        key={i}
-                        className={`px-2.5 py-1 border-b flex items-center gap-2 ${levelColor} last:border-b-0`}
-                      >
-                        <span className="text-neutral-400 dark:text-neutral-500 shrink-0 tabular-nums">{time}</span>
-                        <span
-                          className={`font-semibold uppercase shrink-0 w-12 ${
-                            level === "ERROR"
-                              ? "text-red-600 dark:text-red-400"
-                              : level === "WARN"
-                                ? "text-amber-600 dark:text-amber-400"
-                                : level === "DEBUG"
-                                  ? "text-neutral-400 dark:text-neutral-500"
-                                  : "text-blue-600 dark:text-blue-400"
-                          }`}
-                        >
-                          {level}
-                        </span>
-                        <span className="flex-1 whitespace-pre-wrap break-all ">{msg}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <LogsViewer />
             </Section>
           )}
           {saveError && <p className="text-sm text-red-500 text-center">{saveError}</p>}
-          {/* Spacer for sticky bar */}
           <div className="h-16" />
         </div>
       </div>
-      {/* Save toast */}
       {saveState !== "idle" && (
         <div className="fixed top-14 right-4 z-50 pointer-events-none">
           <div
