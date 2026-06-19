@@ -52,6 +52,9 @@ func main() {
 		logger.Fatal("Migration failed: %v", err)
 	}
 
+	// Start auto backup goroutine
+	backup.StartAutoBackup()
+
 	// Clean up events with empty dates (test artifacts from earlier development)
 	if _, err := db.DB.Exec("DELETE FROM events WHERE deleted = 0 AND (start_at = '' OR end_at = '')"); err != nil {
 		logger.Info("Cleanup events: %v", err)

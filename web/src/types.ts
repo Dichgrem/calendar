@@ -45,6 +45,8 @@ export interface UserSettings {
   showEventTime: boolean;
   dateFormat: string;
   showLunarCalendar: boolean;
+  autoBackupCalendars?: string;
+  autoBackupInterval?: number;
 }
 
 export interface SyncPullResponse {

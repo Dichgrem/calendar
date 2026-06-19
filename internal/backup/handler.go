@@ -19,7 +19,14 @@ import (
 	"calendar/internal/middleware"
 )
 
-const backupDir = "backups"
+const DefaultBackupDir = "backups"
+
+func backupDir() string {
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		return filepath.Join(filepath.Dir(dbURL), "backups")
+	}
+	return DefaultBackupDir
+}
 
 // RegisterRoutes adds backup routes to a chi router.
 func RegisterRoutes(r chi.Router) {
@@ -41,7 +48,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 403, apperror.Forbidden("Admin only"))
 		return
 	}
-	if err := os.MkdirAll(backupDir, 0700); err != nil {
+	if err := os.MkdirAll(backupDir(), 0700); err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Cannot create backup directory"))
 		return
 	}
@@ -53,7 +60,7 @@ func handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	ts := time.Now().UTC().Format("2006-01-02T150405Z")
 	filename := fmt.Sprintf("calendar-%s.db", ts)
-	dest := filepath.Join(backupDir, filename)
+	dest := filepath.Join(backupDir(), filename)
 
 	src, err := os.Open(db.Path)
 	if err != nil {
@@ -87,7 +94,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONResponse(w, 403, apperror.Forbidden("Admin only"))
 		return
 	}
-	entries, err := os.ReadDir(backupDir)
+	entries, err := os.ReadDir(backupDir())
 	if err != nil {
 		if os.IsNotExist(err) {
 			middleware.JSONResponse(w, 200, []backupInfo{})
@@ -134,7 +141,7 @@ func handleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := filepath.Join(backupDir, filename)
+	path := filepath.Join(backupDir(), filename)
 	if _, err := os.Stat(path); err != nil {
 		middleware.JSONResponse(w, 404, apperror.NotFound("Backup not found"))
 		return
@@ -166,7 +173,7 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	src := filepath.Join(backupDir, req.Filename)
+	src := filepath.Join(backupDir(), req.Filename)
 	if _, err := os.Stat(src); err != nil {
 		middleware.JSONResponse(w, 404, apperror.NotFound("Backup not found"))
 		return

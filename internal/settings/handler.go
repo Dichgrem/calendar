@@ -20,12 +20,14 @@ func RegisterRoutes(r chi.Router) {
 }
 
 type UserSettings struct {
-	UserID            string `json:"userId"`
-	Language          string `json:"language"`
-	FirstDayOfWeek    int    `json:"firstDayOfWeek"`
-	ShowEventTime     bool   `json:"showEventTime"`
-	DateFormat        string `json:"dateFormat"`
-	ShowLunarCalendar bool   `json:"showLunarCalendar"`
+	UserID              string `json:"userId"`
+	Language            string `json:"language"`
+	FirstDayOfWeek      int    `json:"firstDayOfWeek"`
+	ShowEventTime       bool   `json:"showEventTime"`
+	DateFormat          string `json:"dateFormat"`
+	ShowLunarCalendar   bool   `json:"showLunarCalendar"`
+	AutoBackupCalendars string `json:"autoBackupCalendars,omitempty"`
+	AutoBackupInterval  int    `json:"autoBackupInterval,omitempty"`
 }
 
 func handleGet(w http.ResponseWriter, r *http.Request) {
@@ -41,11 +43,13 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateRequest struct {
-	Language          *string `json:"language,omitempty"`
-	FirstDayOfWeek    *int    `json:"firstDayOfWeek,omitempty"`
-	ShowEventTime     *bool   `json:"showEventTime,omitempty"`
-	DateFormat        *string `json:"dateFormat,omitempty"`
-	ShowLunarCalendar *bool   `json:"showLunarCalendar,omitempty"`
+	Language            *string `json:"language,omitempty"`
+	FirstDayOfWeek      *int    `json:"firstDayOfWeek,omitempty"`
+	ShowEventTime       *bool   `json:"showEventTime,omitempty"`
+	DateFormat          *string `json:"dateFormat,omitempty"`
+	ShowLunarCalendar   *bool   `json:"showLunarCalendar,omitempty"`
+	AutoBackupCalendars *string `json:"autoBackupCalendars,omitempty"`
+	AutoBackupInterval  *int    `json:"autoBackupInterval,omitempty"`
 }
 
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -93,17 +97,27 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if req.ShowLunarCalendar != nil {
 		showLunar = *req.ShowLunarCalendar
 	}
+	backupCals := ""
+	if req.AutoBackupCalendars != nil {
+		backupCals = *req.AutoBackupCalendars
+	}
+	backupInterval := 0
+	if req.AutoBackupInterval != nil {
+		backupInterval = *req.AutoBackupInterval
+	}
 
 	_, err := db.DB.Exec(`
-		INSERT INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar, auto_backup_calendars, auto_backup_interval_min)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(user_id) DO UPDATE SET
 			language = excluded.language,
 			first_day_of_week = excluded.first_day_of_week,
 			show_event_time = excluded.show_event_time,
 			date_format = excluded.date_format,
-			show_lunar_calendar = excluded.show_lunar_calendar
-	`, perm.UserID, lang, fdow, boolToInt(showTime), df, boolToInt(showLunar))
+			show_lunar_calendar = excluded.show_lunar_calendar,
+			auto_backup_calendars = excluded.auto_backup_calendars,
+			auto_backup_interval_min = excluded.auto_backup_interval_min
+	`, perm.UserID, lang, fdow, boolToInt(showTime), df, boolToInt(showLunar), backupCals, backupInterval)
 	if err != nil {
 		logger.Error("[settings] update user=%s error: %v", perm.UserID, err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
@@ -124,9 +138,12 @@ func getSettings(userID string) (*UserSettings, error) {
 	var s UserSettings
 	var showTimeInt, showLunarInt int
 	err := db.DB.QueryRow(
-		"SELECT user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar FROM user_settings WHERE user_id = ?",
+		`SELECT user_id, language, first_day_of_week, show_event_time, date_format,
+		        show_lunar_calendar, COALESCE(auto_backup_calendars,''), COALESCE(auto_backup_interval_min,0)
+		 FROM user_settings WHERE user_id = ?`,
 		userID,
-	).Scan(&s.UserID, &s.Language, &s.FirstDayOfWeek, &showTimeInt, &s.DateFormat, &showLunarInt)
+	).Scan(&s.UserID, &s.Language, &s.FirstDayOfWeek, &showTimeInt, &s.DateFormat,
+		&showLunarInt, &s.AutoBackupCalendars, &s.AutoBackupInterval)
 	if err != nil {
 		return nil, err
 	}
