@@ -1,6 +1,5 @@
 import { memo, useMemo } from "preact/compat";
 import { useRef } from "preact/hooks";
-import { useSettings } from "../hooks/use-settings";
 import { dateStr } from "../lib/date-format";
 import { getLunarText } from "../lib/lunar";
 import type { Event } from "../types";
@@ -41,6 +40,8 @@ interface MonthGridProps {
   calendarColorMap: Map<string, string>;
   dotCalendarIds: Set<string>; // calendars whose events show as dots (ics_import)
   highlightDate: string | null;
+  showLunar: boolean;
+  showEventTime: boolean;
   onDateClick: (date: Date) => void;
   onEventClick: (event: Event) => void;
 }
@@ -53,13 +54,11 @@ export const MonthGrid = memo(function MonthGrid({
   calendarColorMap,
   dotCalendarIds,
   highlightDate,
+  showLunar,
+  showEventTime,
   onDateClick,
   onEventClick,
 }: MonthGridProps) {
-  const { data: settings } = useSettings();
-  const showLunar = settings?.showLunarCalendar ?? false;
-  const showEventTime = settings?.showEventTime ?? false;
-
   const days = useMemo(() => getMonthDays(year, month, firstDayOfWeek), [year, month, firstDayOfWeek]);
 
   const eventsByDate = useMemo(() => {

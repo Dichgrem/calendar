@@ -415,11 +415,12 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
             <Button
               size="sm"
               onClick={async () => {
-                await api.settings.update({
+                const next = {
                   autoBackupCalendars: [...autoBackupCalendars].join(","),
                   autoBackupInterval,
-                } satisfies Partial<UserSettings>);
-                queryClient.invalidateQueries({ queryKey: ["settings"] });
+                } satisfies Partial<UserSettings>;
+                const res = await api.settings.update(next);
+                queryClient.setQueryData(["settings"], res.data);
                 setAutoBackupOpen(false);
               }}
               className="h-7 text-xs"

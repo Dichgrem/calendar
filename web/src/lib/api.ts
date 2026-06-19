@@ -175,6 +175,9 @@ export const api = {
     },
   },
 
-  logs: (n?: number, level?: string) =>
-    request<ApiResponse<{ lines: string[] }>>(`/logs?n=${n ?? 500}${level ? `&level=${level}` : ""}`),
+  logs: (n?: number, level?: string, signal?: AbortSignal) =>
+    request<ApiResponse<{ lines: string[] }>>(
+      `/logs?n=${n ?? 500}${level ? `&level=${level}` : ""}`,
+      signal ? { signal } : undefined,
+    ),
 };

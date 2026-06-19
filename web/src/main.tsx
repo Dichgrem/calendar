@@ -10,6 +10,10 @@ import { LoginPage } from "./pages/LoginPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import "./index.css";
 
+// Initialize dark mode on every page load
+const saved = localStorage.getItem("darkMode") === "1";
+document.documentElement.className = saved ? "dark" : "light";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000, retry: 1, refetchOnWindowFocus: false },

@@ -98,7 +98,7 @@ export function SettingsPage() {
     logAbortRef.current = ac;
     setLogError("");
     try {
-      const res = await api.logs(logCount, logLevel || undefined);
+      const res = await api.logs(logCount, logLevel || undefined, ac.signal);
       if (ac.signal.aborted) return;
       if (res?.data?.lines) setLogLines(res.data.lines);
     } catch (e) {
@@ -134,13 +134,13 @@ export function SettingsPage() {
     URL.revokeObjectURL(url);
   };
   const updateSettings = (next: UserSettings) => {
-    queryClient.setQueryData(["settings"], next);
     // Debounce: save after 500ms of no changes
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveState("saving");
     saveTimer.current = setTimeout(async () => {
       try {
         await api.settings.update(next);
+        queryClient.setQueryData(["settings"], next);
         setSaveState("saved");
         if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
         saveStatusTimer.current = setTimeout(() => setSaveState("idle"), 2000);
@@ -232,7 +232,7 @@ export function SettingsPage() {
                 className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${showLogs ? "bg-neutral-900 dark:bg-neutral-300" : "bg-neutral-200 dark:bg-neutral-600"}`}
               >
                 <span
-                  className={`inline-block size-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${showLogs ? "translate-x-[18px]" : "translate-x-0.5"}`}
+                  className={`inline-block size-4 rounded-full bg-white dark:bg-neutral-900 shadow-sm transition-transform mt-0.5 ${showLogs ? "translate-x-[18px]" : "translate-x-0.5"}`}
                 />
               </button>
             </div>
@@ -242,7 +242,7 @@ export function SettingsPage() {
             <div>
               <div className="flex items-center justify-between gap-3 py-0.5">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-xs text-neutral-400 shrink-0 w-10">{t("login.username")}</span>
+                  <span className="text-xs text-neutral-400 shrink-0">{t("login.username")}</span>
                   {editUsername ? (
                     <input
                       type="text"

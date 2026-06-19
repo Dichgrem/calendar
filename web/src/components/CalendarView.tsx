@@ -23,11 +23,7 @@ export function CalendarView() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [creating, setCreating] = useState(false);
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
-  const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem("darkMode") === "1";
-    document.documentElement.className = saved ? "dark" : "light";
-    return saved;
-  });
+  const [dark, setDark] = useState(() => localStorage.getItem("darkMode") === "1");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const queryClient = useQueryClient();
 
@@ -41,9 +37,20 @@ export function CalendarView() {
     [settings?.language, firstDayOfWeek],
   );
 
-  // Month range for event queries — must cover full 42-cell grid,
-  // not just the calendar month, to show events from adjacent months.
-  // Both boundaries use local date strings to avoid UTC drift.
+  // Event query range: fixed ±7 days from display month.
+  // Independent of firstDayOfWeek so changing week start doesn't refetch events.
+  const eventStart = useMemo(() => {
+    const d = new Date(displayMonth.year, displayMonth.month, 1);
+    d.setDate(d.getDate() - 7);
+    return `${dateStr(d)}T00:00:00`;
+  }, [displayMonth.year, displayMonth.month]);
+  const eventEnd = useMemo(() => {
+    const d = new Date(displayMonth.year, displayMonth.month + 1, 0);
+    d.setDate(d.getDate() + 7);
+    return `${dateStr(d)}T23:59:59`;
+  }, [displayMonth.year, displayMonth.month]);
+
+  // Grid dates for rendering (depend on firstDayOfWeek for visual alignment)
   const gridStart = new Date(displayMonth.year, displayMonth.month, 1);
   gridStart.setDate(gridStart.getDate() - ((gridStart.getDay() - firstDayOfWeek + 7) % 7));
   const gridEnd = new Date(gridStart);
@@ -55,8 +62,8 @@ export function CalendarView() {
     isError: evError,
   } = useEvents(
     searchQuery ? [] : allCalIds.filter((id) => visibleCalendars.has(id)),
-    searchQuery ? "" : `${dateStr(new Date(gridStart.getTime() - 86400000))}T00:00:00`,
-    searchQuery ? "" : `${dateStr(new Date(gridEnd.getTime() + 86400000))}T23:59:59`,
+    searchQuery ? "" : eventStart,
+    searchQuery ? "" : eventEnd,
   );
   const { data: allEvents } = useEvents(
     searchQuery ? allCalIds : [],
@@ -74,13 +81,14 @@ export function CalendarView() {
 
     const prefetchMonth = (year: number, month: number) => {
       const d = new Date(year, month, 1);
-      d.setDate(d.getDate() - ((d.getDay() - firstDayOfWeek + 7) % 7));
-      const s = `${dateStr(new Date(d.getTime() - 86400000))}T00:00:00`;
-      const e = `${dateStr(new Date(d.getTime() + 41 * 86400000))}T23:59:59`;
+      d.setDate(d.getDate() - 7);
+      const s = `${dateStr(d)}T00:00:00`;
+      const e = new Date(year, month + 1, 7);
+      const eStr = `${dateStr(e)}T23:59:59`;
       queryClient.prefetchQuery({
-        queryKey: ["events", visibleIds, s, e],
+        queryKey: ["events", visibleIds, s, eStr],
         queryFn: () =>
-          Promise.all(visibleIds.map((id) => api.events.list(id, s, e))).then((res) =>
+          Promise.all(visibleIds.map((id) => api.events.list(id, s, eStr))).then((res) =>
             res.flatMap((r: any) => r.data ?? []),
           ),
       });
@@ -92,7 +100,7 @@ export function CalendarView() {
     // Previous month
     const pm = displayMonth.month - 1;
     prefetchMonth(pm < 0 ? displayMonth.year - 1 : displayMonth.year, pm < 0 ? 11 : pm);
-  }, [displayMonth, allCalIds, firstDayOfWeek, visibleCalendars, searchQuery, queryClient]);
+  }, [displayMonth, allCalIds, visibleCalendars, searchQuery, queryClient]);
 
   const toggleDark = () => {
     const next = !dark;
@@ -300,6 +308,8 @@ export function CalendarView() {
           calendarColorMap={calendarColorMap}
           dotCalendarIds={dotCalendarIds}
           highlightDate={highlightDate}
+          showLunar={settings?.showLunarCalendar ?? false}
+          showEventTime={settings?.showEventTime ?? false}
           onDateClick={(d) => setHighlightDate(dateStr(d))}
           onEventClick={handleEventClick}
         />

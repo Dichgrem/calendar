@@ -1,5 +1,5 @@
 import { type ComponentChildren, createContext } from "preact";
-import { useCallback, useContext, useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useCalendars } from "./use-calendars";
 
 interface NavState {
@@ -58,19 +58,18 @@ export function NavProvider({ children }: { children: ComponentChildren }) {
     });
   }, []);
 
-  return (
-    <NavCtx.Provider
-      value={{
-        displayMonth,
-        setDisplayMonth,
-        visibleCalendars,
-        setVisibleCalendars,
-        toggleCalendar,
-        labelOverride,
-        setLabelOverride,
-      }}
-    >
-      {children}
-    </NavCtx.Provider>
+  const value = useMemo(
+    () => ({
+      displayMonth,
+      setDisplayMonth,
+      visibleCalendars,
+      setVisibleCalendars,
+      toggleCalendar,
+      labelOverride,
+      setLabelOverride,
+    }),
+    [displayMonth, visibleCalendars, toggleCalendar, labelOverride],
   );
+
+  return <NavCtx.Provider value={value}>{children}</NavCtx.Provider>;
 }
