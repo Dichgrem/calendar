@@ -1,6 +1,6 @@
 import { CalendarDots, CaretDown, Database, Package, PencilSimple, User, Wrench } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ComponentChildren } from "preact";
+import type { ComponentChildren, ComponentType } from "preact";
 import { createPortal } from "preact/compat";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { CalendarManagement } from "../components/CalendarManagement";
@@ -21,7 +21,7 @@ function Section({
   collapsible,
   defaultOpen = false,
 }: {
-  icon: any;
+  icon: ComponentType<Record<string, unknown>>;
   title: string;
   children: ComponentChildren;
   collapsible?: boolean;
@@ -70,7 +70,7 @@ export function SettingsPage() {
     queryKey: ["me"],
     queryFn: () => api.auth.me(),
   });
-  const accountUser = (me as any)?.data?.username ?? "";
+  const accountUser = me?.data?.username ?? "";
   const s: UserSettings =
     settings ??
     ({ userId: "", language: "zh-CN", firstDayOfWeek: 1, dateFormat: "zh", showLunarCalendar: true } as UserSettings);
@@ -98,7 +98,7 @@ export function SettingsPage() {
     logAbortRef.current = ac;
     setLogError("");
     try {
-      const res: any = await api.logs(logCount, logLevel || undefined);
+      const res = await api.logs(logCount, logLevel || undefined);
       if (ac.signal.aborted) return;
       if (res?.data?.lines) setLogLines(res.data.lines);
     } catch (e) {
@@ -154,12 +154,14 @@ export function SettingsPage() {
   const handleChangeUsername = async () => {
     setAcctMsg("");
     try {
-      const res: any = await api.auth.changeUsername({ username: newUsername });
+      const res = await api.auth.changeUsername({ username: newUsername });
       if (res?.ok) {
-        queryClient.setQueryData(["me"], (old: any) => ({ ...old, data: { username: newUsername } }));
+        queryClient.setQueryData(["me"], (old: { data?: { username: string } } | undefined) =>
+          old ? { ...old, data: { ...old.data, username: newUsername } } : old,
+        );
         setEditUsername(false);
         setAcctMsg(t("settings.saved"));
-      } else setAcctMsg(res?.error?.message || t("settings.saveError"));
+      }
     } catch {
       setAcctMsg(t("settings.saveError"));
     }
@@ -171,13 +173,13 @@ export function SettingsPage() {
       return;
     }
     try {
-      const res: any = await api.auth.changePassword({ oldPassword, newPassword });
+      const res = await api.auth.changePassword({ oldPassword, newPassword });
       if (res?.ok) {
         setEditPassword(false);
         setOldPassword("");
         setNewPassword("");
         setAcctMsg(t("settings.saved"));
-      } else setAcctMsg(res?.error?.message || t("settings.saveError"));
+      }
     } catch (e: any) {
       setAcctMsg(e?.message || t("settings.saveError"));
     }
@@ -187,7 +189,7 @@ export function SettingsPage() {
     setBackupResult(null);
     try {
       const res = await api.backup.create();
-      setBackupResult((res as any).data);
+      setBackupResult(res.data);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : t("settings.backupFailed"));
     } finally {

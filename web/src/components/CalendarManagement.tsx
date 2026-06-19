@@ -20,7 +20,7 @@ import { useCalendarReorder } from "../hooks/use-calendar-reorder";
 import { useI18n } from "../hooks/use-i18n";
 import { useSettings } from "../hooks/use-settings";
 import { api } from "../lib/api";
-import type { Calendar } from "../types";
+import type { Calendar, UserSettings } from "../types";
 
 interface CommonCalendar {
   id: string;
@@ -137,13 +137,13 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
     setImportError(null);
     try {
       const res = await api.ics.fetchUrl(cal.url);
-      const { preview, content } = (res as any).data;
+      const { preview, content } = res.data;
       await api.ics.import({
         content,
         calendarName: cal.name,
         color: cal.color,
         sourceUrl: cal.url,
-        selectedUids: preview.items.map((i: any) => i.uid),
+        selectedUids: preview.items.map((i) => i.uid),
         overwrite: false,
       });
       queryClient.invalidateQueries({ queryKey: ["calendars"] });
@@ -219,9 +219,9 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
           size="sm"
           onClick={() => {
             // Load saved settings when opening
-            const savedCals = (settings as any)?.autoBackupCalendars;
+            const savedCals = settings?.autoBackupCalendars;
             setAutoBackupCalendars(savedCals ? new Set(savedCals.split(",").filter(Boolean)) : new Set());
-            setAutoBackupInterval((settings as any)?.autoBackupInterval ?? 0);
+            setAutoBackupInterval(settings?.autoBackupInterval ?? 0);
             setAutoBackupOpen(!autoBackupOpen);
           }}
           className="h-7 text-xs gap-1"
@@ -418,7 +418,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 await api.settings.update({
                   autoBackupCalendars: [...autoBackupCalendars].join(","),
                   autoBackupInterval,
-                } as any);
+                } satisfies Partial<UserSettings>);
                 queryClient.invalidateQueries({ queryKey: ["settings"] });
                 setAutoBackupOpen(false);
               }}

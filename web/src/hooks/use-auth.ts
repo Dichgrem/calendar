@@ -8,7 +8,7 @@ export function useAuth() {
     queryKey: ["auth", "me"],
     queryFn: async () => {
       const res = await api.auth.me();
-      return (res as { ok: boolean; data: { userId: string; username: string } }).data;
+      return res.data;
     },
     retry: 2,
     staleTime: 60_000,

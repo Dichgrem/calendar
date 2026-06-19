@@ -1,4 +1,5 @@
 import { memo, useMemo } from "preact/compat";
+import { useRef } from "preact/hooks";
 import { useSettings } from "../hooks/use-settings";
 import { dateStr } from "../lib/date-format";
 import { getLunarText } from "../lib/lunar";
@@ -93,12 +94,9 @@ export const MonthGrid = memo(function MonthGrid({
       }
     }
     return map;
-  }, [events, dateStr]);
+  }, [events]);
 
-  const lunarCache = useMemo(() => {
-    if (!showLunar) return new Map<string, string>();
-    return new Map<string, string>();
-  }, [showLunar]);
+  const lunarCacheRef = useRef(new Map<string, string>());
 
   const todayKey = dateStr(new Date());
 
@@ -136,12 +134,12 @@ export const MonthGrid = memo(function MonthGrid({
               {showLunar && (
                 <span className="text-[0.7rem] text-neutral-400 dark:text-neutral-500 leading-none">
                   {(() => {
-                    const cached = lunarCache.get(key);
+                    const cache = lunarCacheRef.current;
+                    const cached = cache.get(key);
                     if (cached !== undefined) return cached;
-                    if (!lunarCache.has(key)) {
-                      lunarCache.set(key, getLunarText(d));
-                    }
-                    return lunarCache.get(key) ?? "";
+                    const lunarText = getLunarText(d);
+                    cache.set(key, lunarText);
+                    return lunarText;
                   })()}
                 </span>
               )}

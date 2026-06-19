@@ -9,6 +9,10 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 
 function getBaseUrl(): string {
   const serverUrl = localStorage.getItem("serverUrl")?.replace(/\/+$/, "");
+  if (serverUrl && !/^https?:\/\//.test(serverUrl)) {
+    localStorage.removeItem("serverUrl");
+    return "/api";
+  }
   return serverUrl ? `${serverUrl}/api` : "/api";
 }
 
@@ -40,6 +44,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export interface IcsPreviewData {
+  name: string;
+  eventCount: number;
+  timeSpan: { from: string | null; to: string | null };
+  items: Array<{
+    type: "event";
+    uid: string;
+    title: string;
+    startAt: string | null;
+    endAt: string | null;
+    rrule: string | null;
+    selected: boolean;
+  }>;
+}
+
 export const api = {
   auth: {
     status: () => request<ApiResponse<{ registered: boolean }>>("/auth/status"),
@@ -54,14 +73,14 @@ export const api = {
         body: JSON.stringify(data),
       }),
     logout: () => request<ApiResponse<null>>("/auth/logout", { method: "POST" }),
-    me: () => request<ApiResponse<{ userId: string }>>("/auth/me"),
+    me: () => request<ApiResponse<{ userId: string; username: string }>>("/auth/me"),
     changePassword: (data: { oldPassword: string; newPassword: string }) =>
-      request<ApiResponse<null>>("/auth/change-password", {
+      request<ApiResponse<unknown>>("/auth/change-password", {
         method: "POST",
         body: JSON.stringify(data),
       }),
     changeUsername: (data: { username: string }) =>
-      request<ApiResponse<null>>("/auth/change-username", {
+      request<ApiResponse<unknown>>("/auth/change-username", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -69,15 +88,15 @@ export const api = {
 
   calendars: {
     list: () => request<ApiResponse<Calendar[]>>("/calendars"),
-    get: (id: string) => request<ApiResponse<Calendar>>(`/calendars/${id}`),
+    get: (id: string) => request<ApiResponse<Calendar>>(`/calendars/${encodeURIComponent(id)}`),
     create: (data: { name: string; color?: string }) =>
       request<ApiResponse<Calendar>>("/calendars", { method: "POST", body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Calendar>) =>
-      request<ApiResponse<Calendar>>(`/calendars/${id}`, {
+      request<ApiResponse<Calendar>>(`/calendars/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
-    remove: (id: string) => request<ApiResponse<null>>(`/calendars/${id}`, { method: "DELETE" }),
+    remove: (id: string) => request<ApiResponse<null>>(`/calendars/${encodeURIComponent(id)}`, { method: "DELETE" }),
     reorder: (orderedIds: string[]) =>
       request<ApiResponse<null>>("/calendars/reorder", {
         method: "PATCH",
@@ -87,26 +106,28 @@ export const api = {
 
   events: {
     list: (calendarId: string, start: string, end: string) =>
-      request<ApiResponse<Event[]>>(`/calendars/${calendarId}/events?start=${start}&end=${end}`),
-    get: (id: string) => request<ApiResponse<Event>>(`/events/${id}`),
+      request<ApiResponse<Event[]>>(
+        `/calendars/${encodeURIComponent(calendarId)}/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+      ),
+    get: (id: string) => request<ApiResponse<Event>>(`/events/${encodeURIComponent(id)}`),
     create: (calendarId: string, data: Partial<Event>) =>
-      request<ApiResponse<Event>>(`/calendars/${calendarId}/events`, {
+      request<ApiResponse<Event>>(`/calendars/${encodeURIComponent(calendarId)}/events`, {
         method: "POST",
         body: JSON.stringify(data),
       }),
     update: (id: string, data: Partial<Event>) =>
-      request<ApiResponse<Event>>(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-    remove: (id: string) => request<ApiResponse<null>>(`/events/${id}`, { method: "DELETE" }),
+      request<ApiResponse<Event>>(`/events/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }),
+    remove: (id: string) => request<ApiResponse<null>>(`/events/${encodeURIComponent(id)}`, { method: "DELETE" }),
   },
 
   ics: {
     preview: (content: string) =>
-      request<ApiResponse<unknown>>("/ics/preview", {
+      request<ApiResponse<IcsPreviewData>>("/ics/preview", {
         method: "POST",
         body: JSON.stringify({ content }),
       }),
     fetchUrl: (url: string) =>
-      request<ApiResponse<{ preview: unknown; content: string }>>("/ics/fetch-url", {
+      request<ApiResponse<{ preview: IcsPreviewData; content: string }>>("/ics/fetch-url", {
         method: "POST",
         body: JSON.stringify({ url }),
       }),
@@ -119,8 +140,12 @@ export const api = {
       selectedUids: string[];
       overwrite?: boolean;
     }) => request<ApiResponse<unknown>>("/ics/import", { method: "POST", body: JSON.stringify(data) }),
-    exportUrl: (calendarId: string, start?: string, end?: string) =>
-      `${getBaseUrl()}/calendars/${calendarId}/ics/export${start ? `?start=${start}&end=${end}` : ""}`,
+    exportUrl: (calendarId: string, start?: string, end?: string) => {
+      const base = getBaseUrl();
+      let url = `${base}/calendars/${encodeURIComponent(calendarId)}/ics/export`;
+      if (start && end) url += `?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+      return url;
+    },
   },
 
   sync: {
@@ -144,7 +169,7 @@ export const api = {
     create: () => request<ApiResponse<{ filename: string; path: string }>>("/backup", { method: "POST" }),
     download: (filename: string) => {
       const a = document.createElement("a");
-      a.href = `${getBaseUrl()}/backup/download/${filename}`;
+      a.href = `${getBaseUrl()}/backup/download/${encodeURIComponent(filename)}`;
       a.download = filename;
       a.click();
     },

@@ -52,7 +52,7 @@ export function ImportForm() {
         const text = await f.text();
         setIcsContent(text);
         const res = await api.ics.preview(text);
-        const data = (res as { ok: boolean; data: IcsPreviewData }).data;
+        const data = res.data;
         setPreview(data);
         setCalendarName(data.name);
         setSelectedUids(new Set(data.items.map((i) => i.uid)));
