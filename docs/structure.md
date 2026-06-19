@@ -324,6 +324,8 @@ CalDAV PROPFIND 同样使用 `raw_ics` 原文返回，确保 DAVx5 客户端
 | language | TEXT | `zh-CN` 或 `en`，默认 `zh-CN` |
 | first_day_of_week | INTEGER | 0-6，默认 1（周一） |
 | show_lunar_calendar | INTEGER | 0/1 |
+| auto_backup_calendars | TEXT | 逗号分隔的日历 ID |
+| auto_backup_interval_min | INTEGER | 自动备份间隔（分钟），0=禁用 |
 
 ### `sync_sequence`
 
@@ -398,5 +400,11 @@ SQL 迁移文件位于 `cmd/server/migrations/`，通过 `//go:embed` 嵌入。
 
 ## 备份策略
 
+### 数据库备份
 `POST /api/backup` 执行 `PRAGMA wal_checkpoint(TRUNCATE)` 将 WAL 写入主文件，
 然后以 UTC 时间戳命名复制到 `backups/`。恢复时覆盖文件并提示重启。
+
+### 自动备份
+后台 goroutine 按用户配置的间隔（30min/1h/6h/12h/24h）自动导出选中的日历为 ICS 文件，
+存储到 `backups/` 目录。每个日历最多保留 10 个备份，自动清旧。
+配置通过 `PATCH /api/settings` 持久化在 `user_settings` 表中。

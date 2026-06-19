@@ -33,35 +33,17 @@ flowchart TD
 
 ---
 
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| **Backend** | Go + [Chi](https://github.com/go-chi/chi) |
-| **Frontend** | Preact (via React compat layer) + Vite + Tailwind CSS |
-| **Routing** | React Router v7 |
-| **Data Fetching** | TanStack React Query |
-| **Calendar Grid** | Custom `MonthGrid` component (CSS Grid 7×6) |
-| **CalDAV** | RFC 4791 hand-rolled implementation |
-| **ICS Parsing** | [go-ical](https://github.com/emersion/go-ical) |
-| **Database** | SQLite ([modernc.org/sqlite](https://modernc.org/sqlite)) |
-| **Auth** | PBKDF2 password hashing + secure session cookies |
-| **Deployment** | Single Go binary + Docker image |
-
----
-
 ## Features
 
-- [x] CalDAV bidirectional sync (Android DAVx5 tested)
-- [x] Custom `MonthGrid` — 226KB bundle (no FullCalendar)
-- [x] Full ICS fidelity: VALARM, X-FOSSIFY-*, TRANSP preserved
-- [x] Chinese lunar calendar + Chinese holidays
-- [x] Dark mode with persistence
-- [x] Server log viewer (Debug mode)
 - [x] Docker + single-binary deployment
-- [x] Structured logging via `slog` (ring buffer, level filtering)
-
----
+- [x] Custom-developed `MonthGrid` view
+- [x] Built-in support for the Chinese lunar calendar and public holidays
+- [x] Event search via `Ctrl+/` shortcut
+- [x] High-fidelity ICS support: preserves `VALARM`, `X-FOSSIFY-*`, and `TRANSP`
+- [x] CalDAV two-way synchronization (verified on Android using DAVx5)
+- [x] Scheduled backups and configuration export
+- [x] Light/dark modes and bilingual support (Chinese/English)
+- [x] `slog` structured logging (circular buffer, level-based filtering)---
 
 ## Quick Start
 
@@ -119,40 +101,6 @@ just format         # Format (go fmt + biome format)
 just docker-build   # Build Docker image
 just docker-up      # Docker Compose start
 ```
-
----
-
-## Project Structure
-
-```
-calendar/
-├── cmd/server/main.go       # Entry point, router setup
-├── internal/
-│   ├── auth/                # Auth + sessions + PBKDF2
-│   ├── backup/              # Database backup/restore
-│   ├── caldav/              # CalDAV protocol (PROPFIND/PUT/DELETE/REPORT/MKCALENDAR)
-│   ├── calendar/            # Calendar CRUD
-│   ├── config/              # Environment variable loading
-│   ├── db/                  # SQLite connection
-│   ├── event/               # Event CRUD + override
-│   ├── ics/                 # ICS parsing/serialization/routing
-│   ├── logger/              # Structured logging (slog + ring buffer)
-│   ├── middleware/           # Auth, error, security headers
-│   ├── settings/            # User settings
-│   ├── sync/                # Sync pull/push
-│   └── validate/            # Shared validation
-├── web/                     # Preact SPA (pnpm workspace)
-│   └── src/
-│       ├── components/       # MonthGrid, CalendarView, EventEditor, ImportForm...
-│       ├── hooks/            # useEvents, useCalendars, useNav, useSettings...
-│       ├── lib/              # date-format, lunar, colors, api client
-│       └── pages/            # LoginPage, SettingsPage
-├── docs/                    # User & developer documentation
-├── Dockerfile
-├── Justfile
-└── go.mod
-```
-
 ---
 
 ## 📚 Documentation

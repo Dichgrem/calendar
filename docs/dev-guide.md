@@ -105,13 +105,15 @@ HTTPS 环境下设置 `SECURE_COOKIES=true`。
 
 ## 添加迁移
 
-在 `cmd/server/migrations/` 中创建 SQL 文件：
+在 `cmd/server/migrations/` 中创建 SQL 文件（如 `00002_auto_backup.sql`）：
 
 ```sql
 -- 00002_add_index.sql
 CREATE INDEX IF NOT EXISTS idx_events_title ON events(title);
 ```
 
+启动时自动按文件名顺序执行未应用过的迁移，已执行的记录在 `schema_versions` 表中。
+所有语句使用 `IF NOT EXISTS` / `IF EXISTS` 保证幂等。
 通过 `//go:embed migrations/*.sql` 嵌入，启动时执行。
 所有语句使用 `IF NOT EXISTS` / `IF EXISTS`。
 
