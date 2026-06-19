@@ -4,9 +4,14 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "jsx": "react-jsx",
+    "jsxImportSource": "preact",
     "types": ["vite/client"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "react": ["./node_modules/preact/compat"],
+      "react-dom": ["./node_modules/preact/compat"],
+      "react-dom/client": ["./node_modules/preact/compat/client"],
+      "react/jsx-runtime": ["./node_modules/preact/jsx-runtime"]
     }
   },
   "include": ["src"]
