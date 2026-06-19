@@ -45,7 +45,7 @@ jobs:
           version: '~> v2'
           args: release --clean
         env:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   docker:
     needs: [tag]
     runs-on: ubuntu-latest
