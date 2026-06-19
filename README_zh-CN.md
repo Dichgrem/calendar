@@ -51,13 +51,14 @@ flowchart TD
 
 ## 功能
 
-- [x] CalDAV 双向同步（Android DAVx5 真机测试通过）
-- [x] 自研 `MonthGrid` — 226KB 打包体积（无 FullCalendar）
-- [x] ICS 完整保真：VALARM、X-FOSSIFY-*、TRANSP 全部保留
-- [x] 中国农历 + 节假日
-- [x] 暗色模式，状态持久化
-- [x] 服务器日志查看器（Debug 模式）
 - [x] Docker + 单二进制部署
+- [x] 自研 `MonthGrid` 月视图
+- [x] 内置中国农历 + 节假日支持
+- [x] 支持CTRL+/快捷键事件搜索
+- [x] ICS 完整保真：VALARM、X-FOSSIFY-*、TRANSP 全部保留
+- [x] CalDAV 双向同步（Android DAVx5 真机测试通过）
+- [x] 支持定时备份/导出配置
+- [x] 亮色/暗色模式，中文英文双语言支持
 - [x] slog 结构化日志（环形缓冲区、按级别过滤）
 
 ---
@@ -117,40 +118,6 @@ just format         # 格式化（go fmt + biome format）
 just docker-build   # 构建 Docker 镜像
 just docker-up      # Docker Compose 启动
 ```
-
----
-
-## 项目结构
-
-```
-calendar/
-├── cmd/server/main.go       # 入口，路由配置
-├── internal/
-│   ├── auth/                # 认证 + 会话 + PBKDF2
-│   ├── backup/              # 数据库备份/恢复
-│   ├── caldav/              # CalDAV 协议（PROPFIND/PUT/DELETE/REPORT/MKCALENDAR）
-│   ├── calendar/            # 日历 CRUD
-│   ├── config/              # 环境变量读取
-│   ├── db/                  # SQLite 连接
-│   ├── event/               # 事件 CRUD + override
-│   ├── ics/                 # ICS 解析/序列化/路由
-│   ├── logger/              # 结构化日志（slog + 环形缓冲区）
-│   ├── middleware/           # 认证、错误、安全头
-│   ├── settings/            # 用户设置
-│   ├── sync/                # 同步 pull/push
-│   └── validate/            # 共享校验
-├── web/                     # Preact SPA（pnpm workspace）
-│   └── src/
-│       ├── components/       # MonthGrid, CalendarView, EventEditor, ImportForm...
-│       ├── hooks/            # useEvents, useCalendars, useNav, useSettings...
-│       ├── lib/              # date-format, lunar, colors, api client
-│       └── pages/            # LoginPage, SettingsPage
-├── docs/                    # 用户与开发文档
-├── Dockerfile
-├── Justfile
-└── go.mod
-```
-
 ---
 
 ## 📚 文档
