@@ -2,7 +2,7 @@ import { CalendarDots, CaretDown, Database, Package, PencilSimple, User, Wrench 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ComponentChildren } from "preact";
 import { createPortal } from "preact/compat";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { CalendarManagement } from "../components/CalendarManagement";
 import { useTopBar } from "../components/Layout";
 import { SettingsForm } from "../components/SettingsForm";
@@ -89,19 +89,41 @@ export function SettingsPage() {
   const [logLevel, setLogLevel] = useState("");
   const [logCount, setLogCount] = useState(200);
   const [logAuto, setLogAuto] = useState(false);
+  const [logError, setLogError] = useState("");
   const [showLogs, setShowLogs] = useState(() => localStorage.getItem("showLogs") === "1");
-  const fetchLogs = async () => {
+  const logAbortRef = useRef<AbortController | null>(null);
+  const fetchLogs = useCallback(async () => {
+    if (logAbortRef.current) logAbortRef.current.abort();
+    const ac = new AbortController();
+    logAbortRef.current = ac;
+    setLogError("");
     try {
       const res: any = await api.logs(logCount, logLevel || undefined);
+      if (ac.signal.aborted) return;
       if (res?.data?.lines) setLogLines(res.data.lines);
-    } catch {}
-  };
+    } catch (e) {
+      if (ac.signal.aborted) return;
+      setLogError(e instanceof Error ? e.message : "Failed to fetch logs");
+    }
+  }, [logCount, logLevel]);
   useEffect(() => {
     fetchLogs();
     if (!logAuto) return;
     const t = setInterval(fetchLogs, 5000);
     return () => clearInterval(t);
-  }, [logAuto, logLevel, logCount]);
+  }, [logAuto, fetchLogs]);
+  useEffect(() => {
+    return () => {
+      if (logAbortRef.current) logAbortRef.current.abort();
+    };
+  }, []);
+  const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
+    };
+  }, []);
   const exportLogs = () => {
     const blob = new Blob([logLines.join("\n")], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -120,10 +142,12 @@ export function SettingsPage() {
       try {
         await api.settings.update(next);
         setSaveState("saved");
-        setTimeout(() => setSaveState("idle"), 2000);
+        if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
+        saveStatusTimer.current = setTimeout(() => setSaveState("idle"), 2000);
       } catch {
         setSaveState("error");
-        setTimeout(() => setSaveState("idle"), 2500);
+        if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
+        saveStatusTimer.current = setTimeout(() => setSaveState("idle"), 2500);
       }
     }, 500);
   };
@@ -399,6 +423,7 @@ export function SettingsPage() {
                   </Button>
                 </div>
                 <div className="w-full h-96 overflow-y-auto border rounded-lg bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 font-mono text-xs">
+                  {logError && <p className="px-2.5 py-2 text-red-500 text-xs">{logError}</p>}
                   {logLines.map((line, i) => {
                     const timeMatch = line.match(/^time=(\S+)\s/);
                     const levelMatch = line.match(/level=(\w+)\s/);

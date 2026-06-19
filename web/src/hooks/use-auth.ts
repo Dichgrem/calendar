@@ -10,8 +10,9 @@ export function useAuth() {
       const res = await api.auth.me();
       return (res as { ok: boolean; data: { userId: string; username: string } }).data;
     },
-    retry: false,
+    retry: 2,
     staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   return {

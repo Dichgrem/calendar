@@ -8,5 +8,6 @@ export function useCalendars() {
       const res = await api.calendars.list();
       return res.data;
     },
+    placeholderData: (prev) => prev,
   });
 }

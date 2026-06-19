@@ -5,6 +5,8 @@ interface ApiResponse<T> {
   data: T;
 }
 
+const DEFAULT_TIMEOUT_MS = 30_000;
+
 function getBaseUrl(): string {
   const serverUrl = localStorage.getItem("serverUrl")?.replace(/\/+$/, "");
   return serverUrl ? `${serverUrl}/api` : "/api";
@@ -12,12 +14,19 @@ function getBaseUrl(): string {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const base = getBaseUrl();
-  const { headers: initHeaders, ...rest } = init ?? {};
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  const { headers: initHeaders, signal: initSignal, ...rest } = init ?? {};
+  if (initSignal) {
+    initSignal.addEventListener("abort", () => controller.abort());
+  }
   const res = await fetch(`${base}${path}`, {
     ...rest,
     credentials: "include",
+    signal: controller.signal,
     headers: { "Content-Type": "application/json", ...initHeaders },
   });
+  clearTimeout(timeout);
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

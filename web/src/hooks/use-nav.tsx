@@ -1,5 +1,5 @@
 import { type ComponentChildren, createContext } from "preact";
-import { useCallback, useContext, useEffect, useState } from "preact/hooks";
+import { useCallback, useContext, useEffect, useRef, useState } from "preact/hooks";
 import { useCalendars } from "./use-calendars";
 
 interface NavState {
@@ -34,10 +34,18 @@ export function NavProvider({ children }: { children: ComponentChildren }) {
   const [visibleCalendars, setVisibleCalendars] = useState<Set<string>>(new Set());
   const [labelOverride, setLabelOverride] = useState<string | null>(null);
   const { data: calendars } = useCalendars();
+  const prevCalIdsRef = useRef<string>("");
 
   useEffect(() => {
     if (calendars) {
-      setVisibleCalendars(new Set(calendars.map((c) => c.id)));
+      const ids = calendars
+        .map((c) => c.id)
+        .sort()
+        .join(",");
+      if (ids !== prevCalIdsRef.current) {
+        prevCalIdsRef.current = ids;
+        setVisibleCalendars(new Set(calendars.map((c) => c.id)));
+      }
     }
   }, [calendars]);
 
