@@ -19,6 +19,7 @@ import (
 
 // RegisterRoutes adds event routes to a chi router.
 func RegisterRoutes(r chi.Router) {
+	r.Get("/api/events", handleListAll)
 	r.Get("/api/calendars/{calendarId}/events", handleList)
 	r.Get("/api/events/{id}", handleGet)
 	r.Post("/api/calendars/{calendarId}/events", handleCreate)
@@ -74,6 +75,54 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		ORDER BY start_at ASC
 		LIMIT 5000
 	`, calendarID, end, start)
+	if err != nil {
+		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+		return
+	}
+	defer func() { _ = rows.Close() }()
+
+	events := []Event{}
+	for rows.Next() {
+		var e Event
+		var allDayInt int
+		if err := rows.Scan(
+			&e.ID, &e.CalendarID, &e.Title, &e.Description,
+			&e.StartAt, &e.EndAt, &allDayInt, &e.RRule,
+			&e.Color, &e.Location, &e.ParentID, &e.OriginalDate,
+			&e.Deleted, &e.CreatedAt, &e.UpdatedAt, &e.LastModified,
+		); err != nil {
+			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+			return
+		}
+		e.AllDay = allDayInt != 0
+		events = append(events, e)
+	}
+
+	middleware.JSONResponse(w, 200, events)
+}
+
+func handleListAll(w http.ResponseWriter, r *http.Request) {
+	perm := middleware.GetPermission(r)
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
+
+	if start == "" || end == "" {
+		middleware.JSONResponse(w, 400, apperror.BadRequest("start and end query params required"))
+		return
+	}
+
+	rows, err := db.DB.Query(`
+		SELECT e.id, e.calendar_id, e.title, e.description, e.start_at, e.end_at,
+		       e.all_day, e.rrule, e.color, e.location, e.parent_id, e.original_date,
+		       e.deleted, e.created_at, e.updated_at, e.last_modified
+		FROM events e
+		INNER JOIN calendar_members cm ON e.calendar_id = cm.calendar_id
+		WHERE cm.user_id = ?
+		  AND e.deleted = 0
+		  AND (e.rrule IS NOT NULL OR (e.start_at <= ? AND e.end_at >= ?))
+		ORDER BY e.start_at ASC
+		LIMIT 5000
+	`, perm.UserID, end, start)
 	if err != nil {
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return

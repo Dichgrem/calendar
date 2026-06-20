@@ -118,6 +118,8 @@ export const api = {
   },
 
   events: {
+    all: (start: string, end: string) =>
+      request<ApiResponse<Event[]>>(`/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
     list: (calendarId: string, start: string, end: string) =>
       request<ApiResponse<Event[]>>(
         `/calendars/${encodeURIComponent(calendarId)}/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
