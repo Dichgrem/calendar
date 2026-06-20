@@ -143,12 +143,11 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
 
 export function CenterControls() {
   const { t } = useI18n();
-  const { data: calendars, isLoading: calLoading, isError: calError } = useCalendars();
+  const { data: calendars, isError: calError } = useCalendars();
   const { visibleCalendars, toggleCalendar } = useNav();
 
   return (
     <>
-      {calLoading && <span className="text-xs text-neutral-400">{t("cal.loading")}</span>}
       {calError && <span className="text-xs text-red-500">{t("cal.failed")}</span>}
       {calendars?.map((cal) => (
         <button
@@ -165,9 +164,7 @@ export function CenterControls() {
           }}
         />
       ))}
-      {calendars?.length === 0 && !calLoading && (
-        <span className="text-xs text-neutral-400">{t("cal.noCalendars")}</span>
-      )}
+      {calendars?.length === 0 && <span className="text-xs text-neutral-400">{t("cal.noCalendars")}</span>}
     </>
   );
 }
