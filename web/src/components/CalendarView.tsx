@@ -50,12 +50,8 @@ export function CalendarView() {
     return `${dateStr(d)}T23:59:59`;
   }, [displayMonth.year, displayMonth.month]);
 
-  const {
-    data: events,
-    isLoading: evLoading,
-    isError: evError,
-  } = useEvents(
-    searchQuery ? [] : allCalIds.filter((id) => visibleCalendars.has(id)),
+  const { data: events, isError: evError } = useEvents(
+    searchQuery ? [] : allCalIds,
     searchQuery ? "" : eventStart,
     searchQuery ? "" : eventEnd,
   );
@@ -208,7 +204,6 @@ export function CalendarView() {
       {topBar?.center && createPortal(<CenterControls />, topBar.center)}
       {topBar?.searchDropdown && searchDropdown && createPortal(searchDropdown, topBar.searchDropdown)}
 
-      {evLoading && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
       {evError && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
       <div className="grid grid-cols-7 text-center border-b border-neutral-300 dark:border-neutral-600 shrink-0 border-l border-r">
         {orderedWeekdays.map((w) => (
