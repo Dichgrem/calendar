@@ -50,12 +50,8 @@ export function CalendarView() {
     return `${dateStr(d)}T23:59:59`;
   }, [displayMonth.year, displayMonth.month]);
 
-  const {
-    data: events,
-    isLoading: evLoading,
-    isError: evError,
-  } = useEvents(
-    searchQuery ? [] : allCalIds.filter((id) => visibleCalendars.has(id)),
+  const { data: events, isError: evError } = useEvents(
+    searchQuery ? [] : allCalIds,
     searchQuery ? "" : eventStart,
     searchQuery ? "" : eventEnd,
   );
@@ -69,8 +65,7 @@ export function CalendarView() {
 
   useEffect(() => {
     if (searchQuery || !allCalIds.length) return;
-    const visibleIds = allCalIds.filter((id) => visibleCalendars.has(id));
-    if (!visibleIds.length) return;
+    if (!allCalIds.length) return;
 
     const THROTTLE_MS = 1000;
     if (Date.now() - lastPrefetchRef.current < THROTTLE_MS) return;
@@ -82,12 +77,12 @@ export function CalendarView() {
       const s = `${dateStr(d)}T00:00:00`;
       const e = new Date(year, month + 1, 7);
       const eStr = `${dateStr(e)}T23:59:59`;
-      const key = ["events", visibleIds, s, eStr];
+      const key = ["events", allCalIds, s, eStr];
       if (queryClient.isFetching({ queryKey: key })) return;
       queryClient.prefetchQuery({
         queryKey: key,
         queryFn: () =>
-          Promise.all(visibleIds.map((id) => api.events.list(id, s, eStr))).then((res) =>
+          Promise.all(allCalIds.map((id) => api.events.list(id, s, eStr))).then((res) =>
             res.flatMap((r: any) => r.data ?? []),
           ),
         staleTime: 5 * 60 * 1000,
@@ -98,7 +93,7 @@ export function CalendarView() {
     prefetchMonth(nm > 11 ? displayMonth.year + 1 : displayMonth.year, nm > 11 ? 0 : nm);
     const pm = displayMonth.month - 1;
     prefetchMonth(pm < 0 ? displayMonth.year - 1 : displayMonth.year, pm < 0 ? 11 : pm);
-  }, [displayMonth, allCalIds, visibleCalendars, searchQuery, queryClient]);
+  }, [displayMonth, allCalIds, searchQuery, queryClient]);
 
   const calendarColorMap = useMemo(() => new Map(calendars?.map((c) => [c.id, c.color]) ?? []), [calendars]);
   const dotCalendarIds = useMemo(
@@ -111,6 +106,7 @@ export function CalendarView() {
     return (searchableEvents ?? [])
       .filter(
         (e) =>
+          (!!searchQuery || visibleCalendars.has(e.calendarId)) &&
           (!searchCalId || e.calendarId === searchCalId) &&
           (!searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase())),
       )
@@ -120,7 +116,7 @@ export function CalendarView() {
         if (ai !== bi) return ai - bi;
         return (a.startAt || "").localeCompare(b.startAt || "");
       });
-  }, [searchableEvents, searchCalId, searchQuery, allCalIds]);
+  }, [searchableEvents, searchCalId, searchQuery, allCalIds, visibleCalendars]);
 
   const filteredEventsRef = useRef<Event[]>([]);
   const highlightedIndexRef = useRef(-1);
@@ -208,7 +204,6 @@ export function CalendarView() {
       {topBar?.center && createPortal(<CenterControls />, topBar.center)}
       {topBar?.searchDropdown && searchDropdown && createPortal(searchDropdown, topBar.searchDropdown)}
 
-      {evLoading && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
       {evError && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
       <div className="grid grid-cols-7 text-center border-b border-neutral-300 dark:border-neutral-600 shrink-0 border-l border-r">
         {orderedWeekdays.map((w) => (
