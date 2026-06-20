@@ -161,7 +161,7 @@ export function SettingsPage() {
       <div className="flex-1 overflow-auto">
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-3">
           <Section icon={Wrench} title={t("settings.preferences")}>
-            <SettingsForm settings={s} onUpdate={updateSettings} />
+            <SettingsForm settings={s} calendars={calendars ?? []} onUpdate={updateSettings} />
           </Section>
           <Section icon={User} title={t("settings.account")}>
             <AccountSection username={accountUser} />

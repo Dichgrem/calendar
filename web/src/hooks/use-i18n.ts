@@ -117,6 +117,8 @@ const strings = {
   "settings.importBtn": { "zh-CN": "导入", en: "Import" },
   "settings.showEventTime": { "zh-CN": "显示事件时间", en: "Show event time" },
   "settings.showLunarCalendar": { "zh-CN": "显示农历", en: "Show Lunar Calendar" },
+  "settings.defaultCalendar": { "zh-CN": "默认日历", en: "Default Calendar" },
+  "settings.defaultCalendarNone": { "zh-CN": "无（自动选择）", en: "None (auto-select)" },
   "settings.dateFormat": { "zh-CN": "日期格式", en: "Date format" },
   "settings.customFormat": { "zh-CN": "自定义格式...", en: "Custom format..." },
   "settings.formatHint": {

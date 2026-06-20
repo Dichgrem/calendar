@@ -253,7 +253,7 @@ export function CalendarView() {
         <EventEditor
           mode="create"
           calendars={calendars ?? []}
-          defaultCalendarId={[...visibleCalendars][0] ?? calendars?.[0]?.id}
+          defaultCalendarId={settings?.defaultCalendarId || ([...visibleCalendars][0] ?? calendars?.[0]?.id)}
           defaultStart={highlightDate ? new Date(`${highlightDate}T00:00:00`) : undefined}
           open
           onClose={() => setCreating(false)}

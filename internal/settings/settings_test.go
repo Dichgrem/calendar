@@ -34,7 +34,8 @@ func setupSettings(t *testing.T) (chi.Router, string) {
 			date_format TEXT NOT NULL DEFAULT 'yyyy-MM-dd',
 			show_lunar_calendar INTEGER NOT NULL DEFAULT 0,
 			auto_backup_calendars TEXT DEFAULT '',
-			auto_backup_interval_min INTEGER DEFAULT 0)`,
+			auto_backup_interval_min INTEGER DEFAULT 0,
+			default_calendar_id TEXT DEFAULT '')`,
 		`CREATE TABLE IF NOT EXISTS calendar_members (
 			calendar_id TEXT NOT NULL, user_id TEXT NOT NULL,
 			role TEXT NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0)`,

@@ -1,13 +1,14 @@
 import type { ComponentChildren } from "preact";
 import { useI18n } from "../hooks/use-i18n";
-import type { UserSettings } from "../types";
+import type { Calendar, UserSettings } from "../types";
 
 interface SettingsFormProps {
   settings: UserSettings;
+  calendars: Calendar[];
   onUpdate: (s: UserSettings) => void;
 }
 
-export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
+export function SettingsForm({ settings, calendars, onUpdate }: SettingsFormProps) {
   const { t } = useI18n();
   const s = settings;
 
@@ -73,6 +74,21 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
             />
           )}
         </div>
+      </Row>
+
+      <Row label={t("settings.defaultCalendar")}>
+        <select
+          value={s.defaultCalendarId ?? ""}
+          onChange={(e) => onUpdate({ ...s, defaultCalendarId: e.currentTarget.value || undefined })}
+          className="text-sm border rounded-lg px-2.5 py-1.5 bg-white dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+        >
+          <option value="">{t("settings.defaultCalendarNone")}</option>
+          {calendars.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
       </Row>
 
       <Row label={t("settings.showLunarCalendar")}>

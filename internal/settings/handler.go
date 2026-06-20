@@ -29,6 +29,7 @@ type UserSettings struct {
 	ShowLunarCalendar   bool   `json:"showLunarCalendar"`
 	AutoBackupCalendars string `json:"autoBackupCalendars,omitempty"`
 	AutoBackupInterval  int    `json:"autoBackupInterval,omitempty"`
+	DefaultCalendarID   string `json:"defaultCalendarId,omitempty"`
 }
 
 func handleGet(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +52,7 @@ type updateRequest struct {
 	ShowLunarCalendar   *bool   `json:"showLunarCalendar,omitempty"`
 	AutoBackupCalendars *string `json:"autoBackupCalendars,omitempty"`
 	AutoBackupInterval  *int    `json:"autoBackupInterval,omitempty"`
+	DefaultCalendarID   *string `json:"defaultCalendarId,omitempty"`
 }
 
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -89,6 +91,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		showLunar := cfg.UserDefaults.ShowLunarCalendar
 		backupCals := ""
 		backupInterval := 0
+		defaultCal := ""
 
 		if req.Language != nil {
 			lang = *req.Language
@@ -111,11 +114,14 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		if req.AutoBackupInterval != nil {
 			backupInterval = *req.AutoBackupInterval
 		}
+		if req.DefaultCalendarID != nil {
+			defaultCal = *req.DefaultCalendarID
+		}
 
 		_, err := db.DB.Exec(`
-			INSERT INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar, auto_backup_calendars, auto_backup_interval_min)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		`, perm.UserID, lang, fdow, util.BoolToInt(showTime), df, util.BoolToInt(showLunar), backupCals, backupInterval)
+			INSERT INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar, auto_backup_calendars, auto_backup_interval_min, default_calendar_id)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, perm.UserID, lang, fdow, util.BoolToInt(showTime), df, util.BoolToInt(showLunar), backupCals, backupInterval, defaultCal)
 		if err != nil {
 			logger.Error("[settings] insert user=%s error: %v", perm.UserID, err)
 			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
@@ -130,6 +136,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		showLunar := existing.ShowLunarCalendar
 		backupCals := existing.AutoBackupCalendars
 		backupInterval := existing.AutoBackupInterval
+		defaultCal := existing.DefaultCalendarID
 
 		if req.Language != nil {
 			lang = *req.Language
@@ -152,10 +159,13 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		if req.AutoBackupInterval != nil {
 			backupInterval = *req.AutoBackupInterval
 		}
+		if req.DefaultCalendarID != nil {
+			defaultCal = *req.DefaultCalendarID
+		}
 
 		_, err := db.DB.Exec(`
-			INSERT INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar, auto_backup_calendars, auto_backup_interval_min)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			INSERT INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar, auto_backup_calendars, auto_backup_interval_min, default_calendar_id)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(user_id) DO UPDATE SET
 				language = excluded.language,
 				first_day_of_week = excluded.first_day_of_week,
@@ -163,8 +173,9 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 				date_format = excluded.date_format,
 				show_lunar_calendar = excluded.show_lunar_calendar,
 				auto_backup_calendars = excluded.auto_backup_calendars,
-				auto_backup_interval_min = excluded.auto_backup_interval_min
-		`, perm.UserID, lang, fdow, util.BoolToInt(showTime), df, util.BoolToInt(showLunar), backupCals, backupInterval)
+				auto_backup_interval_min = excluded.auto_backup_interval_min,
+				default_calendar_id = excluded.default_calendar_id
+		`, perm.UserID, lang, fdow, util.BoolToInt(showTime), df, util.BoolToInt(showLunar), backupCals, backupInterval, defaultCal)
 		if err != nil {
 			logger.Error("[settings] update user=%s error: %v", perm.UserID, err)
 			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
@@ -187,11 +198,11 @@ func getSettings(userID string) (*UserSettings, error) {
 	var showTimeInt, showLunarInt int
 	err := db.DB.QueryRow(
 		`SELECT user_id, language, first_day_of_week, show_event_time, date_format,
-		        show_lunar_calendar, COALESCE(auto_backup_calendars,''), COALESCE(auto_backup_interval_min,0)
+		        show_lunar_calendar, COALESCE(auto_backup_calendars,''), COALESCE(auto_backup_interval_min,0), COALESCE(default_calendar_id,'')
 		 FROM user_settings WHERE user_id = ?`,
 		userID,
 	).Scan(&s.UserID, &s.Language, &s.FirstDayOfWeek, &showTimeInt, &s.DateFormat,
-		&showLunarInt, &s.AutoBackupCalendars, &s.AutoBackupInterval)
+		&showLunarInt, &s.AutoBackupCalendars, &s.AutoBackupInterval, &s.DefaultCalendarID)
 	if err != nil {
 		return nil, err
 	}
