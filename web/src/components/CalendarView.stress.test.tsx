@@ -122,4 +122,80 @@ describe("CalendarView stress", () => {
       expect(document.querySelector(".grid.grid-cols-7")).toBeTruthy();
     });
   });
+
+  it("calendar visibility toggles exist and are clickable", async () => {
+    (api.events.list as MockFn).mockImplementation((calId: string) =>
+      Promise.resolve({
+        data:
+          calId === "c1"
+            ? [
+                {
+                  id: "e1",
+                  calendarId: "c1",
+                  title: "Event 1",
+                  startAt: "2026-06-15T00:00:00",
+                  endAt: "2026-06-15T01:00:00",
+                  allDay: false,
+                },
+              ]
+            : [],
+      }),
+    );
+
+    (api.auth.me as MockFn).mockResolvedValue({ data: { userId: "u-1", username: "test" } });
+    (api.settings.get as MockFn).mockResolvedValue({
+      data: {
+        userId: "u-1",
+        language: "zh-CN",
+        firstDayOfWeek: 1,
+        showEventTime: false,
+        dateFormat: "zh",
+        showLunarCalendar: true,
+      },
+    });
+    (api.calendars.list as MockFn).mockResolvedValue({
+      data: [
+        { id: "c1", name: "Cal1", color: "#3b82f6", sourceType: "local" },
+        { id: "c2", name: "Cal2", color: "#ef4444", sourceType: "local" },
+      ],
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const user = userEvent.setup();
+
+    render(
+      <QueryClientProvider client={qc}>
+        <Layout>
+          <CalendarView />
+        </Layout>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(document.querySelector(".grid.grid-cols-7")).toBeTruthy();
+    });
+
+    // Wait for calendar toggle buttons to appear
+    await waitFor(() => {
+      const cal1Btn = document.querySelector('[title="Cal1"]') as HTMLButtonElement;
+      expect(cal1Btn).toBeTruthy();
+    });
+
+    const cal1Btn = document.querySelector('[title="Cal1"]') as HTMLButtonElement;
+    const cal2Btn = document.querySelector('[title="Cal2"]') as HTMLButtonElement;
+
+    // Click toggle to hide Cal1
+    await user.click(cal1Btn);
+
+    // Cal1 should now be dimmed (opacity < 1)
+    await waitFor(() => {
+      expect(parseFloat(cal1Btn.style.opacity)).toBeLessThan(1);
+    });
+
+    // Cal2 should still be visible
+    expect(parseFloat(cal2Btn.style.opacity)).toBeGreaterThanOrEqual(1);
+
+    // Grid should still be alive
+    expect(document.querySelector(".grid.grid-cols-7")).toBeTruthy();
+  });
 });

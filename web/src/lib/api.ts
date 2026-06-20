@@ -8,6 +8,14 @@ interface ApiResponse<T> {
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+// Track in-flight requests so beforeunload can abort them.
+// Prevents old requests from flooding a freshly-reloaded page.
+const inFlight = new Set<AbortController>();
+addEventListener("beforeunload", () => {
+  for (const c of inFlight) c.abort();
+  inFlight.clear();
+});
+
 function getBaseUrl(): string {
   const serverUrl = localStorage.getItem("serverUrl")?.replace(/\/+$/, "");
   if (serverUrl && !/^https?:\/\//.test(serverUrl)) {
@@ -32,29 +40,35 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 /** The actual fetch — runs inside the task queue, at most one at a time. */
 async function doFetch<T>(base: string, path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
+  inFlight.add(controller);
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
   const { headers: initHeaders, signal: initSignal, ...rest } = init ?? {};
   if (initSignal) {
     initSignal.addEventListener("abort", () => controller.abort());
   }
-  const res = await fetch(`${base}${path}`, {
-    ...rest,
-    credentials: "include",
-    signal: controller.signal,
-    headers: { "Content-Type": "application/json", ...initHeaders },
-  });
-  clearTimeout(timeout);
+  try {
+    const res = await fetch(`${base}${path}`, {
+      ...rest,
+      credentials: "include",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", ...initHeaders },
+    });
+    clearTimeout(timeout);
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error?.message ?? `HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error?.message ?? `HTTP ${res.status}`);
+    }
+
+    if (res.headers.get("Content-Type")?.includes("text/calendar")) {
+      return { blob: await res.blob(), filename: "" } as T;
+    }
+
+    return res.json();
+  } finally {
+    clearTimeout(timeout);
+    inFlight.delete(controller);
   }
-
-  if (res.headers.get("Content-Type")?.includes("text/calendar")) {
-    return { blob: await res.blob(), filename: "" } as T;
-  }
-
-  return res.json();
 }
 
 export interface IcsPreviewData {
