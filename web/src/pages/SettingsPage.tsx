@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { AccountSection } from "../components/AccountSection";
 import { CalendarManagement } from "../components/CalendarManagement";
 import { useTopBar } from "../components/Layout";
-import { LogsViewer } from "../components/LogsViewer";
 import { SettingsForm } from "../components/SettingsForm";
 import { CenterControls, LeftControls } from "../components/TopBarControls";
 import { Button } from "../components/ui/button";
@@ -80,7 +79,6 @@ export function SettingsPage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [backingUp, setBackingUp] = useState(false);
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
-  const [showLogs, setShowLogs] = useState(() => localStorage.getItem("showLogs") === "1");
 
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -164,23 +162,6 @@ export function SettingsPage() {
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-3">
           <Section icon={Wrench} title={t("settings.preferences")}>
             <SettingsForm settings={s} onUpdate={updateSettings} />
-            <div className="flex items-center justify-between py-1 mt-1 border-t border-neutral-100 dark:border-neutral-800">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">{t("settings.showLogs")}</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={showLogs}
-                onClick={() => {
-                  setShowLogs(!showLogs);
-                  localStorage.setItem("showLogs", !showLogs ? "1" : "0");
-                }}
-                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${showLogs ? "bg-neutral-900 dark:bg-neutral-300" : "bg-neutral-200 dark:bg-neutral-600"}`}
-              >
-                <span
-                  className={`inline-block size-4 rounded-full bg-white dark:bg-neutral-900 shadow-sm transition-transform mt-0.5 ${showLogs ? "translate-x-[18px]" : "translate-x-0.5"}`}
-                />
-              </button>
-            </div>
           </Section>
           <Section icon={User} title={t("settings.account")}>
             <AccountSection username={accountUser} />
@@ -220,11 +201,6 @@ export function SettingsPage() {
               </div>
             </div>
           </Section>
-          {showLogs && (
-            <Section icon={Database} title={t("settings.serverLogs")} collapsible>
-              <LogsViewer />
-            </Section>
-          )}
           {saveError && <p className="text-sm text-red-500 text-center">{saveError}</p>}
           <div className="h-16" />
         </div>
