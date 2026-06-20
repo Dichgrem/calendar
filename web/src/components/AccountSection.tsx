@@ -18,13 +18,16 @@ export function AccountSection({ username }: AccountSectionProps) {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [acctMsg, setAcctMsg] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const handleChangeUsername = async () => {
+    if (busy) return;
     setAcctMsg("");
+    setBusy(true);
     try {
       const res = await api.auth.changeUsername({ username: newUsername });
       if (res?.ok) {
-        queryClient.setQueryData(["me"], (old: { data?: { username: string } } | undefined) =>
+        queryClient.setQueryData(["auth", "me"], (old: { data?: { username: string } } | undefined) =>
           old ? { ...old, data: { ...old.data, username: newUsername } } : old,
         );
         setEditUsername(false);
@@ -32,15 +35,19 @@ export function AccountSection({ username }: AccountSectionProps) {
       }
     } catch {
       setAcctMsg(t("settings.saveError"));
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleChangePassword = async () => {
+    if (busy) return;
     setAcctMsg("");
     if (newPassword.length < 8) {
       setAcctMsg(t("settings.pwTooShort"));
       return;
     }
+    setBusy(true);
     try {
       const res = await api.auth.changePassword({ oldPassword, newPassword });
       if (res?.ok) {
@@ -51,6 +58,8 @@ export function AccountSection({ username }: AccountSectionProps) {
       }
     } catch (e: any) {
       setAcctMsg(e?.message || t("settings.saveError"));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -74,7 +83,7 @@ export function AccountSection({ username }: AccountSectionProps) {
         <div className="flex items-center gap-1 shrink-0">
           {editUsername ? (
             <>
-              <Button size="sm" onClick={handleChangeUsername} className="h-6 text-xs px-2">
+              <Button size="sm" onClick={handleChangeUsername} disabled={busy} className="h-6 text-xs px-2">
                 {t("settings.save")}
               </Button>
               <Button variant="outline" size="sm" onClick={() => setEditUsername(false)} className="h-6 text-xs px-2">
@@ -96,7 +105,7 @@ export function AccountSection({ username }: AccountSectionProps) {
           <span className="text-[11px] text-neutral-400 mx-1">|</span>
           {editPassword ? (
             <>
-              <Button size="sm" onClick={handleChangePassword} className="h-6 text-xs px-2">
+              <Button size="sm" onClick={handleChangePassword} disabled={busy} className="h-6 text-xs px-2">
                 {t("settings.save")}
               </Button>
               <Button variant="outline" size="sm" onClick={() => setEditPassword(false)} className="h-6 text-xs px-2">

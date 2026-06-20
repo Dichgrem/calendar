@@ -1,4 +1,5 @@
 import type { Calendar, Event, SyncPullResponse, UserSettings } from "../types";
+import { taskQueue } from "./task-queue";
 
 interface ApiResponse<T> {
   ok: true;
@@ -18,6 +19,18 @@ function getBaseUrl(): string {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const base = getBaseUrl();
+  const method = (init?.method ?? "GET") as string;
+
+  // Only serialize writes.
+  if (method === "GET") {
+    return doFetch<T>(base, path, init);
+  }
+
+  return taskQueue.push(() => doFetch<T>(base, path, init));
+}
+
+/** The actual fetch — runs inside the task queue, at most one at a time. */
+async function doFetch<T>(base: string, path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
   const { headers: initHeaders, signal: initSignal, ...rest } = init ?? {};

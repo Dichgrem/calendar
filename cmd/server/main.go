@@ -168,8 +168,11 @@ func main() {
 	// Create server with explicit handle for graceful shutdown
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:         addr,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	// Graceful shutdown: listen for signals in a goroutine

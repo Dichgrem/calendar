@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useI18n } from "../hooks/use-i18n";
 import { api } from "../lib/api";
 import { Button } from "./ui/button";
@@ -12,11 +12,15 @@ export function LogsViewer() {
   const [logAuto, setLogAuto] = useState(false);
   const [logError, setLogError] = useState("");
   const logAbortRef = useRef<AbortController | null>(null);
+  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchingRef = useRef(false);
 
   const fetchLogs = useCallback(async () => {
+    if (fetchingRef.current) return;
     if (logAbortRef.current) logAbortRef.current.abort();
     const ac = new AbortController();
     logAbortRef.current = ac;
+    fetchingRef.current = true;
     setLogError("");
     try {
       const res = await api.logs(logCount, logLevel || undefined, ac.signal);
@@ -25,15 +29,27 @@ export function LogsViewer() {
     } catch (e) {
       if (ac.signal.aborted) return;
       setLogError(e instanceof Error ? e.message : "Failed to fetch logs");
+    } finally {
+      fetchingRef.current = false;
     }
   }, [logCount, logLevel]);
 
+  // Auto-refresh via setInterval. fetchingRef prevents concurrent requests.
   useEffect(() => {
+    if (!logAuto) {
+      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+      return;
+    }
     fetchLogs();
-    if (!logAuto) return;
-    const t = setInterval(fetchLogs, 5000);
-    return () => clearInterval(t);
-  }, [logAuto, fetchLogs]);
+    autoTimerRef.current = setInterval(() => {
+      fetchLogs();
+    }, 5000) as unknown as ReturnType<typeof setTimeout>;
+    return () => {
+      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logAuto]);
 
   useEffect(() => {
     return () => {
@@ -87,41 +103,45 @@ export function LogsViewer() {
       </div>
       <div className="w-full h-96 overflow-y-auto border rounded-lg bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 font-mono text-xs">
         {logError && <p className="px-2.5 py-2 text-red-500 text-xs">{logError}</p>}
-        {logLines.map((line, i) => {
-          const timeMatch = line.match(/^time=(\S+)\s/);
-          const levelMatch = line.match(/level=(\w+)\s/);
-          const msgMatch = line.match(/msg="?(.+?)"?$/);
-          const time = timeMatch ? timeMatch[1].replace("T", " ").slice(0, 19) : "";
-          const level = levelMatch ? levelMatch[1] : "";
-          const msg = msgMatch ? msgMatch[1] : line;
-          const levelColor =
-            level === "ERROR"
-              ? "text-red-600 dark:text-red-400 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30"
-              : level === "WARN"
-                ? "text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"
-                : level === "DEBUG"
-                  ? "text-neutral-400 dark:text-neutral-500 border-neutral-200 dark:border-neutral-700"
-                  : "text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700";
-          return (
-            <div key={i} className={`px-2.5 py-1 border-b flex items-center gap-2 ${levelColor} last:border-b-0`}>
-              <span className="text-neutral-400 dark:text-neutral-500 shrink-0 tabular-nums">{time}</span>
-              <span
-                className={`font-semibold uppercase shrink-0 w-12 ${
-                  level === "ERROR"
-                    ? "text-red-600 dark:text-red-400"
-                    : level === "WARN"
-                      ? "text-amber-600 dark:text-amber-400"
-                      : level === "DEBUG"
-                        ? "text-neutral-400 dark:text-neutral-500"
-                        : "text-blue-600 dark:text-blue-400"
-                }`}
-              >
-                {level}
-              </span>
-              <span className="flex-1 whitespace-pre-wrap break-all ">{msg}</span>
-            </div>
-          );
-        })}
+        {useMemo(
+          () =>
+            logLines.map((line, i) => {
+              const timeMatch = line.match(/^time=(\S+)\s/);
+              const levelMatch = line.match(/level=(\w+)\s/);
+              const msgMatch = line.match(/msg="?(.+?)"?$/);
+              const time = timeMatch ? timeMatch[1].replace("T", " ").slice(0, 19) : "";
+              const level = levelMatch ? levelMatch[1] : "";
+              const msg = msgMatch ? msgMatch[1] : line;
+              const levelColor =
+                level === "ERROR"
+                  ? "text-red-600 dark:text-red-400 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30"
+                  : level === "WARN"
+                    ? "text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"
+                    : level === "DEBUG"
+                      ? "text-neutral-400 dark:text-neutral-500 border-neutral-200 dark:border-neutral-700"
+                      : "text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700";
+              return (
+                <div key={i} className={`px-2.5 py-1 border-b flex items-center gap-2 ${levelColor} last:border-b-0`}>
+                  <span className="text-neutral-400 dark:text-neutral-500 shrink-0 tabular-nums">{time}</span>
+                  <span
+                    className={`font-semibold uppercase shrink-0 w-12 ${
+                      level === "ERROR"
+                        ? "text-red-600 dark:text-red-400"
+                        : level === "WARN"
+                          ? "text-amber-600 dark:text-amber-400"
+                          : level === "DEBUG"
+                            ? "text-neutral-400 dark:text-neutral-500"
+                            : "text-blue-600 dark:text-blue-400"
+                    }`}
+                  >
+                    {level}
+                  </span>
+                  <span className="flex-1 whitespace-pre-wrap break-all ">{msg}</span>
+                </div>
+              );
+            }),
+          [logLines],
+        )}
       </div>
     </div>
   );

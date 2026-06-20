@@ -6,9 +6,13 @@ import { CalendarView } from "./components/CalendarView";
 import { Layout } from "./components/Layout";
 import { RequireAuth } from "./components/RequireAuth";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
+import { injectDeadlineGuard } from "./lib/deadline-guard";
 import { LoginPage } from "./pages/LoginPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import "./index.css";
+
+// Last-resort: if React tree doesn't mount in 15s, show raw-DOM fallback
+injectDeadlineGuard(15_000);
 
 // Initialize dark mode on every page load
 const saved = localStorage.getItem("darkMode") === "1";

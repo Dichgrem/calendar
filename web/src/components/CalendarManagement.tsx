@@ -12,7 +12,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 import { AutoBackupPanel } from "../components/AutoBackupPanel";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
 import { ExportPanel } from "../components/ExportPanel";
@@ -81,9 +81,25 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const [importError, setImportError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [creatingBusy, setCreatingBusy] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const reorderingRef = useRef(false);
   const [newCalName, setNewCalName] = useState("");
   const [newCalColor, setNewCalColor] = useState("#3b82f6");
   const { move } = useCalendarReorder(calendars?.map((c) => c.id) ?? []);
+
+  const handleMove = async (fromIdx: number, toIdx: number) => {
+    if (reorderingRef.current) return;
+    reorderingRef.current = true;
+    setReordering(true);
+    try {
+      await move(fromIdx, toIdx);
+    } finally {
+      reorderingRef.current = false;
+      setReordering(false);
+    }
+  };
 
   const importedCommonIds = new Set(
     COMMON_CALENDARS.filter((cal) => calendars?.some((c) => c.sourceUrl === cal.url)).map((cal) => cal.id),
@@ -96,10 +112,17 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   };
 
   const saveCalEdit = async () => {
-    if (!editingCal) return;
-    await api.calendars.update(editingCal, { name: editName, color: editColor });
-    queryClient.invalidateQueries({ queryKey: ["calendars"] });
-    setEditingCal(null);
+    if (!editingCal || saving) return;
+    setSaving(true);
+    try {
+      await api.calendars.update(editingCal, { name: editName, color: editColor });
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      setEditingCal(null);
+    } catch {
+      // silently ignore — user can retry
+    } finally {
+      setSaving(false);
+    }
   };
 
   const deleteCalendar = async (id: string) => {
@@ -144,7 +167,8 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   };
 
   const handleCreateCalendar = async () => {
-    if (!newCalName.trim()) return;
+    if (!newCalName.trim() || creatingBusy) return;
+    setCreatingBusy(true);
     try {
       await api.calendars.create({ name: newCalName.trim(), color: newCalColor });
       queryClient.invalidateQueries({ queryKey: ["calendars"] });
@@ -153,6 +177,8 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
       setNewCalColor("#3b82f6");
     } catch {
       setImportError(t("settings.saveError"));
+    } finally {
+      setCreatingBusy(false);
     }
   };
 
@@ -216,7 +242,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
             <ColorSwatchPicker value={newCalColor} onChange={setNewCalColor} />
           </div>
           <div className="flex gap-1 mt-2">
-            <Button size="sm" onClick={handleCreateCalendar} className="h-7 text-xs">
+            <Button size="sm" onClick={handleCreateCalendar} disabled={creatingBusy} className="h-7 text-xs">
               {t("settings.create")}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setCreating(false)} className="h-7 text-xs">
@@ -291,8 +317,9 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 <button
                   type="button"
                   onClick={saveCalEdit}
+                  disabled={saving}
                   aria-label={t("settings.save")}
-                  className="size-7 flex items-center justify-center rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600"
+                  className="size-7 flex items-center justify-center rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 disabled:opacity-50"
                 >
                   <Check className="size-4" weight="bold" />
                 </button>
@@ -311,8 +338,8 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 <span className="flex-1 text-sm truncate text-neutral-800 dark:text-neutral-200">{cal.name}</span>
                 <button
                   type="button"
-                  onClick={() => move(idx, idx - 1)}
-                  disabled={idx === 0}
+                  onClick={() => handleMove(idx, idx - 1)}
+                  disabled={idx === 0 || reordering}
                   className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30"
                   title="上移"
                 >
@@ -320,8 +347,8 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => move(idx, idx + 1)}
-                  disabled={idx === calendars.length - 1}
+                  onClick={() => handleMove(idx, idx + 1)}
+                  disabled={idx === calendars.length - 1 || reordering}
                   className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30"
                   title="下移"
                 >

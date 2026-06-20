@@ -1,5 +1,5 @@
 import { CalendarDots, CaretDown, Database, Package, User, Wrench } from "@phosphor-icons/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import type { ComponentChildren, ComponentType } from "preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -10,6 +10,7 @@ import { LogsViewer } from "../components/LogsViewer";
 import { SettingsForm } from "../components/SettingsForm";
 import { CenterControls, LeftControls } from "../components/TopBarControls";
 import { Button } from "../components/ui/button";
+import { useAuth } from "../hooks/use-auth";
 import { useCalendars } from "../hooks/use-calendars";
 import { useI18n } from "../hooks/use-i18n";
 import { useSettings } from "../hooks/use-settings";
@@ -69,11 +70,8 @@ export function SettingsPage() {
   const { data: calendars } = useCalendars();
   const topBar = useTopBar();
   const { data: settings } = useSettings();
-  const { data: me } = useQuery({
-    queryKey: ["me"],
-    queryFn: () => api.auth.me(),
-  });
-  const accountUser = me?.data?.username ?? "";
+  const { user } = useAuth();
+  const accountUser = user?.username ?? "";
   const s: UserSettings =
     settings ??
     ({ userId: "", language: "zh-CN", firstDayOfWeek: 1, dateFormat: "zh", showLunarCalendar: true } as UserSettings);
@@ -92,13 +90,33 @@ export function SettingsPage() {
     };
   }, []);
 
+  // Recover unsaved draft on mount
+  useEffect(() => {
+    const raw = localStorage.getItem("draftSettings");
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw) as UserSettings;
+      if (draft.language && draft.language !== (settings?.language ?? s.language)) {
+        // Draft differs from current — auto-save it
+        api.settings.update(draft).catch(() => {});
+        queryClient.setQueryData(["settings"], draft);
+        localStorage.removeItem("draftSettings");
+      }
+    } catch {
+      /* corrupted, ignore */
+    }
+  }, []);
+
   const updateSettings = (next: UserSettings) => {
+    // Persist draft so crash/refresh doesn't lose changes
+    localStorage.setItem("draftSettings", JSON.stringify(next));
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    setSaveState("saving");
     saveTimer.current = setTimeout(async () => {
+      setSaveState("saving");
       try {
         await api.settings.update(next);
         queryClient.setQueryData(["settings"], next);
+        localStorage.removeItem("draftSettings");
         setSaveState("saved");
         if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
         saveStatusTimer.current = setTimeout(() => setSaveState("idle"), 2000);

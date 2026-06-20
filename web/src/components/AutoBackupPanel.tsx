@@ -21,6 +21,7 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
     return saved ? new Set(saved.split(",").filter(Boolean)) : new Set();
   });
   const [interval, setInterval_] = useState(settings?.autoBackupInterval ?? 0);
+  const [busy, setBusy] = useState(false);
 
   const toggleCal = (id: string) =>
     setSelectedCalendars((p) => {
@@ -30,13 +31,21 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
     });
 
   const handleSave = async () => {
-    const next = {
-      autoBackupCalendars: [...selectedCalendars].join(","),
-      autoBackupInterval: interval,
-    } satisfies Partial<UserSettings>;
-    const res = await api.settings.update(next);
-    queryClient.setQueryData(["settings"], res.data);
-    onClose();
+    if (busy) return;
+    setBusy(true);
+    try {
+      const next = {
+        autoBackupCalendars: [...selectedCalendars].join(","),
+        autoBackupInterval: interval,
+      } satisfies Partial<UserSettings>;
+      const res = await api.settings.update(next);
+      queryClient.setQueryData(["settings"], res.data);
+      onClose();
+    } catch {
+      // silently ignore — user can retry
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -69,7 +78,7 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
         </select>
       </div>
       <div className="flex gap-1">
-        <Button size="sm" onClick={handleSave} className="h-7 text-xs">
+        <Button size="sm" onClick={handleSave} disabled={busy} className="h-7 text-xs">
           {t("settings.save")}
         </Button>
         <Button variant="outline" size="sm" onClick={onClose} className="h-7 text-xs">

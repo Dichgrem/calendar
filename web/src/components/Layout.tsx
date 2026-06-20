@@ -49,6 +49,7 @@ export function Layout({ children }: { children: ComponentChildren }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const leftRef = useCallback((el: HTMLDivElement | null) => setLeftEl(el), []);
   const centerRef = useCallback((el: HTMLDivElement | null) => setCenterEl(el), []);
@@ -56,9 +57,15 @@ export function Layout({ children }: { children: ComponentChildren }) {
   const dropdownRef = useCallback((el: HTMLDivElement | null) => setDropdownEl(el), []);
 
   const handleLogout = async () => {
-    await api.auth.logout();
-    queryClient.clear();
-    route("/auth/login");
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await api.auth.logout();
+      queryClient.clear();
+      route("/auth/login");
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   // Keyboard shortcut: Ctrl+K or / to open search
@@ -128,8 +135,9 @@ export function Layout({ children }: { children: ComponentChildren }) {
                 <button
                   type="button"
                   onClick={handleLogout}
+                  disabled={loggingOut}
                   aria-label={t("nav.logout")}
-                  className="size-8 flex items-center justify-center rounded-full text-sm text-neutral-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  className={`size-8 flex items-center justify-center rounded-full text-sm transition-colors ${loggingOut ? "opacity-50" : "text-neutral-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
                   title={t("nav.logout")}
                 >
                   <SignOut className="size-4" weight="bold" />

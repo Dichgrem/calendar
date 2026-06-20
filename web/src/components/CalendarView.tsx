@@ -27,6 +27,7 @@ export function CalendarView() {
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const queryClient = useQueryClient();
+  const lastPrefetchRef = useRef(0);
 
   const { data: calendars } = useCalendars();
   const { data: settings } = useSettings();
@@ -71,18 +72,25 @@ export function CalendarView() {
     const visibleIds = allCalIds.filter((id) => visibleCalendars.has(id));
     if (!visibleIds.length) return;
 
+    const THROTTLE_MS = 1000;
+    if (Date.now() - lastPrefetchRef.current < THROTTLE_MS) return;
+    lastPrefetchRef.current = Date.now();
+
     const prefetchMonth = (year: number, month: number) => {
       const d = new Date(year, month, 1);
       d.setDate(d.getDate() - 7);
       const s = `${dateStr(d)}T00:00:00`;
       const e = new Date(year, month + 1, 7);
       const eStr = `${dateStr(e)}T23:59:59`;
+      const key = ["events", visibleIds, s, eStr];
+      if (queryClient.isFetching({ queryKey: key })) return;
       queryClient.prefetchQuery({
-        queryKey: ["events", visibleIds, s, eStr],
+        queryKey: key,
         queryFn: () =>
           Promise.all(visibleIds.map((id) => api.events.list(id, s, eStr))).then((res) =>
             res.flatMap((r: any) => r.data ?? []),
           ),
+        staleTime: 5 * 60 * 1000,
       });
     };
 
