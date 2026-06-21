@@ -28,14 +28,8 @@ func setupSettings(t *testing.T) (chi.Router, string) {
 			expires_at TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS user_settings (
 			user_id TEXT PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-			language TEXT NOT NULL DEFAULT 'zh-CN',
-			first_day_of_week INTEGER NOT NULL DEFAULT 0,
-			show_event_time INTEGER NOT NULL DEFAULT 1,
-			date_format TEXT NOT NULL DEFAULT 'yyyy-MM-dd',
-			show_lunar_calendar INTEGER NOT NULL DEFAULT 0,
 			auto_backup_calendars TEXT DEFAULT '',
-			auto_backup_interval_min INTEGER DEFAULT 0,
-			default_calendar_id TEXT DEFAULT '')`,
+			auto_backup_interval_min INTEGER DEFAULT 0)`,
 		`CREATE TABLE IF NOT EXISTS calendar_members (
 			calendar_id TEXT NOT NULL, user_id TEXT NOT NULL,
 			role TEXT NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0)`,
@@ -95,19 +89,5 @@ func TestSettingsUpdate(t *testing.T) {
 	r.ServeHTTP(w, req)
 	if w.Code != 200 {
 		t.Fatalf("expected 200 got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestSettingsValidation(t *testing.T) {
-	r, sid := setupSettings(t)
-	req := httptest.NewRequest("PATCH", "/api/settings", strings.NewReader(
-		`{"language":"fr","firstDayOfWeek":9}`,
-	))
-	req.Header.Set("Content-Type", "application/json")
-	req.AddCookie(&http.Cookie{Name: "session_token", Value: sid})
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	if w.Code != 400 {
-		t.Errorf("expected 400 for invalid language, got %d", w.Code)
 	}
 }

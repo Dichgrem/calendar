@@ -307,30 +307,28 @@ func handleReorder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Run reorder in a transaction for atomicity.
-	tx, err := db.DB.Begin()
-	if err != nil {
-		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+	// Single atomic CASE UPDATE — no transaction, no loop
+	if len(req.OrderedIDs) == 0 {
+		middleware.JSONResponse(w, 200, nil)
 		return
 	}
-	defer func() { _ = tx.Rollback() }()
 
+	query := "UPDATE calendar_members SET sort_order = CASE calendar_id "
+	args := make([]interface{}, 0, len(req.OrderedIDs)*2+1)
 	for i, calID := range req.OrderedIDs {
-		if _, err := tx.Exec(
-			"UPDATE calendar_members SET sort_order = ? WHERE calendar_id = ? AND user_id = ?",
-			i, calID, perm.UserID,
-		); err != nil {
-			logger.Error("[calendar] reorder cal=%s error: %v", calID, err)
-			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
-			return
-		}
+		query += "WHEN ? THEN ? "
+		args = append(args, calID, i)
 	}
+	query += "ELSE sort_order END WHERE user_id = ?"
+	args = append(args, perm.UserID)
 
-	if err := tx.Commit(); err != nil {
+	if _, err := db.DB.Exec(query, args...); err != nil {
+		logger.Error("[calendar] reorder error: %v", err)
 		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
 		return
 	}
 
+	logger.Info("[calendar] reorder success user=%s n=%d", perm.UserID, len(req.OrderedIDs))
 	middleware.JSONResponse(w, 200, nil)
 }
 

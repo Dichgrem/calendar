@@ -1,12 +1,9 @@
 import type { Calendar, Event, SyncPullResponse, UserSettings } from "../types";
-import { taskQueue } from "./task-queue";
 
 interface ApiResponse<T> {
   ok: true;
   data: T;
 }
-
-const DEFAULT_TIMEOUT_MS = 30_000;
 
 function getBaseUrl(): string {
   const serverUrl = localStorage.getItem("serverUrl")?.replace(/\/+$/, "");
@@ -19,31 +16,17 @@ function getBaseUrl(): string {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const base = getBaseUrl();
-  const method = (init?.method ?? "GET") as string;
-
-  // Only serialize writes.
-  if (method === "GET") {
-    return doFetch<T>(base, path, init);
-  }
-
-  return taskQueue.push(() => doFetch<T>(base, path, init));
+  return doFetch<T>(base, path, init);
 }
 
-/** The actual fetch — runs inside the task queue, at most one at a time. */
+/** Plain fetch — no queue, no timeout, no abort. FullCalendar/Cal.com style. */
 async function doFetch<T>(base: string, path: string, init?: RequestInit): Promise<T> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-  const { headers: initHeaders, signal: initSignal, ...rest } = init ?? {};
-  if (initSignal) {
-    initSignal.addEventListener("abort", () => controller.abort());
-  }
+  const { headers: initHeaders, ...rest } = init ?? {};
   const res = await fetch(`${base}${path}`, {
     ...rest,
     credentials: "include",
-    signal: controller.signal,
     headers: { "Content-Type": "application/json", ...initHeaders },
   });
-  clearTimeout(timeout);
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -118,6 +101,10 @@ export const api = {
   },
 
   events: {
+    all: (start: string, end: string, title?: string) =>
+      request<ApiResponse<Event[]>>(
+        `/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${title ? `&title=${encodeURIComponent(title)}` : ""}`,
+      ),
     list: (calendarId: string, start: string, end: string) =>
       request<ApiResponse<Event[]>>(
         `/calendars/${encodeURIComponent(calendarId)}/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,

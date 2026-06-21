@@ -38,14 +38,19 @@ export function NavProvider({ children }: { children: ComponentChildren }) {
 
   useEffect(() => {
     if (calendars) {
-      const ids = calendars
-        .map((c) => c.id)
-        .sort()
-        .join(",");
-      if (ids !== prevCalIdsRef.current) {
-        prevCalIdsRef.current = ids;
-        setVisibleCalendars(new Set(calendars.map((c) => c.id)));
-      }
+      const newIds = new Set(calendars.map((c) => c.id));
+      setVisibleCalendars((prev) => {
+        const merged = new Set<string>();
+        for (const id of newIds) {
+          if (prev.has(id)) merged.add(id);
+        }
+        for (const id of newIds) {
+          if (!prev.has(id)) merged.add(id);
+        }
+        if (merged.size === prev.size && [...merged].every((id) => prev.has(id))) return prev;
+        return merged;
+      });
+      prevCalIdsRef.current = [...newIds].sort().join(",");
     }
   }, [calendars]);
 

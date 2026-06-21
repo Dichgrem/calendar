@@ -7,11 +7,9 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"calendar/internal/apperror"
-	"calendar/internal/config"
 	"calendar/internal/db"
 	"calendar/internal/logger"
 	"calendar/internal/middleware"
-	"calendar/internal/util"
 )
 
 // RegisterRoutes adds settings routes to a chi router.
@@ -22,14 +20,8 @@ func RegisterRoutes(r chi.Router) {
 
 type UserSettings struct {
 	UserID              string `json:"userId"`
-	Language            string `json:"language"`
-	FirstDayOfWeek      int    `json:"firstDayOfWeek"`
-	ShowEventTime       bool   `json:"showEventTime"`
-	DateFormat          string `json:"dateFormat"`
-	ShowLunarCalendar   bool   `json:"showLunarCalendar"`
 	AutoBackupCalendars string `json:"autoBackupCalendars,omitempty"`
 	AutoBackupInterval  int    `json:"autoBackupInterval,omitempty"`
-	DefaultCalendarID   string `json:"defaultCalendarId,omitempty"`
 }
 
 func handleGet(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +29,8 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 
 	settings, err := getSettings(perm.UserID)
 	if err != nil {
-		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+		// No settings row yet — return defaults
+		middleware.JSONResponse(w, 200, &UserSettings{UserID: perm.UserID})
 		return
 	}
 
@@ -45,14 +38,8 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateRequest struct {
-	Language            *string `json:"language,omitempty"`
-	FirstDayOfWeek      *int    `json:"firstDayOfWeek,omitempty"`
-	ShowEventTime       *bool   `json:"showEventTime,omitempty"`
-	DateFormat          *string `json:"dateFormat,omitempty"`
-	ShowLunarCalendar   *bool   `json:"showLunarCalendar,omitempty"`
 	AutoBackupCalendars *string `json:"autoBackupCalendars,omitempty"`
 	AutoBackupInterval  *int    `json:"autoBackupInterval,omitempty"`
-	DefaultCalendarID   *string `json:"defaultCalendarId,omitempty"`
 }
 
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -65,122 +52,32 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Language != nil && *req.Language != "zh-CN" && *req.Language != "en" {
-		middleware.JSONResponse(w, 400, apperror.BadRequest("Invalid language"))
-		return
-	}
-	if req.FirstDayOfWeek != nil && (*req.FirstDayOfWeek < 0 || *req.FirstDayOfWeek > 6) {
-		middleware.JSONResponse(w, 400, apperror.BadRequest("Invalid firstDayOfWeek (0-6)"))
-		return
-	}
-	if req.DateFormat != nil && len(*req.DateFormat) > 50 {
-		middleware.JSONResponse(w, 400, apperror.BadRequest("Invalid dateFormat"))
-		return
-	}
-
-	cfg := config.Load()
-
-	// Read existing settings from DB; fall back to config defaults for new users.
+	backupCals := ""
+	backupInterval := 0
 	existing, err := getSettings(perm.UserID)
+	if err == nil {
+		backupCals = existing.AutoBackupCalendars
+		backupInterval = existing.AutoBackupInterval
+	}
+	if req.AutoBackupCalendars != nil {
+		backupCals = *req.AutoBackupCalendars
+	}
+	if req.AutoBackupInterval != nil {
+		backupInterval = *req.AutoBackupInterval
+	}
+
+	_, err = db.DB.Exec(
+		`INSERT INTO user_settings (user_id, auto_backup_calendars, auto_backup_interval_min)
+		 VALUES (?, ?, ?)
+		 ON CONFLICT(user_id) DO UPDATE SET
+		     auto_backup_calendars = excluded.auto_backup_calendars,
+		     auto_backup_interval_min = excluded.auto_backup_interval_min`,
+		perm.UserID, backupCals, backupInterval,
+	)
 	if err != nil {
-		// No existing row — use config defaults as base
-		lang := cfg.UserDefaults.Language
-		fdow := cfg.UserDefaults.FirstDayOfWeek
-		showTime := cfg.UserDefaults.ShowEventTime
-		df := cfg.UserDefaults.DateFormat
-		showLunar := cfg.UserDefaults.ShowLunarCalendar
-		backupCals := ""
-		backupInterval := 0
-		defaultCal := ""
-
-		if req.Language != nil {
-			lang = *req.Language
-		}
-		if req.FirstDayOfWeek != nil {
-			fdow = *req.FirstDayOfWeek
-		}
-		if req.ShowEventTime != nil {
-			showTime = *req.ShowEventTime
-		}
-		if req.DateFormat != nil {
-			df = *req.DateFormat
-		}
-		if req.ShowLunarCalendar != nil {
-			showLunar = *req.ShowLunarCalendar
-		}
-		if req.AutoBackupCalendars != nil {
-			backupCals = *req.AutoBackupCalendars
-		}
-		if req.AutoBackupInterval != nil {
-			backupInterval = *req.AutoBackupInterval
-		}
-		if req.DefaultCalendarID != nil {
-			defaultCal = *req.DefaultCalendarID
-		}
-
-		_, err := db.DB.Exec(`
-			INSERT INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar, auto_backup_calendars, auto_backup_interval_min, default_calendar_id)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`, perm.UserID, lang, fdow, util.BoolToInt(showTime), df, util.BoolToInt(showLunar), backupCals, backupInterval, defaultCal)
-		if err != nil {
-			logger.Error("[settings] insert user=%s error: %v", perm.UserID, err)
-			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
-			return
-		}
-	} else {
-		// Existing row — patch on top of DB values, only overriding provided fields
-		lang := existing.Language
-		fdow := existing.FirstDayOfWeek
-		showTime := existing.ShowEventTime
-		df := existing.DateFormat
-		showLunar := existing.ShowLunarCalendar
-		backupCals := existing.AutoBackupCalendars
-		backupInterval := existing.AutoBackupInterval
-		defaultCal := existing.DefaultCalendarID
-
-		if req.Language != nil {
-			lang = *req.Language
-		}
-		if req.FirstDayOfWeek != nil {
-			fdow = *req.FirstDayOfWeek
-		}
-		if req.ShowEventTime != nil {
-			showTime = *req.ShowEventTime
-		}
-		if req.DateFormat != nil {
-			df = *req.DateFormat
-		}
-		if req.ShowLunarCalendar != nil {
-			showLunar = *req.ShowLunarCalendar
-		}
-		if req.AutoBackupCalendars != nil {
-			backupCals = *req.AutoBackupCalendars
-		}
-		if req.AutoBackupInterval != nil {
-			backupInterval = *req.AutoBackupInterval
-		}
-		if req.DefaultCalendarID != nil {
-			defaultCal = *req.DefaultCalendarID
-		}
-
-		_, err := db.DB.Exec(`
-			INSERT INTO user_settings (user_id, language, first_day_of_week, show_event_time, date_format, show_lunar_calendar, auto_backup_calendars, auto_backup_interval_min, default_calendar_id)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT(user_id) DO UPDATE SET
-				language = excluded.language,
-				first_day_of_week = excluded.first_day_of_week,
-				show_event_time = excluded.show_event_time,
-				date_format = excluded.date_format,
-				show_lunar_calendar = excluded.show_lunar_calendar,
-				auto_backup_calendars = excluded.auto_backup_calendars,
-				auto_backup_interval_min = excluded.auto_backup_interval_min,
-				default_calendar_id = excluded.default_calendar_id
-		`, perm.UserID, lang, fdow, util.BoolToInt(showTime), df, util.BoolToInt(showLunar), backupCals, backupInterval, defaultCal)
-		if err != nil {
-			logger.Error("[settings] update user=%s error: %v", perm.UserID, err)
-			middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
-			return
-		}
+		logger.Error("[settings] upsert user=%s error: %v", perm.UserID, err)
+		middleware.JSONResponse(w, 500, apperror.Internal("Database error"))
+		return
 	}
 
 	settings, err := getSettings(perm.UserID)
@@ -195,18 +92,13 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 func getSettings(userID string) (*UserSettings, error) {
 	var s UserSettings
-	var showTimeInt, showLunarInt int
 	err := db.DB.QueryRow(
-		`SELECT user_id, language, first_day_of_week, show_event_time, date_format,
-		        show_lunar_calendar, COALESCE(auto_backup_calendars,''), COALESCE(auto_backup_interval_min,0), COALESCE(default_calendar_id,'')
+		`SELECT user_id, COALESCE(auto_backup_calendars,''), COALESCE(auto_backup_interval_min,0)
 		 FROM user_settings WHERE user_id = ?`,
 		userID,
-	).Scan(&s.UserID, &s.Language, &s.FirstDayOfWeek, &showTimeInt, &s.DateFormat,
-		&showLunarInt, &s.AutoBackupCalendars, &s.AutoBackupInterval, &s.DefaultCalendarID)
+	).Scan(&s.UserID, &s.AutoBackupCalendars, &s.AutoBackupInterval)
 	if err != nil {
 		return nil, err
 	}
-	s.ShowEventTime = showTimeInt != 0
-	s.ShowLunarCalendar = showLunarInt != 0
 	return &s, nil
 }

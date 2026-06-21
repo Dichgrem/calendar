@@ -2,7 +2,7 @@ import { CalendarDots, CaretDown, Database, Package, User, Wrench } from "@phosp
 import { useQueryClient } from "@tanstack/react-query";
 import type { ComponentChildren, ComponentType } from "preact";
 import { createPortal } from "preact/compat";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { AccountSection } from "../components/AccountSection";
 import { CalendarManagement } from "../components/CalendarManagement";
 import { useTopBar } from "../components/Layout";
@@ -12,7 +12,7 @@ import { Button } from "../components/ui/button";
 import { useAuth } from "../hooks/use-auth";
 import { useCalendars } from "../hooks/use-calendars";
 import { useI18n } from "../hooks/use-i18n";
-import { useSettings } from "../hooks/use-settings";
+import { savePrefs, useSettings } from "../hooks/use-settings";
 import { api } from "../lib/api";
 import type { UserSettings } from "../types";
 
@@ -74,56 +74,23 @@ export function SettingsPage() {
   const s: UserSettings =
     settings ??
     ({ userId: "", language: "zh-CN", firstDayOfWeek: 1, dateFormat: "zh", showLunarCalendar: true } as UserSettings);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [saveError, setSaveError] = useState("");
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [backingUp, setBackingUp] = useState(false);
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
 
-  const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
-    };
-  }, []);
-
-  // Recover unsaved draft on mount
-  useEffect(() => {
-    const raw = localStorage.getItem("draftSettings");
-    if (!raw) return;
-    try {
-      const draft = JSON.parse(raw) as UserSettings;
-      if (draft.language && draft.language !== (settings?.language ?? s.language)) {
-        // Draft differs from current — auto-save it
-        api.settings.update(draft).catch(() => {});
-        queryClient.setQueryData(["settings"], draft);
-        localStorage.removeItem("draftSettings");
-      }
-    } catch {
-      /* corrupted, ignore */
-    }
-  }, []);
-
-  const updateSettings = (next: UserSettings) => {
-    // Persist draft so crash/refresh doesn't lose changes
-    localStorage.setItem("draftSettings", JSON.stringify(next));
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      setSaveState("saving");
-      try {
-        await api.settings.update(next);
-        queryClient.setQueryData(["settings"], next);
-        localStorage.removeItem("draftSettings");
-        setSaveState("saved");
-        if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
-        saveStatusTimer.current = setTimeout(() => setSaveState("idle"), 2000);
-      } catch {
-        setSaveState("error");
-        if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
-        saveStatusTimer.current = setTimeout(() => setSaveState("idle"), 2500);
-      }
-    }, 500);
+  // Write UI prefs to localStorage instantly — no debounce, no PATCH.
+  // Settings that affect server behavior (auto-backup) go through AutoBackupPanel.
+  const updatePrefs = (next: UserSettings) => {
+    if (!settings) return;
+    const partial: Partial<UserSettings> = {};
+    if (next.language !== s.language) partial.language = next.language;
+    if (next.firstDayOfWeek !== s.firstDayOfWeek) partial.firstDayOfWeek = next.firstDayOfWeek;
+    if (next.dateFormat !== s.dateFormat) partial.dateFormat = next.dateFormat;
+    if (next.showLunarCalendar !== s.showLunarCalendar) partial.showLunarCalendar = next.showLunarCalendar;
+    if (next.showEventTime !== s.showEventTime) partial.showEventTime = next.showEventTime;
+    if (next.defaultCalendarId !== s.defaultCalendarId) partial.defaultCalendarId = next.defaultCalendarId;
+    if (Object.keys(partial).length === 0) return;
+    savePrefs(partial);
+    queryClient.invalidateQueries({ queryKey: ["settings"] });
   };
 
   const handleBackup = async () => {
@@ -132,8 +99,8 @@ export function SettingsPage() {
     try {
       const res = await api.backup.create();
       setBackupResult(res.data);
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : t("settings.backupFailed"));
+    } catch {
+      setBackupResult(null);
     } finally {
       setBackingUp(false);
     }
@@ -150,7 +117,7 @@ export function SettingsPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      setSaveError(t("settings.exportConfigFailed"));
+      // silently ignore
     }
   };
 
@@ -161,7 +128,7 @@ export function SettingsPage() {
       <div className="flex-1 overflow-auto">
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-3">
           <Section icon={Wrench} title={t("settings.preferences")}>
-            <SettingsForm settings={s} calendars={calendars ?? []} onUpdate={updateSettings} />
+            <SettingsForm settings={s} calendars={calendars ?? []} onUpdate={updatePrefs} />
           </Section>
           <Section icon={User} title={t("settings.account")}>
             <AccountSection username={accountUser} />
@@ -201,29 +168,9 @@ export function SettingsPage() {
               </div>
             </div>
           </Section>
-          {saveError && <p className="text-sm text-red-500 text-center">{saveError}</p>}
           <div className="h-16" />
         </div>
       </div>
-      {saveState !== "idle" && (
-        <div className="fixed top-14 right-4 z-50 pointer-events-none">
-          <div
-            className={`px-5 py-3 rounded-lg shadow-lg text-base font-semibold transition-all duration-300 ${
-              saveState === "saving"
-                ? "bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-800"
-                : saveState === "saved"
-                  ? "bg-green-600 text-white"
-                  : "bg-red-600 text-white"
-            }`}
-          >
-            {saveState === "saving"
-              ? t("settings.saving")
-              : saveState === "saved"
-                ? t("settings.saved")
-                : t("settings.saveError")}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

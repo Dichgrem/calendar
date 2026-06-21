@@ -28,7 +28,7 @@ func Open(databaseURL string) error {
 		return err
 	}
 
-	DB.SetMaxOpenConns(1) // SQLite single-writer
+	DB.SetMaxOpenConns(25) // 1 writer + 24 readers in WAL mode
 	return DB.Ping()
 }
 

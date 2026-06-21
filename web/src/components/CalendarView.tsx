@@ -1,5 +1,5 @@
 import { Plus } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "preact/compat";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { DarkModeToggle } from "../components/DarkModeToggle";
@@ -27,11 +27,9 @@ export function CalendarView() {
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const queryClient = useQueryClient();
-  const lastPrefetchRef = useRef(0);
 
   const { data: calendars } = useCalendars();
   const { data: settings } = useSettings();
-  const allCalIds = useMemo(() => calendars?.map((c) => c.id) ?? [], [calendars]);
 
   const firstDayOfWeek = settings?.firstDayOfWeek ?? 1;
   const orderedWeekdays = useMemo(
@@ -50,55 +48,44 @@ export function CalendarView() {
     return `${dateStr(d)}T23:59:59`;
   }, [displayMonth.year, displayMonth.month]);
 
-  const {
-    data: events,
-    isLoading: evLoading,
-    isError: evError,
-  } = useEvents(
-    searchQuery ? [] : allCalIds.filter((id) => visibleCalendars.has(id)),
-    searchQuery ? "" : eventStart,
-    searchQuery ? "" : eventEnd,
-  );
-  const { data: allEvents } = useEvents(
-    searchQuery ? allCalIds : [],
-    searchQuery ? "2000-01-01T00:00:00Z" : "",
-    searchQuery ? "2099-12-31T23:59:59Z" : "",
-  );
+  // Cancel stale events queries when month changes to prevent connection pool exhaustion
+  useEffect(() => {
+    queryClient.cancelQueries({
+      queryKey: ["events"],
+      predicate: (q) => {
+        const [, s, e] = q.queryKey;
+        return s !== eventStart || e !== eventEnd;
+      },
+    });
+  }, [eventStart, eventEnd]);
+
+  const { data: events, isError: evError } = useEvents(searchQuery ? "" : eventStart, searchQuery ? "" : eventEnd);
+  const searchQRef = useRef(searchQuery);
+  searchQRef.current = searchQuery;
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(searchQuery), 500);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+  const { data: allEvents } = useQuery({
+    queryKey: ["events", "search", debouncedQ],
+    queryFn: async () => {
+      if (!debouncedQ) return [];
+      const raw = (await api.events.all("2000-01-01T00:00:00Z", "2099-12-31T23:59:59Z", debouncedQ)).data ?? [];
+      // Dedup same event from multiple calendars by (title, startAt)
+      const seen = new Set<string>();
+      return raw.filter((e: Event) => {
+        const key = `${e.title}|${e.startAt}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    },
+    enabled: !!debouncedQ,
+    placeholderData: (prev) => prev ?? [],
+  });
 
   const searchableEvents = searchQuery ? allEvents : events;
-
-  useEffect(() => {
-    if (searchQuery || !allCalIds.length) return;
-    const visibleIds = allCalIds.filter((id) => visibleCalendars.has(id));
-    if (!visibleIds.length) return;
-
-    const THROTTLE_MS = 1000;
-    if (Date.now() - lastPrefetchRef.current < THROTTLE_MS) return;
-    lastPrefetchRef.current = Date.now();
-
-    const prefetchMonth = (year: number, month: number) => {
-      const d = new Date(year, month, 1);
-      d.setDate(d.getDate() - 7);
-      const s = `${dateStr(d)}T00:00:00`;
-      const e = new Date(year, month + 1, 7);
-      const eStr = `${dateStr(e)}T23:59:59`;
-      const key = ["events", visibleIds, s, eStr];
-      if (queryClient.isFetching({ queryKey: key })) return;
-      queryClient.prefetchQuery({
-        queryKey: key,
-        queryFn: () =>
-          Promise.all(visibleIds.map((id) => api.events.list(id, s, eStr))).then((res) =>
-            res.flatMap((r: any) => r.data ?? []),
-          ),
-        staleTime: 5 * 60 * 1000,
-      });
-    };
-
-    const nm = displayMonth.month + 1;
-    prefetchMonth(nm > 11 ? displayMonth.year + 1 : displayMonth.year, nm > 11 ? 0 : nm);
-    const pm = displayMonth.month - 1;
-    prefetchMonth(pm < 0 ? displayMonth.year - 1 : displayMonth.year, pm < 0 ? 11 : pm);
-  }, [displayMonth, allCalIds, visibleCalendars, searchQuery, queryClient]);
 
   const calendarColorMap = useMemo(() => new Map(calendars?.map((c) => [c.id, c.color]) ?? []), [calendars]);
   const dotCalendarIds = useMemo(
@@ -107,20 +94,26 @@ export function CalendarView() {
   );
 
   const filteredEvents = useMemo(() => {
-    const calOrder = new Map(allCalIds.map((id, i) => [id, i]));
+    const calOrder = new Map((calendars ?? []).map((c, i) => [c.id, i]));
+    const seen = new Set<string>();
     return (searchableEvents ?? [])
-      .filter(
-        (e) =>
-          (!searchCalId || e.calendarId === searchCalId) &&
-          (!searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase())),
-      )
+      .filter((e) => {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id);
+        if (searchQuery) {
+          return (
+            (!searchCalId || e.calendarId === searchCalId) && e.title.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }
+        return visibleCalendars.has(e.calendarId);
+      })
       .sort((a, b) => {
         const ai = calOrder.get(a.calendarId) ?? 99;
         const bi = calOrder.get(b.calendarId) ?? 99;
         if (ai !== bi) return ai - bi;
         return (a.startAt || "").localeCompare(b.startAt || "");
       });
-  }, [searchableEvents, searchCalId, searchQuery, allCalIds]);
+  }, [searchableEvents, searchCalId, searchQuery, calendars, visibleCalendars]);
 
   const filteredEventsRef = useRef<Event[]>([]);
   const highlightedIndexRef = useRef(-1);
@@ -144,7 +137,7 @@ export function CalendarView() {
 
   useEffect(() => {
     if (!searchOpen) return;
-    const calIds: (string | null)[] = [null, ...allCalIds];
+    const calIds: (string | null)[] = [null, ...(calendars?.map((c) => c.id) ?? [])];
 
     const handler = (e: KeyboardEvent) => {
       const events = filteredEventsRef.current;
@@ -184,7 +177,7 @@ export function CalendarView() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [searchOpen, allCalIds, searchCalId, setDisplayMonth, setSearchQuery, setSearchCalId, setSearchOpen]);
+  }, [searchOpen, calendars, searchCalId, setDisplayMonth, setSearchQuery, setSearchCalId, setSearchOpen]);
 
   const searchDropdown = searchOpen ? (
     <SearchDropdown
@@ -208,7 +201,6 @@ export function CalendarView() {
       {topBar?.center && createPortal(<CenterControls />, topBar.center)}
       {topBar?.searchDropdown && searchDropdown && createPortal(searchDropdown, topBar.searchDropdown)}
 
-      {evLoading && <p className="text-xs text-neutral-400 mb-1">{t("cal.loadingEvents")}</p>}
       {evError && <p className="text-xs text-red-500 mb-1">{t("cal.failedEvents")}</p>}
       <div className="grid grid-cols-7 text-center border-b border-neutral-300 dark:border-neutral-600 shrink-0 border-l border-r">
         {orderedWeekdays.map((w) => (

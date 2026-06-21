@@ -1,4 +1,3 @@
-import "preact/debug";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "preact";
 import Router from "preact-router";
@@ -10,6 +9,10 @@ import { injectDeadlineGuard } from "./lib/deadline-guard";
 import { LoginPage } from "./pages/LoginPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import "./index.css";
+
+if (import.meta.env.DEV) {
+  import("preact/debug");
+}
 
 // Last-resort: if React tree doesn't mount in 15s, show raw-DOM fallback
 injectDeadlineGuard(15_000);

@@ -111,8 +111,8 @@ export function ImportForm() {
         selectedUids: [...selectedUids],
         overwrite,
       });
-      queryClient.removeQueries({ queryKey: ["calendars"] });
-      queryClient.removeQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       setImported(true);
       setLoading(false);
       setTimeout(() => {
