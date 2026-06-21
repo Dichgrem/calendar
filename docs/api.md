@@ -363,22 +363,21 @@ GET /api/settings
 
 → 200 {
   "userId": "<uuid>",
-  "language": "zh-CN|en",
-  "firstDayOfWeek": 0-6,
-  "dateFormat": "zh",
-  "showLunarCalendar": true
+  "autoBackupCalendars": "string|null",
+  "autoBackupInterval": 0
 }
 ```
+
+> language、firstDayOfWeek、dateFormat、showLunarCalendar、showEventTime、defaultCalendarId
+> 保存于浏览器 localStorage，不通过此 API 获取。
 
 ### 更新
 
 ```
 PATCH /api/settings
 {
-  "language"?: "zh-CN|en",
-  "firstDayOfWeek"?: 0-6,
-  "dateFormat"?: "string",
-  "showLunarCalendar"?: true
+  "autoBackupCalendars"?: "string|null",
+  "autoBackupInterval"?: 0
 }
 
 → 200 UserSettings

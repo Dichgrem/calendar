@@ -98,10 +98,6 @@ HTTPS 环境下设置 `SECURE_COOKIES=true`。
 | `PORT` | `3000` | 服务端口 |
 | `DATABASE_URL` | `./data/calendar.db` | SQLite 文件路径 |
 | `SECURE_COOKIES` | `false` | HTTPS 时设为 `true` |
-| `USER_DEFAULT_LANGUAGE` | `zh-CN` | 默认语言 |
-| `USER_DEFAULT_FIRST_DAY_OF_WEEK` | `1` | 0=周日 |
-| `USER_DEFAULT_DATE_FORMAT` | `zh` | 日期格式 |
-| `USER_DEFAULT_SHOW_LUNAR_CALENDAR` | `true` | 启用农历 |
 
 ## 添加迁移
 
