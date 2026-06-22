@@ -21,6 +21,7 @@ const strings = {
   "login.loginBtn": { "zh-CN": "登录", en: "Login" },
   "login.registerFailed": { "zh-CN": "注册失败", en: "Registration failed" },
   "login.loginFailed": { "zh-CN": "用户名或密码错误", en: "Invalid username or password" },
+  "login.networkError": { "zh-CN": "网络连接失败，请检查服务是否运行", en: "Network error — check server status" },
 
   // CalendarView
   "cal.loading": { "zh-CN": "加载...", en: "Loading..." },

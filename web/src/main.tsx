@@ -15,7 +15,7 @@ if (import.meta.env.DEV) {
 }
 
 // Last-resort: if React tree doesn't mount in 15s, show raw-DOM fallback
-injectDeadlineGuard(15_000);
+injectDeadlineGuard(60_000);
 
 // Initialize dark mode on every page load
 const saved = localStorage.getItem("darkMode") === "1";

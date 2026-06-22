@@ -41,7 +41,14 @@ export function LoginPage() {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       route("/calendar");
     } catch (e) {
-      setError(e instanceof Error ? e.message : isFirstUser ? t("login.registerFailed") : t("login.loginFailed"));
+      const msg = e instanceof Error ? e.message : "";
+      if (msg.includes("fetch") || msg.includes("NetworkError") || msg.includes("Failed to fetch")) {
+        setError(t("login.networkError"));
+      } else if (msg === "Invalid credentials") {
+        setError(t("login.loginFailed"));
+      } else {
+        setError(msg || (isFirstUser ? t("login.registerFailed") : t("login.loginFailed")));
+      }
     } finally {
       setLoading(false);
     }

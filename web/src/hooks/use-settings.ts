@@ -26,7 +26,13 @@ const LOCAL_KEYS: (keyof UserSettings)[] = [
 function getLocalPrefs(): Partial<UserSettings> {
   try {
     const raw = localStorage.getItem("prefs");
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    // Strip nulls — spread with null overrides DEFAULTS
+    for (const k of Object.keys(parsed)) {
+      if (parsed[k] == null) delete parsed[k];
+    }
+    return parsed;
   } catch {
     return {};
   }

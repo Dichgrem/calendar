@@ -103,47 +103,49 @@ export function Layout({ children }: { children: ComponentChildren }) {
           }}
         >
           <div className="flex flex-col h-screen bg-neutral-50 dark:bg-neutral-950">
-            <nav className="grid grid-cols-[1fr_auto_1fr] items-center px-2 py-1 border-b border-neutral-300 dark:border-neutral-600">
-              <div ref={leftRef} className="flex items-center gap-1" />
-              <div ref={centerRef} className="flex items-center justify-center gap-1" />
-              <div className="flex items-center gap-1 justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchOpen((v) => !v);
-                    setSearchQuery("");
-                    setSearchCalId(null);
-                  }}
-                  aria-label={t("cal.search")}
-                  className="size-8 flex items-center justify-center rounded-full transition-colors text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800"
-                  title={t("cal.search")}
-                >
-                  <MagnifyingGlass className="size-4" weight="bold" />
-                </button>
-                <div ref={rightRef} className="flex items-center gap-1" />
-                {navItems.map((item) => (
+            {window.location.pathname !== "/auth/login" && (
+              <nav className="grid grid-cols-[1fr_auto_1fr] items-center px-2 py-1 border-b border-neutral-300 dark:border-neutral-600">
+                <div ref={leftRef} className="flex items-center gap-1" />
+                <div ref={centerRef} className="flex items-center justify-center gap-1" />
+                <div className="flex items-center gap-1 justify-end">
                   <button
-                    key={item.to}
                     type="button"
-                    onClick={() => route(item.to)}
-                    aria-label={item.label}
-                    className="size-8 flex items-center justify-center rounded-full text-sm transition-colors text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800"
+                    onClick={() => {
+                      setSearchOpen((v) => !v);
+                      setSearchQuery("");
+                      setSearchCalId(null);
+                    }}
+                    aria-label={t("cal.search")}
+                    className="size-8 flex items-center justify-center rounded-full transition-colors text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800"
+                    title={t("cal.search")}
                   >
-                    <item.icon className="size-4" weight="bold" />
+                    <MagnifyingGlass className="size-4" weight="bold" />
                   </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  aria-label={t("nav.logout")}
-                  className={`size-8 flex items-center justify-center rounded-full text-sm transition-colors ${loggingOut ? "opacity-50" : "text-neutral-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
-                  title={t("nav.logout")}
-                >
-                  <SignOut className="size-4" weight="bold" />
-                </button>
-              </div>
-            </nav>
+                  <div ref={rightRef} className="flex items-center gap-1" />
+                  {navItems.map((item) => (
+                    <button
+                      key={item.to}
+                      type="button"
+                      onClick={() => route(item.to)}
+                      aria-label={item.label}
+                      className="size-8 flex items-center justify-center rounded-full text-sm transition-colors text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:text-neutral-300 dark:hover:bg-neutral-800"
+                    >
+                      <item.icon className="size-4" weight="bold" />
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    aria-label={t("nav.logout")}
+                    className={`size-8 flex items-center justify-center rounded-full text-sm transition-colors ${loggingOut ? "opacity-50" : "text-neutral-500 hover:text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                    title={t("nav.logout")}
+                  >
+                    <SignOut className="size-4" weight="bold" />
+                  </button>
+                </div>
+              </nav>
+            )}
             <div ref={dropdownRef} className="relative" />
             <main className="flex-1 overflow-hidden">{children}</main>
           </div>

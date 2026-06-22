@@ -12,6 +12,7 @@ export function injectDeadlineGuard(deadlineMs = 15_000) {
 
   setTimeout(() => {
     if (fired) return;
+    if (window.location.pathname === "/auth/login") return;
     // React has rendered meaningful content — no need for fallback
     if (root.children.length > 0 && (root.textContent?.length ?? 0) > 50) return;
 

@@ -6,12 +6,15 @@ interface ApiResponse<T> {
 }
 
 function getBaseUrl(): string {
-  const serverUrl = localStorage.getItem("serverUrl")?.replace(/\/+$/, "");
-  if (serverUrl && !/^https?:\/\//.test(serverUrl)) {
-    localStorage.removeItem("serverUrl");
-    return "/api";
+  if (typeof localStorage !== "undefined") {
+    const serverUrl = localStorage.getItem("serverUrl")?.replace(/\/+$/, "");
+    if (serverUrl && !/^https?:\/\//.test(serverUrl)) {
+      localStorage.removeItem("serverUrl");
+      return "/api";
+    }
+    if (serverUrl) return `${serverUrl}/api`;
   }
-  return serverUrl ? `${serverUrl}/api` : "/api";
+  return "/api";
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -30,7 +33,7 @@ async function doFetch<T>(base: string, path: string, init?: RequestInit): Promi
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error?.message ?? `HTTP ${res.status}`);
+    throw new Error(body?.error?.message || body?.data?.message || `HTTP ${res.status}`);
   }
 
   if (res.headers.get("Content-Type")?.includes("text/calendar")) {

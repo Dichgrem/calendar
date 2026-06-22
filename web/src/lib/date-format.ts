@@ -33,6 +33,7 @@ const MONTH_NAMES_ZH = [
 const PAD2 = (n: number) => String(n).padStart(2, "0");
 
 export function formatCalendarDate(d: Date, format: string, lang: string): string {
+  if (!format) format = "zh";
   if (format === "zh") return `${d.getFullYear()}年${d.getMonth() + 1}月`;
   if (format === "iso") return `${d.getFullYear()}-${PAD2(d.getMonth() + 1)}`;
   if (format === "en") return `${MONTH_NAMES_EN[d.getMonth()]} ${d.getFullYear()}`;

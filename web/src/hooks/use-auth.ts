@@ -15,7 +15,7 @@ export function useAuth() {
       const res = await Promise.race([api.auth.me(), timeout]);
       return res.data;
     },
-    retry: 1,
+    retry: 0,
     staleTime: 5 * 60 * 1000,
     placeholderData: (prev) => prev,
   });
