@@ -8,7 +8,7 @@ import { SettingsPage } from "../pages/SettingsPage";
 vi.mock("../lib/api", () => ({
   api: {
     settings: { get: vi.fn(), update: vi.fn(), exportConfig: vi.fn() },
-    calendars: { list: vi.fn(), create: vi.fn(), remove: vi.fn(), update: vi.fn(), reorder: vi.fn() },
+    calendars: { list: vi.fn(), create: vi.fn(), remove: vi.fn(), update: vi.fn() },
     auth: { me: vi.fn(), status: vi.fn(), logout: vi.fn(), changeUsername: vi.fn(), changePassword: vi.fn() },
     logs: vi.fn(),
     backup: { create: vi.fn(), download: vi.fn() },

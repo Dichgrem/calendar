@@ -96,11 +96,6 @@ export const api = {
         body: JSON.stringify(data),
       }),
     remove: (id: string) => request<ApiResponse<null>>(`/calendars/${encodeURIComponent(id)}`, { method: "DELETE" }),
-    reorder: (orderedIds: string[]) =>
-      request<ApiResponse<null>>("/calendars/reorder", {
-        method: "PATCH",
-        body: JSON.stringify({ orderedIds }),
-      }),
   },
 
   events: {

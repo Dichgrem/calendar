@@ -8,7 +8,7 @@ import { Layout } from "../components/Layout";
 vi.mock("../lib/api", () => ({
   api: {
     settings: { get: vi.fn(), update: vi.fn() },
-    calendars: { list: vi.fn(), update: vi.fn(), remove: vi.fn(), reorder: vi.fn(), create: vi.fn() },
+    calendars: { list: vi.fn(), update: vi.fn(), remove: vi.fn(), create: vi.fn() },
     events: { list: vi.fn(), all: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn(), get: vi.fn() },
     auth: { me: vi.fn(), status: vi.fn(), logout: vi.fn() },
     logs: vi.fn(),

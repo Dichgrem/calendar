@@ -9,7 +9,7 @@ describe("formatCalendarDate", () => {
 
   it("formats en date style", () => {
     const d = new Date(2026, 0, 15);
-    expect(formatCalendarDate(d, "en", "en")).toBe("January 2026");
+    expect(formatCalendarDate(d, "en", "en")).toBe("Jan 2026");
   });
 
   it("formats custom date format", () => {

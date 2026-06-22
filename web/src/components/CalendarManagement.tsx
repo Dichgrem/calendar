@@ -12,14 +12,14 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import { AutoBackupPanel } from "../components/AutoBackupPanel";
 import { ColorSwatchPicker } from "../components/ColorSwatchPicker";
 import { ExportPanel } from "../components/ExportPanel";
 import { ImportForm } from "../components/ImportForm";
 import { Button } from "../components/ui/button";
-import { useCalendarReorder } from "../hooks/use-calendar-reorder";
 import { useI18n } from "../hooks/use-i18n";
+import { saveCalendarOrder, useNav } from "../hooks/use-nav";
 import { api } from "../lib/api";
 import type { Calendar } from "../types";
 
@@ -70,6 +70,23 @@ interface CalendarManagementProps {
 export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const queryClient = useQueryClient();
   const { t, lang } = useI18n();
+  const { bumpOrder } = useNav();
+  const [roVersion, setRoVersion] = useState(0);
+
+  // Sort by localStorage order (same as NavProvider does for top bar)
+  const sortedCalendars = useMemo(() => {
+    void roVersion;
+    if (!calendars) return calendars;
+    const raw = localStorage.getItem("calendarOrder");
+    if (!raw) return calendars;
+    try {
+      const order: Record<string, number> = JSON.parse(raw);
+      return [...calendars].sort((a, b) => (order[a.id] ?? 0) - (order[b.id] ?? 0));
+    } catch {
+      return calendars;
+    }
+  }, [calendars, roVersion]);
+
   const [editingCal, setEditingCal] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
@@ -83,26 +100,25 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [creatingBusy, setCreatingBusy] = useState(false);
-  const [reordering, setReordering] = useState(false);
-  const reorderingRef = useRef(false);
   const [newCalName, setNewCalName] = useState("");
   const [newCalColor, setNewCalColor] = useState("#3b82f6");
-  const { move } = useCalendarReorder(calendars?.map((c) => c.id) ?? []);
 
-  const handleMove = async (fromIdx: number, toIdx: number) => {
-    if (reorderingRef.current) return;
-    reorderingRef.current = true;
-    setReordering(true);
-    try {
-      await move(fromIdx, toIdx);
-    } finally {
-      reorderingRef.current = false;
-      setReordering(false);
-    }
+  const handleMove = (fromIdx: number, toIdx: number) => {
+    if (!sortedCalendars) return;
+    const ordered = [...sortedCalendars];
+    const [moved] = ordered.splice(fromIdx, 1);
+    ordered.splice(toIdx, 0, moved);
+    const order: Record<string, number> = {};
+    ordered.forEach((c, i) => {
+      order[c.id] = i;
+    });
+    saveCalendarOrder(order);
+    setRoVersion((v) => v + 1);
+    bumpOrder();
   };
 
   const importedCommonIds = new Set(
-    COMMON_CALENDARS.filter((cal) => calendars?.some((c) => c.sourceUrl === cal.url)).map((cal) => cal.id),
+    COMMON_CALENDARS.filter((cal) => sortedCalendars?.some((c) => c.sourceUrl === cal.url)).map((cal) => cal.id),
   );
 
   const startEditCal = (cal: Calendar) => {
@@ -290,7 +306,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
       )}
 
       <div className="space-y-1">
-        {calendars?.map((cal, idx) => (
+        {sortedCalendars?.map((cal, idx) => (
           <div
             key={cal.id}
             className="flex items-center gap-2 p-2 rounded-xl border border-neutral-200 dark:border-neutral-700 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900"
@@ -331,7 +347,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 <button
                   type="button"
                   onClick={() => handleMove(idx, idx - 1)}
-                  disabled={idx === 0 || reordering}
+                  disabled={idx === 0}
                   className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30"
                   title="上移"
                 >
@@ -340,7 +356,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 <button
                   type="button"
                   onClick={() => handleMove(idx, idx + 1)}
-                  disabled={idx === calendars.length - 1 || reordering}
+                  disabled={idx === sortedCalendars!.length - 1}
                   className="size-6 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 disabled:opacity-30"
                   title="下移"
                 >
@@ -365,7 +381,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
             )}
           </div>
         ))}
-        {calendars?.length === 0 && <p className="text-sm text-neutral-400 py-2">{t("settings.noCalendars")}</p>}
+        {sortedCalendars?.length === 0 && <p className="text-sm text-neutral-400 py-2">{t("settings.noCalendars")}</p>}
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import { CaretLeft, CaretRight, Circle } from "@phosphor-icons/react";
 import { useState } from "preact/hooks";
-import { useCalendars } from "../hooks/use-calendars";
 import { useI18n } from "../hooks/use-i18n";
 import { useNav } from "../hooks/use-nav";
 import { useSettings } from "../hooks/use-settings";
@@ -143,13 +142,13 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
 
 export function CenterControls() {
   const { t } = useI18n();
-  const { data: calendars, isError: calError } = useCalendars();
-  const { visibleCalendars, toggleCalendar } = useNav();
+  const { visibleCalendars, toggleCalendar, sortedCalendars } = useNav();
+  const calError = !sortedCalendars;
 
   return (
     <>
       {calError && <span className="text-xs text-red-500">{t("cal.failed")}</span>}
-      {calendars?.map((cal) => (
+      {sortedCalendars?.map((cal) => (
         <button
           type="button"
           key={cal.id}
@@ -164,7 +163,7 @@ export function CenterControls() {
           }}
         />
       ))}
-      {calendars?.length === 0 && <span className="text-xs text-neutral-400">{t("cal.noCalendars")}</span>}
+      {sortedCalendars?.length === 0 && <span className="text-xs text-neutral-400">{t("cal.noCalendars")}</span>}
     </>
   );
 }

@@ -4,7 +4,6 @@ import { createPortal } from "preact/compat";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { DarkModeToggle } from "../components/DarkModeToggle";
 import { SearchDropdown } from "../components/SearchDropdown";
-import { useCalendars } from "../hooks/use-calendars";
 import { useEvents } from "../hooks/use-events";
 import { useI18n } from "../hooks/use-i18n";
 import { useNav } from "../hooks/use-nav";
@@ -28,7 +27,7 @@ export function CalendarView() {
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const queryClient = useQueryClient();
 
-  const { data: calendars } = useCalendars();
+  const { sortedCalendars: calendars } = useNav();
   const { data: settings } = useSettings();
 
   const firstDayOfWeek = settings?.firstDayOfWeek ?? 1;
