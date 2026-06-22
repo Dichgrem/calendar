@@ -10,7 +10,6 @@ export const CALENDAR_COLORS = [
   "#6366f1",
   "#14b8a6",
   "#e11d48",
-  "#84cc16",
 ];
 
 export function pickDistinctColor(existingColors: string[]): string {
