@@ -186,16 +186,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   return (
     <div>
       <div className="flex items-center justify-center gap-1 mb-3 flex-wrap">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setCreating(true);
-            setNewCalName("");
-            setNewCalColor("#3b82f6");
-          }}
-          className="h-7 text-xs gap-1"
-        >
+        <Button variant="outline" size="sm" onClick={() => setCreating(!creating)} className="h-7 text-xs gap-1">
           <Plus className="size-3" weight="bold" />
           {t("settings.newCalendar")}
         </Button>
@@ -212,7 +203,7 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
           <DownloadSimple className="size-3" weight="bold" />
           {t("settings.importIcs")}
         </Button>
-        <Button variant="outline" size="sm" onClick={() => setExportOpen(true)} className="h-7 text-xs gap-1">
+        <Button variant="outline" size="sm" onClick={() => setExportOpen(!exportOpen)} className="h-7 text-xs gap-1">
           <FileArrowDown className="size-3" weight="bold" />
           {t("settings.exportIcs")}
         </Button>

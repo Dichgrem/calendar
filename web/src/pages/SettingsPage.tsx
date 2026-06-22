@@ -132,13 +132,13 @@ export function SettingsPage() {
           <Section icon={Wrench} title={t("settings.preferences")}>
             <SettingsForm settings={s} calendars={calendars ?? []} onUpdate={updatePrefs} />
           </Section>
-          <Section icon={User} title={t("settings.account")}>
+          <Section icon={User} title={t("settings.account")} collapsible defaultOpen>
             <AccountSection username={accountUser} />
           </Section>
-          <Section icon={CalendarDots} title={t("settings.calendars")}>
+          <Section icon={CalendarDots} title={t("settings.calendars")} collapsible defaultOpen>
             <CalendarManagement calendars={calendars} />
           </Section>
-          <Section icon={Database} title={t("settings.backupDb")}>
+          <Section icon={Database} title={t("settings.backupDb")} collapsible defaultOpen>
             <div className="py-0.5 space-y-1.5">
               {backupResult && (
                 <p className="text-xs text-green-600 flex items-center gap-1">
