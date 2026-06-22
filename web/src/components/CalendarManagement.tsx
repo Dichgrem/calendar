@@ -114,12 +114,13 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const saveCalEdit = async () => {
     if (!editingCal || saving) return;
     setSaving(true);
+    setImportError(null);
     try {
       await api.calendars.update(editingCal, { name: editName, color: editColor });
       queryClient.invalidateQueries({ queryKey: ["calendars"] });
       setEditingCal(null);
-    } catch {
-      // silently ignore — user can retry
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : t("settings.saveError"));
     } finally {
       setSaving(false);
     }

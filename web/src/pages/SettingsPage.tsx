@@ -76,6 +76,7 @@ export function SettingsPage() {
     ({ userId: "", language: "zh-CN", firstDayOfWeek: 1, dateFormat: "zh", showLunarCalendar: true } as UserSettings);
   const [backingUp, setBackingUp] = useState(false);
   const [backupResult, setBackupResult] = useState<{ filename: string } | null>(null);
+  const [backupError, setBackupError] = useState("");
 
   // Write UI prefs to localStorage instantly — no debounce, no PATCH.
   // Settings that affect server behavior (auto-backup) go through AutoBackupPanel.
@@ -101,6 +102,7 @@ export function SettingsPage() {
       setBackupResult(res.data);
     } catch {
       setBackupResult(null);
+      setBackupError(t("settings.saveError"));
     } finally {
       setBackingUp(false);
     }
@@ -117,7 +119,7 @@ export function SettingsPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // silently ignore
+      setBackupError(t("settings.saveError"));
     }
   };
 
@@ -150,6 +152,7 @@ export function SettingsPage() {
                   </button>
                 </p>
               )}
+              {backupError && <p className="text-xs text-red-500">{backupError}</p>}
               <div className="flex gap-2">
                 <Button
                   variant="outline"

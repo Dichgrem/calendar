@@ -22,6 +22,7 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
   });
   const [interval, setInterval_] = useState(settings?.autoBackupInterval ?? 0);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   const toggleCal = (id: string) =>
     setSelectedCalendars((p) => {
@@ -33,6 +34,7 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
   const handleSave = async () => {
     if (busy) return;
     setBusy(true);
+    setErr("");
     try {
       const next = {
         autoBackupCalendars: [...selectedCalendars].join(","),
@@ -41,8 +43,8 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
       const res = await api.settings.update(next);
       queryClient.setQueryData(["settings"], res.data);
       onClose();
-    } catch {
-      // silently ignore — user can retry
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t("settings.saveError"));
     } finally {
       setBusy(false);
     }
@@ -85,6 +87,7 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
           {t("settings.cancel")}
         </Button>
       </div>
+      {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
     </div>
   );
 }
