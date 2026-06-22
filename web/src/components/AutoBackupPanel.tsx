@@ -22,6 +22,7 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
   });
   const [interval, setInterval_] = useState(settings?.autoBackupInterval ?? 0);
   const [busy, setBusy] = useState(false);
+  const [backupMsg, setBackupMsg] = useState("");
   const [err, setErr] = useState("");
 
   const toggleCal = (id: string) =>
@@ -50,10 +51,46 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
     }
   };
 
+  const handleBackup = async () => {
+    setBackupMsg("");
+    try {
+      const res = await api.backup.create();
+      setBackupMsg(res.data.filename);
+    } catch {
+      setBackupMsg("error");
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const cfg = await api.settings.exportConfig();
+      const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "config.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setErr(t("settings.saveError"));
+    }
+  };
+
   return (
     <div className="mb-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-neutral-500">{t("settings.autoBackupCalendars")}</span>
+        <button
+          type="button"
+          onClick={() =>
+            setSelectedCalendars(
+              selectedCalendars.size === calendars.length ? new Set() : new Set(calendars.map((c) => c.id)),
+            )
+          }
+          className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+        >
+          {selectedCalendars.size === calendars.length ? t("settings.deselectAll") : t("settings.selectAll")}
+        </button>
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
         {calendars.map((cal) => (
@@ -79,15 +116,33 @@ export function AutoBackupPanel({ calendars, onClose }: AutoBackupPanelProps) {
           <option value={1440}>{t("settings.autoBackup24h")}</option>
         </select>
       </div>
-      <div className="flex gap-1">
+      <div className="flex gap-1 flex-wrap">
         <Button size="sm" onClick={handleSave} disabled={busy} className="h-7 text-xs">
           {t("settings.save")}
         </Button>
         <Button variant="outline" size="sm" onClick={onClose} className="h-7 text-xs">
           {t("settings.cancel")}
         </Button>
+        <Button variant="outline" size="sm" onClick={handleBackup} className="h-7 text-xs">
+          {t("settings.backupDb")}
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExport} className="h-7 text-xs">
+          {t("settings.exportConfig")}
+        </Button>
       </div>
       {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
+      {backupMsg === "error" && <p className="text-xs text-red-500 mt-1">{t("settings.saveError")}</p>}
+      {backupMsg && backupMsg !== "error" && (
+        <p className="text-xs text-green-600 mt-1">
+          <button
+            type="button"
+            onClick={() => api.backup.download(backupMsg)}
+            className="text-blue-500 hover:underline"
+          >
+            {backupMsg}
+          </button>
+        </p>
+      )}
     </div>
   );
 }
