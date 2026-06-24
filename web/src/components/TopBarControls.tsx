@@ -29,6 +29,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
   const dateLabel = labelOverride ?? formatCalendarDate(displayDate, dateFormat, lang);
 
   const gotoMonth = (year: number, month: number) => {
+    if (year < 1970 || year > 2100) return;
     const d = new Date(year, month, 1);
     setDisplayMonth({ year, month });
     if (setHighlightDate) setHighlightDate(dateStr(d));
@@ -54,6 +55,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
   const goNext = () => {
     const nm = displayMonth.month + 1;
     const next = nm > 11 ? { year: displayMonth.year + 1, month: 0 } : { year: displayMonth.year, month: nm };
+    if (next.year > 2100) return;
     setDisplayMonth(next);
     if (pickerOpen) setPickerYear(next.year);
     if (setHighlightDate) setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
@@ -101,7 +103,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
           <div className="flex items-center justify-center gap-1 mb-3">
             <button
               type="button"
-              onClick={() => setPickerYear((y) => y - 1)}
+              onClick={() => setPickerYear((y) => Math.max(1970, y - 1))}
               aria-label={t("cal.yearPrev")}
               className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"
             >{`<`}</button>
@@ -110,11 +112,12 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
               value={pickerYear}
               onChange={(e) => setPickerYear(Number(e.currentTarget.value))}
               min={1970}
+              max={2100}
               className="w-16 text-center text-sm font-semibold border-0 bg-transparent text-neutral-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
             <button
               type="button"
-              onClick={() => setPickerYear((y) => y + 1)}
+              onClick={() => setPickerYear((y) => Math.min(2100, y + 1))}
               aria-label={t("cal.yearNext")}
               className="size-7 flex items-center justify-center rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400"
             >{`>`}</button>

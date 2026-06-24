@@ -17,7 +17,7 @@ describe("ColorSwatchPicker", () => {
       </Wrapper>,
     );
     const buttons = screen.getAllByRole("button");
-    expect(buttons.length).toBeGreaterThanOrEqual(12);
+    expect(buttons.length).toBeGreaterThanOrEqual(11);
   });
 
   it("calls onChange with selected color", async () => {

@@ -1,6 +1,4 @@
-const MONTH_NAMES_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-const MONTH_NAMES_SHORT_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const MONTH_NAMES_ZH = [
   "一月",
@@ -23,10 +21,10 @@ export function formatCalendarDate(d: Date, format: string, lang: string): strin
   if (!format) format = "zh";
   if (format === "zh") return `${d.getFullYear()}年${d.getMonth() + 1}月`;
   if (format === "iso") return `${d.getFullYear()}-${PAD2(d.getMonth() + 1)}`;
-  if (format === "en") return `${MONTH_NAMES_EN[d.getMonth()]} ${d.getFullYear()}`;
+  if (format === "en") return `${MONTHS_EN[d.getMonth()]} ${d.getFullYear()}`;
 
-  const fullNames = lang === "en" ? MONTH_NAMES_EN : MONTH_NAMES_ZH;
-  const shortNames = lang === "en" ? MONTH_NAMES_SHORT_EN : MONTH_NAMES_ZH;
+  const fullNames = lang === "en" ? MONTHS_EN : MONTH_NAMES_ZH;
+  const shortNames = lang === "en" ? MONTHS_EN : MONTH_NAMES_ZH;
 
   return format
     .replace(/yyyy/g, String(d.getFullYear()))

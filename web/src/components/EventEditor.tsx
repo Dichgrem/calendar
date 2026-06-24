@@ -197,6 +197,8 @@ export function EventEditor(props: EventEditorProps) {
             <div className="mt-1.5 flex gap-1">
               <input
                 type="date"
+                min="1970-01-01"
+                max="2100-12-31"
                 value={startDate}
                 onChange={(e) => setStartDate(e.currentTarget.value)}
                 className="flex-1 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
@@ -216,6 +218,8 @@ export function EventEditor(props: EventEditorProps) {
             <div className="mt-1.5 flex gap-1">
               <input
                 type="date"
+                min="1970-01-01"
+                max="2100-12-31"
                 value={endDate}
                 onChange={(e) => setEndDate(e.currentTarget.value)}
                 className="flex-1 border rounded-lg px-2 py-2 text-sm bg-white dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-400"
