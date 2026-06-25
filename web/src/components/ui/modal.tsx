@@ -29,9 +29,8 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   if (!open) return null;
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close is intentional
-    <div
-      role="presentation"
+    <button
+      type="button"
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -41,7 +40,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
       }}
     >
       <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-      <div className="relative bg-white dark:bg-surface rounded-2xl shadow-2xl w-[28rem] max-h-[85vh] flex flex-col border border-border overflow-hidden">
+      <div className="relative bg-white dark:bg-surface rounded-2xl shadow-2xl w-[28rem] max-h-[85vh] flex flex-col border border-border overflow-hidden text-left text-neutral-800 dark:text-neutral-200">
         <div className="flex items-center justify-between px-5 py-2.5 border-b border-border">
           <h2 className="text-base font-semibold dark:text-white">{title}</h2>
           <button
@@ -60,6 +59,6 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 }

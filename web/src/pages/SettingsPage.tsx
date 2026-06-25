@@ -30,18 +30,11 @@ function Section({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 overflow-hidden">
-      {/* biome-ignore lint/a11y/useSemanticElements: collapsible section header */}
-      <div
-        role="button"
-        tabIndex={0}
-        className={`flex items-center gap-2 px-4 py-1.5 border-b border-neutral-100 dark:border-neutral-800 ${collapsible ? "cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900" : ""}`}
+      <button
+        type="button"
+        className={`flex items-center gap-2 px-4 py-1.5 border-b border-neutral-100 dark:border-neutral-800 w-full ${collapsible ? "cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900" : ""}`}
         onClick={() => collapsible && setOpen(!open)}
-        onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && collapsible) {
-            e.preventDefault();
-            setOpen(!open);
-          }
-        }}
+        disabled={!collapsible}
       >
         <Icon className="size-3.5 text-neutral-400" weight="bold" />
         <h2 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
@@ -55,7 +48,7 @@ function Section({
             <CaretDown className="size-3" weight="bold" />
           </span>
         )}
-      </div>
+      </button>
       {(!collapsible || open) && <div className="px-4 py-1.5">{children}</div>}
     </div>
   );
@@ -82,6 +75,7 @@ export function SettingsPage() {
     if (next.firstDayOfWeek !== s.firstDayOfWeek) partial.firstDayOfWeek = next.firstDayOfWeek;
     if (next.dateFormat !== s.dateFormat) partial.dateFormat = next.dateFormat;
     if (next.showLunarCalendar !== s.showLunarCalendar) partial.showLunarCalendar = next.showLunarCalendar;
+    if (next.keyboardShortcuts !== s.keyboardShortcuts) partial.keyboardShortcuts = next.keyboardShortcuts;
     if (next.showEventTime !== s.showEventTime) partial.showEventTime = next.showEventTime;
     if (next.defaultCalendarId !== s.defaultCalendarId) partial.defaultCalendarId = next.defaultCalendarId;
     if (Object.keys(partial).length === 0) return;

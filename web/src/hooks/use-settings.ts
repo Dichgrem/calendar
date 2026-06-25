@@ -9,6 +9,7 @@ const DEFAULTS: UserSettings = {
   showEventTime: false,
   dateFormat: "zh",
   showLunarCalendar: true,
+  keyboardShortcuts: true,
   defaultCalendarId: undefined,
   autoBackupCalendars: undefined,
   autoBackupInterval: undefined,
@@ -19,6 +20,7 @@ const LOCAL_KEYS: (keyof UserSettings)[] = [
   "firstDayOfWeek",
   "dateFormat",
   "showLunarCalendar",
+  "keyboardShortcuts",
   "showEventTime",
   "defaultCalendarId",
 ];

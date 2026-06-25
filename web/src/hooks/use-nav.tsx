@@ -39,6 +39,9 @@ interface NavState {
   setLabelOverride: (s: string | null) => void;
   bumpOrder: () => void;
   sortedCalendars: Calendar[] | undefined;
+  goNext: () => void;
+  goPrev: () => void;
+  goToday: () => void;
 }
 
 const NavCtx = createContext<NavState>({
@@ -50,6 +53,9 @@ const NavCtx = createContext<NavState>({
   setLabelOverride: () => {},
   bumpOrder: () => {},
   sortedCalendars: undefined,
+  goNext: () => {},
+  goPrev: () => {},
+  goToday: () => {},
 });
 
 export function useNav() {
@@ -124,6 +130,20 @@ export function NavProvider({ children }: { children: ComponentChildren }) {
       setLabelOverride,
       bumpOrder,
       sortedCalendars: calendars,
+      goNext: () =>
+        setDisplayMonth((m) => {
+          const nm = m.month + 1;
+          return nm > 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: nm };
+        }),
+      goPrev: () =>
+        setDisplayMonth((m) => {
+          const nm = m.month - 1;
+          return nm < 0 ? { year: m.year - 1, month: 11 } : { year: m.year, month: nm };
+        }),
+      goToday: () => {
+        const now = new Date();
+        setDisplayMonth({ year: now.getFullYear(), month: now.getMonth() });
+      },
     }),
     [displayMonth, visibleCalendars, toggleCalendar, labelOverride, bumpOrder, calendars],
   );

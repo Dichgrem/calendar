@@ -110,11 +110,9 @@ export const MonthGrid = memo(function MonthGrid({
         const dayEvents = eventsByDate.get(key) ?? [];
 
         return (
-          // biome-ignore lint/a11y/useSemanticElements: calendar cell — must be div for grid layout
-          <div
+          <button
+            type="button"
             key={key}
-            role="button"
-            tabIndex={0}
             data-date={key}
             onClick={() => onDateClick(d)}
             onKeyDown={(e) => {
@@ -123,7 +121,7 @@ export const MonthGrid = memo(function MonthGrid({
                 onDateClick(d);
               }
             }}
-            className={`relative border-r border-neutral-300 dark:border-neutral-600
+            className={`block relative w-full h-full text-left border-0 bg-transparent p-0 flex flex-col border-r border-neutral-300 dark:border-neutral-600
               ${!isLastRow ? "border-b" : ""}
               ${isToday ? "bg-[rgba(255,220,40,0.15)] dark:bg-[rgba(255,220,40,0.1)]" : isCurrentMonth ? "bg-neutral-50 dark:bg-neutral-900" : "bg-neutral-100 dark:bg-neutral-950"}
               ${isHighlighted ? "highlight-search" : ""}
@@ -179,7 +177,7 @@ export const MonthGrid = memo(function MonthGrid({
                 );
               })}
             </div>
-          </div>
+          </button>
         );
       })}
     </div>

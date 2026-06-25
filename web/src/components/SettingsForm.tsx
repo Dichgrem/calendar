@@ -94,6 +94,9 @@ export function SettingsForm({ settings, calendars, onUpdate }: SettingsFormProp
       <Row label={t("settings.showLunarCalendar")}>
         <Toggle checked={s.showLunarCalendar} onChange={(v) => onUpdate({ ...s, showLunarCalendar: v })} />
       </Row>
+      <Row label={t("settings.keyboardShortcuts")}>
+        <Toggle checked={s.keyboardShortcuts !== false} onChange={(v) => onUpdate({ ...s, keyboardShortcuts: v })} />
+      </Row>
     </div>
   );
 }

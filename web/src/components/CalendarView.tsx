@@ -23,6 +23,7 @@ export function CalendarView() {
   const { visibleCalendars, displayMonth, setDisplayMonth } = useNav();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [creating, setCreating] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const queryClient = useQueryClient();
@@ -175,6 +176,54 @@ export function CalendarView() {
     return () => window.removeEventListener("keydown", handler);
   }, [searchOpen, calendars, searchCalId, setDisplayMonth, setSearchQuery, setSearchCalId, setSearchOpen]);
 
+  // Global vim-style keyboard shortcuts
+  const shortcutsOn = settings?.keyboardShortcuts !== false;
+  useEffect(() => {
+    if (!shortcutsOn) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      switch (e.key) {
+        case "j": {
+          const nm = displayMonth.month + 1;
+          const next = nm > 11 ? { year: displayMonth.year + 1, month: 0 } : { year: displayMonth.year, month: nm };
+          setDisplayMonth(next);
+          setHighlightDate(dateStr(new Date(next.year, next.month, 1)));
+          e.preventDefault();
+          break;
+        }
+        case "k": {
+          const nm = displayMonth.month - 1;
+          const prev = nm < 0 ? { year: displayMonth.year - 1, month: 11 } : { year: displayMonth.year, month: nm };
+          setDisplayMonth(prev);
+          setHighlightDate(dateStr(new Date(prev.year, prev.month, 1)));
+          e.preventDefault();
+          break;
+        }
+        case "t": {
+          const now = new Date();
+          setDisplayMonth({ year: now.getFullYear(), month: now.getMonth() });
+          setHighlightDate(dateStr(now));
+          e.preventDefault();
+          break;
+        }
+        case "n":
+          setCreating(true);
+          e.preventDefault();
+          break;
+        case "?":
+          setShowHelp(true);
+          e.preventDefault();
+          break;
+        case "Escape":
+          setShowHelp(false);
+          break;
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [shortcutsOn, displayMonth, setHighlightDate]);
+
   const searchDropdown = searchOpen ? (
     <SearchDropdown
       calendars={calendars}
@@ -238,6 +287,47 @@ export function CalendarView() {
       </div>
 
       {selectedEvent && <EventEditor mode="edit" event={selectedEvent} open onClose={() => setSelectedEvent(null)} />}
+      {showHelp && (
+        <button
+          type="button"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 border-0 cursor-pointer"
+          onClick={() => setShowHelp(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowHelp(false);
+          }}
+        >
+          <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-xl p-4 min-w-[16rem]">
+            <p className="text-sm font-semibold mb-2 text-neutral-800 dark:text-neutral-200">{t("cal.helpTitle")}</p>
+            <div className="text-xs space-y-1 text-neutral-600 dark:text-neutral-400">
+              <div>
+                <kbd className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono">j</kbd> /{" "}
+                <kbd className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono">k</kbd>{" "}
+                {t("cal.helpMonth")}
+              </div>
+              <div>
+                <kbd className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono">t</kbd>{" "}
+                {t("cal.helpToday")}
+              </div>
+              <div>
+                <kbd className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono">n</kbd>{" "}
+                {t("cal.helpNewEvent")}
+              </div>
+              <div>
+                <kbd className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono">/</kbd>{" "}
+                {t("cal.helpSearch")}
+              </div>
+              <div>
+                <kbd className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono">?</kbd>{" "}
+                {t("cal.helpShow")}
+              </div>
+              <div>
+                <kbd className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono">Esc</kbd>{" "}
+                {t("cal.helpClose")}
+              </div>
+            </div>
+          </div>
+        </button>
+      )}
       {creating && (
         <EventEditor
           mode="create"

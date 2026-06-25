@@ -45,6 +45,7 @@ export interface UserSettings {
   showEventTime: boolean;
   dateFormat: string;
   showLunarCalendar: boolean;
+  keyboardShortcuts: boolean;
   autoBackupCalendars?: string;
   autoBackupInterval?: number;
   defaultCalendarId?: string;
