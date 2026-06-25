@@ -41,6 +41,7 @@ const strings = {
   "cal.search": { "zh-CN": "搜索事件...", en: "Search events..." },
   "cal.all": { "zh-CN": "全部", en: "All" },
   "cal.noResults": { "zh-CN": "无匹配结果", en: "No results" },
+  "cal.totalCount": { "zh-CN": "共", en: "Total:" },
   "cal.darkMode": { "zh-CN": "深色模式", en: "Dark mode" },
   "cal.lightMode": { "zh-CN": "浅色模式", en: "Light mode" },
 

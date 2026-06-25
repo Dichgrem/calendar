@@ -3,9 +3,12 @@ import { api } from "../lib/api";
 
 export function useEvents(start: string, end: string) {
   const enabled = !!start && !!end;
-  return useQuery({
+  return useQuery<Event[], Error>({
     queryKey: ["events", start, end],
-    queryFn: async () => (await api.events.all(start, end)).data ?? [],
+    queryFn: async () => {
+      const d = (await api.events.all(start, end)).data;
+      return Array.isArray(d) ? d : ((d as any).events ?? []);
+    },
     enabled,
     placeholderData: (prev) => prev ?? [],
   });

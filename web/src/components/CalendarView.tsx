@@ -66,19 +66,15 @@ export function CalendarView() {
     const t = setTimeout(() => setDebouncedQ(searchQuery), 500);
     return () => clearTimeout(t);
   }, [searchQuery]);
+  const [searchTotal, setSearchTotal] = useState(0);
   const { data: allEvents } = useQuery({
     queryKey: ["events", "search", debouncedQ],
     queryFn: async () => {
       if (!debouncedQ) return [];
-      const raw = (await api.events.all("2000-01-01T00:00:00Z", "2099-12-31T23:59:59Z", debouncedQ)).data ?? [];
-      // Dedup same event from multiple calendars by (title, startAt)
-      const seen = new Set<string>();
-      return raw.filter((e: Event) => {
-        const key = `${e.title}|${e.startAt}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+      const raw = (await api.events.all("2000-01-01T00:00:00Z", "2099-12-31T23:59:59Z", debouncedQ)).data;
+      const ec = ((raw as any).data ?? []) as Event[];
+      setSearchTotal((raw as any).total ?? ec.length);
+      return ec;
     },
     enabled: !!debouncedQ,
     placeholderData: (prev) => prev ?? [],
@@ -95,8 +91,9 @@ export function CalendarView() {
   const filteredEvents = useMemo(() => {
     const calOrder = new Map((calendars ?? []).map((c, i) => [c.id, i]));
     const seen = new Set<string>();
-    return (searchableEvents ?? [])
-      .filter((e) => {
+    const list = (searchableEvents ?? []) as Event[];
+    return list
+      .filter((e: Event) => {
         if (seen.has(e.id)) return false;
         seen.add(e.id);
         if (searchQuery) {
@@ -186,6 +183,7 @@ export function CalendarView() {
       searchCalId={searchCalId}
       setSearchCalId={setSearchCalId}
       filteredEvents={filteredEvents}
+      searchTotal={searchTotal}
       highlightedIndex={highlightedIndex}
       setDisplayMonth={setDisplayMonth}
       setHighlightDate={setHighlightDate}

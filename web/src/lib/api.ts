@@ -102,7 +102,7 @@ export const api = {
 
   events: {
     all: (start: string, end: string, title?: string) =>
-      request<ApiResponse<Event[]>>(
+      request<ApiResponse<{ events: Event[]; total: number }>>(
         `/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${title ? `&title=${encodeURIComponent(title)}` : ""}`,
       ),
     list: (calendarId: string, start: string, end: string) =>

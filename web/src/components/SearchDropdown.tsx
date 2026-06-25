@@ -9,6 +9,7 @@ interface SearchDropdownProps {
   searchCalId: string | null;
   setSearchCalId: (v: string | null) => void;
   filteredEvents: Event[];
+  searchTotal: number;
   highlightedIndex: number;
   setDisplayMonth: (v: { year: number; month: number }) => void;
   setHighlightDate: (d: string | null) => void;
@@ -22,6 +23,7 @@ export function SearchDropdown({
   searchCalId,
   setSearchCalId,
   filteredEvents,
+  searchTotal,
   highlightedIndex,
   setDisplayMonth,
   setHighlightDate,
@@ -41,7 +43,7 @@ export function SearchDropdown({
   };
 
   return (
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 mt-1 min-w-[24rem] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
+    <div className="absolute top-full left-1/2 -translate-x-1/2 z-40 min-w-[24rem] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
       <div className="px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
         <input
           ref={(el) => el?.focus()}
@@ -79,7 +81,7 @@ export function SearchDropdown({
         ))}
       </div>
       <div className="max-h-64 overflow-y-auto">
-        {searchQuery && filteredEvents.length === 0 && (
+        {searchQuery && searchTotal === 0 && filteredEvents.length === 0 && (
           <p className="px-3 py-3 text-xs text-neutral-400 dark:text-neutral-500">{t("cal.noResults")}</p>
         )}
         {searchQuery &&
@@ -102,6 +104,13 @@ export function SearchDropdown({
             );
           })}
       </div>
+      {searchQuery && searchTotal > 0 && (
+        <div className="px-3 py-1 border-t border-neutral-100 dark:border-neutral-800">
+          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+            {t("cal.totalCount")} {searchTotal}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
