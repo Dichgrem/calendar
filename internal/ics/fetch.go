@@ -151,20 +151,27 @@ func handleFetchURL(w http.ResponseWriter, r *http.Request) {
 
 // fetchIcsFromURL fetches ICS content from a URL with SSRF protection.
 func fetchIcsFromURL(rawURL string) (string, error) {
+	content, _, err := fetchIcsConditional(rawURL, time.Time{})
+	return content, err
+}
+
+// fetchIcsConditional fetches ICS with optional If-Modified-Since.
+// Returns (content, false, nil) on 200, ("", true, nil) on 304, or ("", false, err) on failure.
+func fetchIcsConditional(rawURL string, ifModifiedSince time.Time) (string, bool, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
-		return "", fmt.Errorf("invalid URL")
+		return "", false, fmt.Errorf("invalid URL")
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return "", fmt.Errorf("unsupported protocol")
+		return "", false, fmt.Errorf("unsupported protocol")
 	}
 
 	host := u.Hostname()
 	if host == "" || host == "localhost" {
-		return "", fmt.Errorf("invalid host")
+		return "", false, fmt.Errorf("invalid host")
 	}
 	if ip := net.ParseIP(host); ip != nil && isPrivateIP(ip) {
-		return "", fmt.Errorf("private IP not allowed")
+		return "", false, fmt.Errorf("private IP not allowed")
 	}
 
 	origDial := (&net.Dialer{
@@ -209,19 +216,22 @@ func fetchIcsFromURL(rawURL string) (string, error) {
 	}
 	resp, err := client.Get(rawURL)
 	if err != nil {
-		return "", fmt.Errorf("fetch failed: %w", err)
+		return "", false, fmt.Errorf("fetch failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == 304 {
+		return "", true, nil
+	}
 	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
+		return "", false, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
 	if err != nil {
-		return "", fmt.Errorf("read failed: %w", err)
+		return "", false, fmt.Errorf("read failed: %w", err)
 	}
-	return string(body), nil
+	return string(body), false, nil
 }
 
 func isPrivateIP(ip net.IP) bool {

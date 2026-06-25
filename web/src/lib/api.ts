@@ -96,6 +96,8 @@ export const api = {
         body: JSON.stringify(data),
       }),
     remove: (id: string) => request<ApiResponse<null>>(`/calendars/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    refresh: (id: string) =>
+      request<ApiResponse<{ imported: number }>>(`/calendars/${encodeURIComponent(id)}/refresh`, { method: "POST" }),
   },
 
   events: {

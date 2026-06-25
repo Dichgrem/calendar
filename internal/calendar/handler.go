@@ -11,6 +11,7 @@ import (
 
 	"calendar/internal/apperror"
 	"calendar/internal/db"
+	"calendar/internal/ics"
 	"calendar/internal/logger"
 	"calendar/internal/middleware"
 	"calendar/internal/validate"
@@ -25,6 +26,7 @@ func RegisterRoutes(r chi.Router) {
 		r.Patch("/{id}", handleUpdate)
 		r.Delete("/{id}", handleDelete)
 		r.Patch("/reorder", handleReorder)
+		r.Post("/{id}/refresh", handleRefresh)
 	})
 }
 
@@ -333,6 +335,27 @@ func handleReorder(w http.ResponseWriter, r *http.Request) {
 }
 
 // helpers
+
+func handleRefresh(w http.ResponseWriter, r *http.Request) {
+	perm := middleware.GetPermission(r)
+	id := chi.URLParam(r, "id")
+	logger.Debug("[calendar] REFRESH id=%s user=%s", id, perm.UserID)
+
+	if !perm.RequireRole(id, "editor") {
+		middleware.JSONResponse(w, 403, apperror.Forbidden("Access denied"))
+		return
+	}
+
+	n, err := ics.RefreshSubscription(id)
+	if err != nil {
+		logger.Error("[calendar] refresh id=%s error: %v", id, err)
+		middleware.JSONResponse(w, 500, apperror.Internal("Refresh failed"))
+		return
+	}
+
+	logger.Info("[calendar] refresh id=%s => %d events", id, n)
+	middleware.JSONResponse(w, 200, map[string]int{"imported": n})
+}
 
 func getCalendar(calendarID, userID string) (*Calendar, error) {
 	var c Calendar

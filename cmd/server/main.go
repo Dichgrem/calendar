@@ -54,6 +54,9 @@ func main() {
 	// Start auto backup goroutine
 	backup.StartAutoBackup()
 
+	// Start ICS subscription refresh loop (every 7 days)
+	go refreshLoop()
+
 	// Clean up events with empty dates (test artifacts from earlier development)
 	if _, err := db.DB.Exec("DELETE FROM events WHERE deleted = 0 AND (start_at = '' OR end_at = '')"); err != nil {
 		logger.Info("Cleanup events: %v", err)
@@ -195,6 +198,15 @@ func main() {
 		logger.Fatal("Server error: %v", err)
 	}
 	logger.Info("Server stopped")
+}
+
+func refreshLoop() {
+	ics.RefreshAllSubscriptions()
+	ticker := time.NewTicker(7 * 24 * time.Hour)
+	defer ticker.Stop()
+	for range ticker.C {
+		ics.RefreshAllSubscriptions()
+	}
 }
 
 func runMigrations() error {

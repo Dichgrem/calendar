@@ -1,4 +1,5 @@
 import {
+  ArrowsClockwise,
   CaretDown,
   CaretUp,
   Check,
@@ -97,6 +98,8 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
   const [importing, setImporting] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState("");
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [creatingBusy, setCreatingBusy] = useState(false);
@@ -156,6 +159,21 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
     }
   };
 
+  const handleRefresh = async (id: string) => {
+    setRefreshing(id);
+    try {
+      const { data } = await api.calendars.refresh(id);
+      setToastMsg(data && data.imported > 0 ? `${t("cal.refresh")}: ${data.imported} events` : t("cal.refreshDone"));
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    } catch (e) {
+      setToastMsg(e instanceof Error ? e.message : t("cal.failed"));
+    } finally {
+      setRefreshing(null);
+      setTimeout(() => setToastMsg(""), 2500);
+    }
+  };
+
   const handleImportCommon = async (cal: CommonCalendar) => {
     setImporting((p) => new Set(p).add(cal.id));
     setImportError(null);
@@ -201,6 +219,11 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
 
   return (
     <div>
+      {toastMsg && (
+        <div className="mb-2 px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-950 text-sm text-green-700 dark:text-green-300 animate-pulse">
+          {toastMsg}
+        </div>
+      )}
       <div className="flex items-center justify-center gap-1 mb-3 flex-wrap">
         <Button variant="outline" size="sm" onClick={() => setCreating(!creating)} className="h-7 text-xs gap-1">
           <Plus className="size-3" weight="bold" />
@@ -362,6 +385,26 @@ export function CalendarManagement({ calendars }: CalendarManagementProps) {
                 >
                   <CaretDown className="size-3.5" weight="bold" />
                 </button>
+                {cal.sourceType === "ics_subscription" ? (
+                  <button
+                    type="button"
+                    onClick={() => handleRefresh(cal.id)}
+                    disabled={refreshing === cal.id}
+                    className={`size-7 flex items-center justify-center rounded-lg text-neutral-400 ${refreshing === cal.id ? "animate-spin" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                    title={t("cal.refresh")}
+                  >
+                    <ArrowsClockwise className="size-3.5" weight="bold" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="size-7 flex items-center justify-center rounded-lg text-neutral-300 dark:text-neutral-600 cursor-not-allowed"
+                    title={t("cal.refreshNonsub")}
+                  >
+                    <ArrowsClockwise className="size-3.5" weight="bold" />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => startEditCal(cal)}
