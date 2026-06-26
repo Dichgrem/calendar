@@ -163,3 +163,50 @@ func TestCaldavPutNewEvent(t *testing.T) {
     // 4. 断言 status + DB 状态
 }
 ```
+
+## 时间处理
+
+### 存储原则
+
+**UTC 存储，边界转换。** 所有事件时间以 `"2026-06-25T08:00:00Z"` 格式存于 SQLite。
+只在两个边界做转换：用户输入/显示（前端 `new Date()`），ICS 导入/导出（`normalizeICSDate`）。
+
+### 完整数据流
+
+| 操作 | 转换 | 关键文件 |
+|---|---|---|
+| 前端创建/编辑 | `new Date(local)` → `toISOString()` → UTC Z | `EventEditor.tsx:122` |
+| 前端编辑回显 | `new Date(utcZ)` → `toLocalInput()` → 本地 | `EventEditor.tsx:62` |
+| 前端网格/搜索 | `new Date(utcZ)` 自动本地化 | `MonthGrid.tsx:69`, `SearchDropdown.tsx:101` |
+| ICS 导出 | `SetDateProp` → `DTSTART:YYYYMMDDTHHMMSSZ` | `caldav.go:99`, `convert.go:SetDateProp` |
+| ICS/CalDAV 导入（有 Z） | `normalizeICSDate` → UTC Z | `date.go`, `put.go:64`, `import.go:142` |
+| ICS/CalDAV 导入（有 TZID） | `NormalizeICSDateWithTZID` → UTC 偏移 → UTC Z | `put.go:59-64`, `import.go:137-141` |
+
+### 边界情况防护
+
+| 情况 | 防护 |
+|---|---|
+### 边界情况数据库审计
+
+| # | 边界情况 | DB 数量 | 状态 |
+|---|---|---|---|
+| 1 | 零时长 `startAt == endAt` | 3 → 0（已修） | ✅ `+1h` 三处防护 + migration |
+| 2 | `.000Z` 毫秒后缀 | 1 → 0 | ✅ `toLocalInput` strip |
+| 3 | 无 Z 后缀 timed 事件 | 0 | ✅ |
+| 4 | `startAt > endAt` | 0 | ✅ |
+| 5 | 全天/非全天格式混合 | 0 | ✅ |
+
+### 测试验证清单
+
+| # | 测试项 | 预期结果 |
+|---|---|---|
+| 1 | 前端创建事件 6月25日 16:00 | DB `start_at` = `"2026-06-25T08:00:00Z"` |
+| 2 | 前端编辑该事件 | 输入框显示 6月25日 16:00（不偏移） |
+| 3 | 不改时间直接保存 | DB 不变 |
+| 4 | CalDAV PROPFIND | `DTSTART:20260625T080000Z` |
+| 5 | Android 同步后编辑回写 | DB 不变 |
+| 6 | Android 本地新建同步 | DB 正确 UTC |
+| 7 | 手动导入 `TZID=Asia/Shanghai` | DB UTC 正确 |
+| 8 | 服务器导出 ICS | `DTSTART:...Z` |
+| 9 | 非全天不设结束时间 | `+1h` |
+| 10 | 编辑 `.000Z` 事件 | 时间正常显示 |
