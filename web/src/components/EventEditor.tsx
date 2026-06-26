@@ -34,7 +34,9 @@ export function roundToNextHour(d: Date): Date {
 
 export function toLocalInput(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const s = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  // Normalize .000Z suffix to Z
+  return s.replace(/\.\d{3,}Z$/, "Z");
 }
 
 export function EventEditor(props: EventEditorProps) {
@@ -117,10 +119,16 @@ export function EventEditor(props: EventEditorProps) {
 
   const handleSave = () => {
     if (!calendarId) return;
+    const startIso = new Date(`${startDate}T${allDay ? "00:00" : startTime}`).toISOString();
+    let endIso = new Date(`${endDate}T${allDay ? "00:00" : endTime}`).toISOString();
+    // Ensure non-all-day events have at least 1h duration
+    if (!allDay && endIso === startIso) {
+      endIso = new Date(new Date(startIso).getTime() + 3600000).toISOString();
+    }
     const data: Partial<Event> = {
       title,
-      startAt: new Date(`${startDate}T${allDay ? "00:00" : startTime}`).toISOString(),
-      endAt: new Date(`${endDate}T${allDay ? "00:00" : endTime}`).toISOString(),
+      startAt: startIso,
+      endAt: endIso,
       allDay,
       description: description || null,
       location: location || null,

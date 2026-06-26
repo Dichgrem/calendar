@@ -141,6 +141,13 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		}
 		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart), tzid)
 		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd), tzid)
+		// Ensure non-all-day events have at least 1h duration
+		if startAt == endAt && strings.Contains(startAt, "T") {
+			t, err := time.Parse("2006-01-02T15:04:05Z", startAt)
+			if err == nil {
+				endAt = t.Add(time.Hour).Format("2006-01-02T15:04:05Z")
+			}
+		}
 
 		rawICS := rawVEvents[uid]
 		if rawICS == "" {

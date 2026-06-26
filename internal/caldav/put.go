@@ -64,6 +64,18 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	evStartAt := ics.NormalizeICSDateWithTZID(util.ComponentProp(ev, ical.PropDateTimeStart), tzid)
 	evEndAt := ics.NormalizeICSDateWithTZID(util.ComponentProp(ev, ical.PropDateTimeEnd), tzid)
 	evUID := util.ComponentProp(ev, ical.PropUID)
+
+	allDay := 0
+	if !strings.Contains(evStartAt, "T") {
+		allDay = 1
+	}
+	// Ensure non-all-day events have at least 1h duration
+	if allDay == 0 && evStartAt == evEndAt {
+		t, err := time.Parse("2006-01-02T15:04:05Z", evStartAt)
+		if err == nil {
+			evEndAt = t.Add(time.Hour).Format("2006-01-02T15:04:05Z")
+		}
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()
 
@@ -76,11 +88,6 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 
 	var existingID string
 	_ = db.DB.QueryRow("SELECT id FROM events WHERE id=? AND calendar_id=?", lookupID, calID).Scan(&existingID)
-
-	allDay := 0
-	if !strings.Contains(evStartAt, "T") {
-		allDay = 1
-	}
 
 	rawICS := string(body)
 	if existingID != "" {
