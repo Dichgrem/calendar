@@ -99,7 +99,7 @@ export function LeftControls({ highlightDate, setHighlightDate }: TopBarControls
         <CaretRight className="size-4" weight="bold" />
       </button>
       {pickerOpen && (
-        <div className="absolute top-full left-0 mt-1 z-50 w-56 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-lg p-3">
+        <div className="absolute top-[calc(100%+4px)] -left-2 z-50 w-56 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-lg p-3">
           <div className="flex items-center justify-center gap-1 mb-3">
             <button
               type="button"

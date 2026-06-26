@@ -121,7 +121,7 @@ export const MonthGrid = memo(function MonthGrid({
                 onDateClick(d);
               }
             }}
-            className={`block relative w-full h-full text-left border-0 bg-transparent p-0 flex flex-col border-r border-neutral-300 dark:border-neutral-600
+            className={`block relative w-full h-full text-left border-0 p-0 flex flex-col border-r border-neutral-300 dark:border-neutral-600
               ${!isLastRow ? "border-b" : ""}
               ${isToday ? "bg-[rgba(255,220,40,0.15)] dark:bg-[rgba(255,220,40,0.1)]" : isCurrentMonth ? "bg-neutral-50 dark:bg-neutral-900" : "bg-neutral-100 dark:bg-neutral-950"}
               ${isHighlighted ? "highlight-search" : ""}
