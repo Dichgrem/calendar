@@ -134,8 +134,13 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 
 		eventID := uuid.New().String()
 		title := util.ComponentProp(ev, ical.PropSummary)
-		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart))
-		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd))
+		dtStart := ev.Props.Get(ical.PropDateTimeStart)
+		tzid := ""
+		if dtStart != nil {
+			tzid = dtStart.Params.Get(ical.PropTimezoneID)
+		}
+		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart), tzid)
+		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd), tzid)
 
 		rawICS := rawVEvents[uid]
 		if rawICS == "" {

@@ -45,8 +45,8 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 	for _, ev := range events {
 		uid := util.ComponentProp(ev, ical.PropUID)
 		title := util.ComponentProp(ev, ical.PropSummary)
-		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart))
-		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd))
+		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart), "")
+		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd), "")
 		rruleVal := util.ComponentProp(ev, ical.PropRecurrenceRule)
 
 		items = append(items, PreviewItem{
@@ -113,8 +113,8 @@ func handleFetchURL(w http.ResponseWriter, r *http.Request) {
 	for _, ev := range events {
 		uid := util.ComponentProp(ev, ical.PropUID)
 		title := util.ComponentProp(ev, ical.PropSummary)
-		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart))
-		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd))
+		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart), "")
+		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd), "")
 		rruleVal := util.ComponentProp(ev, ical.PropRecurrenceRule)
 
 		items = append(items, PreviewItem{

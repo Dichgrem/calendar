@@ -41,21 +41,21 @@ func TestCapEventsOverLimit(t *testing.T) {
 }
 
 func TestNormalizeICSDateAllDay(t *testing.T) {
-	result := normalizeICSDate("20260601")
+	result := normalizeICSDate("20260601", "")
 	if result != "2026-06-01" {
 		t.Errorf("got %q", result)
 	}
 }
 
 func TestNormalizeICSDateTimeZ(t *testing.T) {
-	result := normalizeICSDate("20260620T100000Z")
+	result := normalizeICSDate("20260620T100000Z", "")
 	if result != "2026-06-20T10:00:00Z" {
 		t.Errorf("got %q", result)
 	}
 }
 
 func TestNormalizeICSDateTimeNoZ(t *testing.T) {
-	result := normalizeICSDate("20260620T100000")
+	result := normalizeICSDate("20260620T100000", "")
 	if result != "2026-06-20T10:00:00Z" {
 		t.Errorf("got %q", result)
 	}

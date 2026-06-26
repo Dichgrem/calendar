@@ -55,8 +55,14 @@ func handlePutEvent(w http.ResponseWriter, r *http.Request) {
 	ev := events[0]
 
 	evTitle := util.ComponentProp(ev, ical.PropSummary)
-	evStartAt := ics.NormalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart))
-	evEndAt := ics.NormalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd))
+	// Extract TZID parameter for timezone-aware conversion
+	evDTStart := ev.Props.Get(ical.PropDateTimeStart)
+	tzid := ""
+	if evDTStart != nil {
+		tzid = evDTStart.Params.Get(ical.PropTimezoneID)
+	}
+	evStartAt := ics.NormalizeICSDateWithTZID(util.ComponentProp(ev, ical.PropDateTimeStart), tzid)
+	evEndAt := ics.NormalizeICSDateWithTZID(util.ComponentProp(ev, ical.PropDateTimeEnd), tzid)
 	evUID := util.ComponentProp(ev, ical.PropUID)
 	now := time.Now().UTC().Format(time.RFC3339)
 	lmod := time.Now().UnixMilli()

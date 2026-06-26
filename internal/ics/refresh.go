@@ -62,8 +62,8 @@ func RefreshSubscription(calID string) (int, error) {
 
 		eventID := uuid.New().String()
 		title := util.ComponentProp(ev, ical.PropSummary)
-		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart))
-		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd))
+		startAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeStart), "")
+		endAt := normalizeICSDate(util.ComponentProp(ev, ical.PropDateTimeEnd), "")
 
 		rawICS := rawVEvents[uid]
 		if rawICS == "" {

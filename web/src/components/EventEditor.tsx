@@ -57,10 +57,12 @@ export function EventEditor(props: EventEditorProps) {
     if (!open) return;
     if (props.mode === "edit" && eventForEffect) {
       setTitle(eventForEffect.title);
-      setStartDate(eventForEffect.startAt.slice(0, 10));
-      setStartTime(eventForEffect.startAt.slice(11, 16));
-      setEndDate(eventForEffect.endAt.slice(0, 10));
-      setEndTime(eventForEffect.endAt.slice(11, 16));
+      const d = new Date(eventForEffect.startAt);
+      const de = new Date(eventForEffect.endAt);
+      setStartDate(toLocalInput(d).slice(0, 10));
+      setStartTime(toLocalInput(d).slice(11, 16));
+      setEndDate(toLocalInput(de).slice(0, 10));
+      setEndTime(toLocalInput(de).slice(11, 16));
       setAllDay(eventForEffect.allDay);
       setDescription(eventForEffect.description ?? "");
       setLocation(eventForEffect.location ?? "");
