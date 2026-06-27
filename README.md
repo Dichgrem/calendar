@@ -9,6 +9,10 @@
 
 [中文 README](README_zh-CN.md)
 
+<p align="center">
+  <img src="https://github.com/Dichgrem/calendar/blob/main/example.png" width="1200">
+</p>
+
 ---
 
 ## How It Works

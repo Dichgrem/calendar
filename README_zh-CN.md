@@ -8,6 +8,10 @@
 
 [English README](README.md)
 
+<p align="center">
+  <img src="https://github.com/Dichgrem/calendar/blob/main/example.png" width="1200">
+</p>
+
 ---
 
 ## 工作原理
